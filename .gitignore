@@ -5,3 +5,5 @@ dist/
 .neon
 raw_page.html
 .DS_Store
+__pycache__/
+*.pyc
