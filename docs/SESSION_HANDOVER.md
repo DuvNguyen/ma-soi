@@ -1,6 +1,12 @@
 # Session Handover - Werewolf Moderator Web App
 
 ## 1. Tổng Quan Tiến Độ & Tính Năng Đã Triển Khai
+- **Triển Khai Vercel Production & Serverless API Kết Nối Neon DB**:
+  - **Vercel Serverless Function Endpoints (`api/index.js`, `api/[...path].js`)**: Tạo bộ xử lý Serverless chuẩn cho Vercel, hỗ trợ tự động toàn bộ API `/api/matches`, `/api/matches/:id`, `/api/templates`, `/api/rosters`, `/api/game-state`, `/api/db-check`.
+  - **Cấu hình `vercel.json`**: Định tuyến SPA client-side rewrite và ánh xạ `/api/*` tới Serverless Functions; build output trỏ về `dist`.
+  - **Dynamic Neon DB Client (`src/server/db.js`)**: Cải tiến cơ chế khởi tạo client với `getSql()`, tự động nạp `process.env.DATABASE_URL` từ môi trường Vercel hoặc `.env.local`, đảm bảo hoạt động hoàn hảo trong môi trường serverless không trạng thái.
+  - **Auto Deploy On Push to Main**: Đã push commit lên `origin/main`, Vercel tự động kích hoạt pipeline build và deploy ngay khi có commit mới.
+
 - **Ban Hành Quy Chuẩn Thiết Kế Bắt Buộc & Loại Bỏ Layout Shift ([DESIGN_RULES.md](file:///home/levi/Desktop/Projects/werewolf/docs/DESIGN_RULES.md))**:
   - **Khắc Phục Hoàn Toàn Lỗi Đoán Phe Non Nớt & Giả Lập Vai Dân**: Đã xóa bỏ toàn bộ việc tự động đoán `Cùng phe` / `Phe thứ 3` khi Cupid ghép đôi ở Đêm 1; loại bỏ 100% các đoạn fallback giả lập `|| 'Dân'` / `|| 'Dân làng'` khi người chơi chưa được gán vai, chuyển sang hiển thị trung thực là `Chưa lộ vai` / `Chưa gán vai` trên toàn bộ hệ thống.
   - **Tối Giản Nút Chuyển Bước (`Đi Ngủ 💤`) & Sửa Lỗi Che Khuất Notice Ở Đáy**: Thay thế chuỗi text dài lê thê `Cho [Tên vai dài] Ngủ 💤` bằng nhãn súc tích `Đi Ngủ 💤`, giúp thanh bottom bar gọn gàng và chừa toàn bộ diện tích cho notice; bổ sung đệm đáy `pb-24` giúp banner cảnh báo không bao giờ bị đè hay che khuất khi cuộn kịch sàn.
