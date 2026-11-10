@@ -45,6 +45,7 @@ export default function NightPhaseView({
       'dien-vien': 3.5,
       'bao-ve': 4,
       'nguoi-cha-cua-soi': 4.9,
+      'soi-quy': 4.9,
       'soi-thuong': 5,
       'soi-con': 5.1,
       'soi-lon-xau-xa': 5.2,
@@ -115,7 +116,7 @@ export default function NightPhaseView({
 
   // Active step
   const currentRole = nightSteps[currentStepIdx] || nightSteps[0];
-  const isWolfStep = ['soi-thuong', 'soi-con', 'soi-lon-xau-xa', 'nguoi-cha-cua-soi'].includes(currentRole.id);
+  const isWolfStep = ['soi-thuong', 'soi-con', 'soi-lon-xau-xa', 'nguoi-cha-cua-soi', 'soi-quy'].includes(currentRole.id);
   const isSummaryStep = currentRole.id === 'night-summary';
 
   // Players assigned to this role
@@ -133,7 +134,7 @@ export default function NightPhaseView({
 
   const WOLF_ROLE_IDS = [
     'soi-thuong', 'soi-con', 'soi-lon-xau-xa', 'soi-trang', 
-    'nguoi-cha-cua-soi', 'soi-lua', 'anh-em-soi'
+    'nguoi-cha-cua-soi', 'soi-quy', 'soi-lua', 'anh-em-soi'
   ];
   const maxWolves = deckRoleIds.filter(id => WOLF_ROLE_IDS.includes(id)).length || 2;
   const currentWolves = players.filter(isWolfPlayer);
@@ -674,8 +675,8 @@ export default function NightPhaseView({
               </div>
             )}
 
-            {/* 2. SÓI NGUYỀN (CHA SÓI / NỬA NGƯỜI NỬA SÓI) */}
-            {['nguoi-cha-cua-soi', 'nua-nguoi-nua-soi'].includes(currentRole.id) && (
+            {/* 2. SÓI NGUYỀN / SÓI QUỶ (CHA SÓI / NỬA NGƯỜI NỬA SÓI) */}
+            {['nguoi-cha-cua-soi', 'soi-quy', 'nua-nguoi-nua-soi'].includes(currentRole.id) && (
               <div className="space-y-3">
                 <div className="flex items-center gap-2">
                   <Flame className="w-5 h-5 text-amber-400" />

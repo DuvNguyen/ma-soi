@@ -6,6 +6,7 @@ export const WOLF_ROLE_IDS = [
   'soi-lon-xau-xa',
   'soi-trang',
   'soi-nguyen',
+  'soi-quy',
   'nguoi-cha-cua-soi',
   'soi-lua',
   'anh-em-soi'
@@ -18,7 +19,7 @@ export const WOLF_ROLE_IDS = [
  */
 export const getRole = (roleId) => {
   if (!roleId) return null;
-  return ROLES.find(r => r.id === roleId) || null;
+  return ROLES.find(r => r.id === roleId || (r.aliases && r.aliases.includes(roleId))) || null;
 };
 
 /**

@@ -788,22 +788,24 @@ export const ROLES = [
     }
   },
   {
-    "id": "nguoi-cha-cua-soi",
-    "name": "Người Cha Của Sói (Sói Đầu Đàn)",
-    "enName": "Father of Wolves",
+    "id": "soi-quy",
+    "aliases": ["nguoi-cha-cua-soi", "soi-nguyen", "cha-cho-soi"],
+    "name": "Sói Quỷ (Sói Nguyền / Người Cha Của Sói)",
+    "enName": "Cursed Wolf-Father",
     "expansion": "Ma Sói Characters",
     "team": "Phe Sói",
     "teamCode": "W",
     "wakeOrder": 5.2,
     "wakeTime": "Mỗi đêm",
-    "shortDesc": "Thuộc phe Sói. Một lần duy nhất trong ván, sau khi Sói cắn người, có thể lây nhiễm biến nạn nhân đó thành Ma Sói thay vì chết.",
-    "fullDesc": "Người Cha Của Sói là thủ lĩnh cổ xưa của loài Sói. Thức dậy cùng đàn Sói mỗi đêm. Một lần duy nhất trong ván, ngay sau khi bầy Sói đã cắn 1 người, Người Cha có thể giơ tay ra hiệu cho Quản trò để 'Truyền nọc độc' biến nạn nhân đó thành một Ma Sói mới vào đêm sau, thay vì để nạn nhân phải chết vào sáng mai.",
-    "gmCall": "Khi Sói vừa chọn nạn nhân: 'Người Cha Của Sói có muốn lây nhiễm đồng hóa nạn nhân này không?' -> Cha của Sói gật/lắc đầu.",
+    "shortDesc": "Thuộc phe Sói. 1 lần duy nhất trong ván: nguyền nạn nhân vừa bị Sói cắn biến thành Ma Sói (giữ nguyên kỹ năng cũ) thay vì chết.",
+    "fullDesc": "Sói Quỷ (Cursed Wolf-Father / Người Cha Của Sói) là thủ lĩnh bóng tối cổ xưa của loài Sói. Thức dậy đi săn cùng bầy Sói mỗi đêm. Một lần duy nhất trong cả ván đấu, ngay sau khi bầy Sói đã cắn 1 người, Sói Quỷ có thể ra dấu nguyền để lây nhiễm biến nạn nhân đó thành một Ma Sói mới vào đêm sau, thay vì để nạn nhân phải chết vào sáng mai. Nạn nhân được giữ nguyên kỹ năng cũ và đổi phe sang chiến thắng cùng bầy Ma Sói.",
+    "gmCall": "Khi Sói vừa chọn nạn nhân: 'Sói Quỷ có muốn dùng lời nguyền lây nhiễm nạn nhân này không?' -> Sói Quỷ gật hoặc lắc đầu.",
     "notes": [
-      "Nạn nhân được lây nhiễm sẽ không chết sáng hôm sau, và từ đêm tiếp theo sẽ thức dậy cùng phe Sói.",
-      "Gia tăng quân số đắc lực cho phe Sói."
+      "1 lần duy nhất trong cả ván đấu.",
+      "Nạn nhân được nguyền sẽ KHÔNG CHẾT vào sáng hôm sau, giữ kỹ năng cũ và thức dậy cùng bầy Sói từ đêm tiếp theo.",
+      "Bảo Vệ không ngăn được lời nguyền của Sói Quỷ và bình cứu Phù Thủy không giải được lời nguyền."
     ],
-    "image": "/cards/Nhan_vat_Ma_soi___Cha_cho_soi.jpg",
+    "image": "/cards/soi-quy.png",
     "colors": {
       "bg": "#7f1d1d",
       "border": "#ef4444",

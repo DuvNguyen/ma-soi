@@ -1,6 +1,10 @@
 # Session Handover - Werewolf Moderator Web App
 
 ## 1. Tổng Quan Tiến Độ & Tính Năng Đã Triển Khai
+- **Bổ Sung Nhân Vật Sói Quỷ (Cursed Wolf-Father) Vào Toàn Hệ Thống ([roles.js](file:///home/levi/Desktop/Projects/werewolf/src/data/roles.js), [roleUtils.js](file:///home/levi/Desktop/Projects/werewolf/src/utils/roleUtils.js), [NightPhaseView.jsx](file:///home/levi/Desktop/Projects/werewolf/src/components/NightPhaseView.jsx))**:
+  - **Tên Gọi Chuẩn & Artwork Chính Hãng**: Cập nhật vai `soi-quy` ("Sói Quỷ / Sói Nguyền / Người Cha Của Sói - Cursed Wolf-Father"), sử dụng đúng lá bài chính hãng người dùng gửi (`public/cards/soi-quy.png`), thêm các alias tra cứu `nguoi-cha-cua-soi`, `soi-nguyen`.
+  - **Tích Hợp Kịch Bản Đêm & Thư Viện**: Đưa Sói Quỷ vào `WOLF_ROLE_IDS`, kịch bản gọi đêm thứ tự `#5.2`, mở khóa quyền năng nguyền lây nhiễm 1 lần/ván (nạn nhân giữ kỹ năng cũ, biến thành Sói mới và Sói tiếp tục cắn người khác).
+
 - **Tích Hợp Cẩm Nang Quản Trò Nền Giấy Da Cổ (Parchment Guide) & Tối Ưu Header 1 Dòng ([GameGuideModal.jsx](file:///home/levi/Desktop/Projects/werewolf/src/components/GameGuideModal.jsx), [App.jsx](file:///home/levi/Desktop/Projects/werewolf/src/App.jsx))**:
   - **Cẩm Nang Nền Giấy Da Cổ Điển (`public/parchment-bg.png`)**: Sử dụng hình ảnh giấy da cổ với viền cháy rách làm phông nền toàn diện cho cửa sổ Hướng Dẫn Sử Dụng. Chữ viết màu mực đen/nâu sepia cổ điển kết hợp font Cinzel sang trọng, bố cục 3 tab: *📜 Quy Trình Ván Đấu*, *🐺 Quyền Năng & Thao Tác*, *💡 Mẹo & Lưu Ý Quản Trò*.
   - **Nút Chấm Hỏi Hình Tròn Nhỏ (`?`) Trên Header**: Bổ sung icon `HelpCircle` tròn nhỏ màu vàng đất cổ điển ngay đầu cụm thao tác nhanh để Quản trò mở cẩm nang bất kỳ lúc nào.
