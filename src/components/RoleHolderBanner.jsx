@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { UserCheck, AlertTriangle, AlertCircle, RefreshCw, ChevronDown, ChevronUp, Skull, ShieldCheck, X } from 'lucide-react';
 import { getRoleCapacity } from '../utils/deckUtils';
+import { getPlayerRole } from '../utils/roleUtils';
 
 export default function RoleHolderBanner({
   currentRole,
@@ -17,7 +18,7 @@ export default function RoleHolderBanner({
   // For wolf pack step: show all living wolves
   const holders = isWolfStep 
     ? players.filter(p => isWolfPlayer(p))
-    : players.filter(p => p.roleId === currentRole.id);
+    : players.filter(p => (p.currentRoleId || p.roleId) === currentRole.id);
 
   const capacity = isWolfStep 
     ? (deckRoleIds.filter(id => ['soi-thuong', 'soi-con', 'soi-lon-xau-xa', 'soi-trang'].includes(id)).length || 2)
@@ -134,37 +135,53 @@ export default function RoleHolderBanner({
 
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-1.5 max-h-48 overflow-y-auto pr-1">
             {players.map(p => {
-              const isCurrent = p.roleId === currentRole.id;
+              const pCurrentId = p.currentRoleId || p.roleId;
+              const isCurrent = pCurrentId === currentRole.id;
+              const hasOtherRole = Boolean(pCurrentId && !isCurrent);
               const isWolf = isWolfPlayer(p);
+
               return (
                 <button
                   key={p.id}
                   type="button"
+                  disabled={hasOtherRole}
                   onClick={() => {
                     onAssignRole(p.id, currentRole);
                     setShowAssignDropdown(false);
                   }}
-                  className={`p-2 rounded-xl text-xs font-semibold text-left border transition-all cursor-pointer flex items-center justify-between gap-1.5 ${
+                  className={`p-2 rounded-xl text-xs font-semibold text-left border transition-all flex items-center justify-between gap-1.5 ${
                     isCurrent
-                      ? 'bg-purple-700 text-white border-purple-400 shadow-[0_0_12px_rgba(168,85,247,0.5)] ring-1 ring-purple-300'
+                      ? 'bg-purple-700 text-white border-purple-400 shadow-[0_0_12px_rgba(168,85,247,0.5)] ring-1 ring-purple-300 cursor-pointer'
+                      : hasOtherRole
+                      ? 'bg-[#0a0c16] border-slate-900/90 text-slate-500 opacity-40 cursor-not-allowed select-none'
                       : isWolf
-                      ? 'bg-[#1c0608] hover:bg-[#28090c] text-rose-200 border-rose-800/80 hover:border-rose-500'
-                      : 'bg-[#0f111c] hover:bg-[#181a2e] text-slate-300 border-slate-800 hover:border-slate-700'
+                      ? 'bg-[#1c0608] hover:bg-[#28090c] text-rose-200 border-rose-800/80 hover:border-rose-500 cursor-pointer'
+                      : 'bg-[#0f111c] hover:bg-[#181a2e] text-slate-300 border-slate-800 hover:border-slate-700 cursor-pointer'
                   }`}
                 >
-                  <div className="truncate">
+                  <div className="truncate min-w-0 flex-1">
                     <div className="font-bold truncate">{p.name}</div>
                     <div className="text-[10px] text-slate-400 truncate">
-                      Vai: {p.role?.name || '❓ Chưa lộ vai'}
+                      {isCurrent ? (
+                        <span className="text-purple-200 font-medium">✓ Đang giữ vai này</span>
+                      ) : hasOtherRole ? (
+                        <span className="text-purple-400/80 font-medium">🔒 Đã là {getPlayerRole(p)?.name || pCurrentId}</span>
+                      ) : (
+                        <span className="text-slate-500">Chưa có vai</span>
+                      )}
                     </div>
                   </div>
                   {isCurrent ? (
-                    <span className="text-[10px] text-purple-200 bg-purple-900 px-1.5 py-0.5 rounded border border-purple-400 font-bold">
-                      ✓ Đang giữ
+                    <span className="text-[10px] text-purple-200 bg-purple-900 px-1.5 py-0.5 rounded border border-purple-400 font-bold shrink-0">
+                      Bỏ gán
+                    </span>
+                  ) : hasOtherRole ? (
+                    <span className="text-[9px] text-slate-600 bg-slate-950 px-1 py-0.5 rounded border border-slate-900 shrink-0">
+                      Đã có vai
                     </span>
                   ) : (
-                    <span className="text-[10px] text-slate-500">
-                      Gán
+                    <span className="text-[10px] text-purple-300 bg-purple-950/80 px-1.5 py-0.5 rounded border border-purple-800 shrink-0 font-bold">
+                      Gán +
                     </span>
                   )}
                 </button>

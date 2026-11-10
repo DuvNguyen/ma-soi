@@ -1,11 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { UserCheck, Sparkles, Skull, Check, AlertCircle, HelpCircle, SkipForward, Lock } from 'lucide-react';
 import GothicButton from './ui/GothicButton';
-
-const WOLF_ROLE_IDS = [
-  'soi-thuong', 'soi-con', 'soi-lon-xau-xa', 
-  'soi-trang', 'nguoi-cha-cua-soi', 'soi-lua', 'anh-em-soi'
-];
+import { getPlayerRole, isWolfPlayer as checkWolfPlayer, WOLF_ROLE_IDS } from '../utils/roleUtils';
 
 export default function RoleClaimBox({
   currentRole,
@@ -46,8 +42,9 @@ export default function RoleClaimBox({
     const target = players.find(p => p.id === playerId);
     if (!target) return;
 
+    const targetCurrentId = target.currentRoleId || target.roleId;
     // Strict Rule: Players who already have other roles (Cupid, Bodyguard, Seer, Half-wolf, etc.) CANNOT be selected
-    if (target.roleId && !isWolfPlayer(target)) {
+    if (targetCurrentId && !isWolfPlayer(target)) {
       return;
     }
 
@@ -133,12 +130,12 @@ export default function RoleClaimBox({
         <div className="flex flex-wrap items-center justify-between gap-1 text-xs">
           <p className="text-slate-400">
             {isWolfStep
-              ? `Chạm chọn đúng ${maxWolves} người mở mắt làm Ma Sói (những người đã có vai khác sẽ bị khóa nghiêm ngặt):`
-              : `Chạm vào người chơi giơ tay nhận vai ${currentRole.name}:`}
+              ? `Chọn ${maxWolves} người làm Ma Sói:`
+              : `Chọn người nhận vai ${currentRole.name}:`}
           </p>
           {isWolfStep && selectedWolfIds.length === maxWolves && (
             <span className="text-[11px] font-bold text-emerald-400 bg-emerald-950/70 border border-emerald-800 px-2 py-0.5 rounded-full animate-pulse">
-              ✓ Đã chọn đủ {maxWolves}/{maxWolves} Sói theo bộ bài
+              ✓ Đã chọn {maxWolves}/{maxWolves} Sói
             </span>
           )}
         </div>
@@ -147,11 +144,12 @@ export default function RoleClaimBox({
       {/* Grid of Players to Claim */}
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
         {players.map(p => {
-          const hasRole = Boolean(p.roleId);
+          const pCurrentId = p.currentRoleId || p.roleId;
+          const hasRole = Boolean(pCurrentId);
           const isWolf = isWolfPlayer(p);
           const isCurrentSelectedWolf = selectedWolfIds.includes(p.id);
           const hasOtherRole = hasRole && !isWolf;
-          const isHalfWolf = p.roleId === 'nua-nguoi-nua-soi' || p.roleId === 'cho-soi-soi-lai';
+          const isHalfWolf = pCurrentId === 'nua-nguoi-nua-soi' || pCurrentId === 'cho-soi-soi-lai';
           const isMaxReached = selectedWolfIds.length >= maxWolves;
           const isSlotLocked = isMaxReached && !isCurrentSelectedWolf && !isWolf;
 
@@ -196,7 +194,7 @@ export default function RoleClaimBox({
                       isHalfWolf ? (
                         <span className="text-amber-400/90 font-medium">🔒 Bán Sói (chỉ hóa khi bị cắn)</span>
                       ) : (
-                        <span className="text-purple-400/80 font-medium">🔒 Đã là {p.role?.name || p.roleId}</span>
+                        <span className="text-purple-400/80 font-medium">🔒 Đã là {getPlayerRole(p)?.name || pCurrentId}</span>
                       )
                     ) : (isCurrentSelectedWolf || isWolf) ? (
                       <span className="text-rose-300 font-bold">🐺 Đang chọn làm Sói</span>
@@ -228,31 +226,46 @@ export default function RoleClaimBox({
           }
 
           // Single role assignment (Cupid, Seer, Bodyguard, Witch, etc.)
+          // RULE: ONE PERSON 1 ROLE - Players who already have other roles CANNOT be assigned
+          const isHoldingCurrent = pCurrentId === currentRole.id;
+          const isHoldingOther = hasRole && !isHoldingCurrent;
+
           return (
             <button
               key={p.id}
               type="button"
+              disabled={isHoldingOther}
               onClick={() => handleSingleAssign(p.id)}
-              className={`p-2 sm:p-2.5 rounded-xl border text-left transition-all duration-200 flex items-center justify-between gap-1.5 cursor-pointer ${
-                hasRole
-                  ? 'bg-[#0f111d] border-slate-900 text-slate-400 hover:border-purple-800'
-                  : 'bg-gradient-to-r from-[#170e28] to-[#111425] hover:from-[#2a134d] hover:to-[#1b1c36] border-purple-800/80 hover:border-purple-500 text-slate-200 shadow-sm'
+              className={`p-2 sm:p-2.5 rounded-xl border text-left transition-all duration-200 flex items-center justify-between gap-1.5 ${
+                isHoldingCurrent
+                  ? 'bg-purple-900/90 border-purple-400 text-white shadow-[0_0_15px_rgba(168,85,247,0.5)] ring-1 ring-purple-300 cursor-pointer'
+                  : isHoldingOther
+                  ? 'bg-[#0a0c16] border-slate-900/90 text-slate-500 opacity-40 cursor-not-allowed select-none'
+                  : 'bg-gradient-to-r from-[#170e28] to-[#111425] hover:from-[#2a134d] hover:to-[#1b1c36] border-purple-800/80 hover:border-purple-500 text-slate-200 shadow-sm cursor-pointer'
               }`}
             >
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-1.5">
                   <span className={`w-5 h-5 rounded flex items-center justify-center font-mono font-black text-[10px] shrink-0 border ${
-                    hasRole 
-                      ? 'bg-slate-900 text-slate-500 border-slate-800' 
+                    isHoldingCurrent
+                      ? 'bg-purple-950 text-purple-200 border-purple-400'
+                      : isHoldingOther
+                      ? 'bg-slate-950 text-slate-600 border-slate-900'
                       : 'bg-purple-950 text-purple-200 border-purple-700/80'
                   }`}>
                     {p.id}
                   </span>
-                  <span className="font-bold text-xs truncate text-slate-100">{p.name}</span>
+                  <span className={`font-bold text-xs truncate ${
+                    isHoldingCurrent ? 'text-white' : isHoldingOther ? 'text-slate-400' : 'text-slate-100'
+                  }`}>
+                    {p.name}
+                  </span>
                 </div>
-                <div className="text-[10px] text-slate-400 truncate pl-6.5 mt-0.5">
-                  {hasRole ? (
-                    <span className="text-purple-300 font-medium">{p.role?.name}</span>
+                <div className="text-[10px] truncate pl-6.5 mt-0.5">
+                  {isHoldingCurrent ? (
+                    <span className="text-purple-200 font-bold">✓ Đang giữ vai này</span>
+                  ) : isHoldingOther ? (
+                    <span className="text-purple-400/80 font-medium">🔒 Đã là {getPlayerRole(p)?.name || pCurrentId}</span>
                   ) : (
                     <span className="text-slate-500">Chưa có vai</span>
                   )}
@@ -260,11 +273,13 @@ export default function RoleClaimBox({
               </div>
 
               <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded border shrink-0 ${
-                hasRole
-                  ? 'bg-slate-950 text-slate-500 border-slate-800'
+                isHoldingCurrent
+                  ? 'bg-purple-950 text-purple-200 border-purple-400'
+                  : isHoldingOther
+                  ? 'bg-slate-950 text-slate-600 border-slate-900'
                   : 'bg-purple-900/90 text-purple-200 border-purple-600'
               }`}>
-                {hasRole ? 'Đổi' : 'Gán'}
+                {isHoldingCurrent ? 'Bỏ vai' : isHoldingOther ? 'Đã có vai' : 'Gán +'}
               </span>
             </button>
           );
@@ -276,9 +291,9 @@ export default function RoleClaimBox({
         <div className="mt-4 pt-3 border-t border-rose-950/80 flex flex-wrap items-center justify-between gap-2">
           <div className="text-xs text-rose-300">
             {selectedWolfIds.length === maxWolves ? (
-              <span className="text-emerald-400 font-bold">✓ Đã chọn đủ {maxWolves}/{maxWolves} Ma Sói theo bộ bài</span>
+              <span className="text-emerald-400 font-bold">✓ Đã chọn {maxWolves}/{maxWolves} Ma Sói</span>
             ) : (
-              <span>Đã chọn <strong>{selectedWolfIds.length}/{maxWolves} người</strong> (còn thiếu {Math.max(0, maxWolves - selectedWolfIds.length)})</span>
+              <span>Đã chọn <strong>{selectedWolfIds.length}/{maxWolves}</strong></span>
             )}
           </div>
 
@@ -290,7 +305,7 @@ export default function RoleClaimBox({
             className="shadow-xl"
           >
             <Check className="w-4 h-4 mr-1 inline" />
-            <span>Xác Nhận {selectedWolfIds.length}/{maxWolves} Sói ✓</span>
+            <span>Xác Nhận ({selectedWolfIds.length}/{maxWolves}) ✓</span>
           </GothicButton>
         </div>
       )}

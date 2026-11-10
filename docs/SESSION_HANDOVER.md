@@ -1,6 +1,27 @@
 # Session Handover - Werewolf Moderator Web App
 
 ## 1. Tổng Quan Tiến Độ & Tính Năng Đã Triển Khai
+- **Ban Hành Quy Chuẩn Thiết Kế Bắt Buộc & Loại Bỏ Layout Shift ([DESIGN_RULES.md](file:///home/levi/Desktop/Projects/werewolf/docs/DESIGN_RULES.md))**:
+  - **Khắc Phục Hoàn Toàn Lỗi Đoán Phe Non Nớt & Giả Lập Vai Dân**: Đã xóa bỏ toàn bộ việc tự động đoán `Cùng phe` / `Phe thứ 3` khi Cupid ghép đôi ở Đêm 1; loại bỏ 100% các đoạn fallback giả lập `|| 'Dân'` / `|| 'Dân làng'` khi người chơi chưa được gán vai, chuyển sang hiển thị trung thực là `Chưa lộ vai` / `Chưa gán vai` trên toàn bộ hệ thống.
+  - **Tối Giản Nút Chuyển Bước (`Đi Ngủ 💤`) & Sửa Lỗi Che Khuất Notice Ở Đáy**: Thay thế chuỗi text dài lê thê `Cho [Tên vai dài] Ngủ 💤` bằng nhãn súc tích `Đi Ngủ 💤`, giúp thanh bottom bar gọn gàng và chừa toàn bộ diện tích cho notice; bổ sung đệm đáy `pb-24` giúp banner cảnh báo không bao giờ bị đè hay che khuất khi cuộn kịch sàn.
+  - **Zero Layout Shift (CLS = 0)**: Đã xóa bỏ hoàn toàn khối banner giải thích luật động (`DYNAMIC TEAM ALERT`) ở bước ghép đôi Cupid tại [`NightPhaseView.jsx`](file:///home/levi/Desktop/Projects/werewolf/src/components/NightPhaseView.jsx) và [`ActionModal.jsx`](file:///home/levi/Desktop/Projects/werewolf/src/components/ActionModal.jsx). Khi chọn cặp đôi, các ô ghế và nút bấm bên dưới không còn bị giật đẩy xuống (push down) làm mất vị trí thao tác của Quản trò.
+  - **Inline & Stable Height**: Trạng thái cặp đôi (cùng phe hay Phe thứ 3) được tích hợp thành 1 chip ngắn gọn ngay trên hàng tiêu đề (`🔥 Phe Thứ 3 (1 Sói + 1 Dân)` / `❤️ Cùng phe`), giữ nguyên độ cao container tuyệt đối.
+  - **No AI-Style Meta-text**: Triệt tiêu toàn bộ các đoạn văn giải thích luật dài dòng rườm rà trên giao diện khi đang thao tác.
+
+- **Refactor Hoàn Toàn Sang Mô Hình Entity Chuẩn (`Player` × `Role`)**:
+  - **Single Source of Truth**: Tạo mới tệp [`src/utils/roleUtils.js`](file:///home/levi/Desktop/Projects/werewolf/src/utils/roleUtils.js) với các hàm tra cứu và chuẩn hóa:
+    - `getRole(roleId)`: Tra cứu Role metadata trực tiếp từ danh mục gốc `ROLES`.
+    - `getPlayerRole(player)`: Trả về object vai trò hiện tại của người chơi dựa trên `currentRoleId` (hoặc `roleId`).
+    - `getPlayerOriginalRole(player)`: Trả về object vai trò ban đầu trước khi bị biến đổi dựa trên `originalRoleId`.
+    - `isWolfPlayer(player)`: Hàm duy nhất xác định người chơi thuộc phe Sói (bao gồm `isCursedWolf`, `teamCode === 'W'`, Sói biến đổi), thay thế toàn bộ 7+ định nghĩa local rải rác.
+    - `WOLF_ROLE_IDS`: Hằng số danh sách các ID vai Ma Sói.
+  - **Loại Bỏ Anti-pattern Object Embedded**: Xóa bỏ hoàn toàn việc nhúng object `role` to đùng và `originalRole` vào từng bản ghi `player` state. `Player` hiện chỉ lưu `currentRoleId` (FK), `originalRoleId` (FK) và modifiers/flags (`isCursedWolf`, `loverId`, `elderLives`...).
+  - **Cập Nhật Đồng Bộ 100% Toàn Bộ Codebase**:
+    - [`App.jsx`](file:///home/levi/Desktop/Projects/werewolf/src/App.jsx): Template người chơi, các hàm `handleAssignRole`, `handleAssignRoleToMultiple`, `handleAutoAssignVillagers`, `handleAdvanceToDay`, `handleLynchPlayer`, `evaluateGameEnd`.
+    - [`gameLogic.js`](file:///home/levi/Desktop/Projects/werewolf/src/utils/gameLogic.js): Sói Nguyền lây nhiễm, Nửa Người Nửa Sói thức tỉnh, Đứa Trẻ Hoang Dã biến đổi, Già Làng, Thợ Săn, Người Thổi Sáo, Sói Trắng... đều cập nhật qua ID và `roleUtils.js`.
+    - Toàn bộ Components: [`NightPhaseView.jsx`](file:///home/levi/Desktop/Projects/werewolf/src/components/NightPhaseView.jsx), [`DayPhaseView.jsx`](file:///home/levi/Desktop/Projects/werewolf/src/components/DayPhaseView.jsx), [`PlayersGridView.jsx`](file:///home/levi/Desktop/Projects/werewolf/src/components/PlayersGridView.jsx), [`ActionModal.jsx`](file:///home/levi/Desktop/Projects/werewolf/src/components/ActionModal.jsx), [`RoleClaimBox.jsx`](file:///home/levi/Desktop/Projects/werewolf/src/components/RoleClaimBox.jsx), [`RoleHolderBanner.jsx`](file:///home/levi/Desktop/Projects/werewolf/src/components/RoleHolderBanner.jsx), [`CemeteryModal.jsx`](file:///home/levi/Desktop/Projects/werewolf/src/components/CemeteryModal.jsx), [`PlayerSeatPicker.jsx`](file:///home/levi/Desktop/Projects/werewolf/src/components/PlayerSeatPicker.jsx), [`WolfWhisperBox.jsx`](file:///home/levi/Desktop/Projects/werewolf/src/components/WolfWhisperBox.jsx), [`MatchHistoryModal.jsx`](file:///home/levi/Desktop/Projects/werewolf/src/components/MatchHistoryModal.jsx).
+  - **Tối Ưu Hóa Lưu Trữ & Đồng Bộ DB**: `syncGameStateApi` và `saveMatchRecordApi` giờ chỉ serialize mảng ID người chơi gọn nhẹ, không còn dư thừa dữ liệu hay rủi ro desync.
+
 - **Sắp Xếp Lại Thứ Tự Gọi Đêm Chuẩn Xác Theo Diễn Biến Thực Tế ([NightPhaseView.jsx](file:///home/levi/Desktop/Projects/werewolf/src/components/NightPhaseView.jsx))**:
   - **Thứ tự chuẩn**: Bảo Vệ (4) ➔ Bầy Ma Sói & Sói Nguyền săn mồi/lây nhiễm (5) ➔ **Tiên Tri (6)** ➔ **Phù Thủy (7)**.
   - Sói nguyền và bầy Sói hành động trước giúp Quản trò biết rõ nạn nhân đã bị cắn hay biến đổi thành Sói hay chưa trước khi Tiên Tri thức dậy soi, đảm bảo ra dấu chuẩn xác 100%!
@@ -50,4 +71,59 @@
     - Xóa bỏ dòng hiển thị trùng lặp tên người giữ vai trong phần Card Header ở [NightPhaseView.jsx](file:///home/levi/Desktop/Projects/werewolf/src/components/NightPhaseView.jsx).
 
 ## 2. Kiểm Thử Hệ Thống
-- `npm run build`: Thành công 100% không lỗi (`built in 515ms`).
+- `npm run build`: Thành công 100% không lỗi (`built in 404ms`).
+
+## 3. Bản Cập Nhật Triệt Để: Quy Tắc "One Person 1 Role" & Cảnh Sát Trưởng (#09) Chuẩn Game Rules
+Theo quy chuẩn [docs/game-rules.md](file:///home/levi/Desktop/Projects/werewolf/docs/game-rules.md):
+- **Quy tắc bất biến (One Person 1 Role)**:
+  - Mỗi người chơi chỉ được giữ duy nhất **1 lá bài nhân vật chính** (`currentRoleId`).
+  - Trong [RoleClaimBox.jsx](file:///home/levi/Desktop/Projects/werewolf/src/components/RoleClaimBox.jsx), [RoleHolderBanner.jsx](file:///home/levi/Desktop/Projects/werewolf/src/components/RoleHolderBanner.jsx) và [ActionModal.jsx](file:///home/levi/Desktop/Projects/werewolf/src/components/ActionModal.jsx):
+    - Người chơi đã có vai khác lập tức bị **khóa cứng (disabled, opacity-40, cursor-not-allowed)**, hiển thị `🔒 Đã là [Tên vai]`. Quản trò không thể chọn gán tiếp vai mới cho họ.
+    - Chỉ cho phép gán đối với người chưa có vai (`!currentRoleId`), hoặc click vào chính người đang giữ để hủy gán vai (unassign).
+    - Ngăn chặn hoàn toàn tình trạng 1 người sở hữu nhiều lá nhân vật.
+- **Chức vụ công khai: Cảnh Sát Trưởng (#09 / Sheriff)**:
+  - Theo luật (Dòng 477): Là chức vụ do làng bầu công khai vào sáng ngày 1, người được bầu giữ thẻ chức vụ **song song với lá nhân vật chính** của mình.
+  - Quản lý qua thuộc tính `isSheriff: boolean` (không ghi đè `currentRoleId` làm mất lá nhân vật).
+  - Tích hợp khối **Cảnh Sát Trưởng** trực quan tại [DayPhaseView.jsx](file:///home/levi/Desktop/Projects/werewolf/src/components/DayPhaseView.jsx):
+    - Sáng ngày 1: Quản trò có nút bầu Cảnh Sát Trưởng.
+    - Người giữ chức nhận huy hiệu `⭐ Cảnh Sát Trưởng (x2 Phiếu)`.
+    - Khi Cảnh Sát Trưởng hy sinh (bị Sói cắn hoặc bị treo cổ): Hiển thị cảnh báo đỏ nổi bật kèm nút chỉ định người kế nhiệm huy hiệu đúng luật.
+    - Hiển thị ngôi sao vàng `⭐` trên Sơ đồ bàn rạp hát ([PlayersGridView.jsx](file:///home/levi/Desktop/Projects/werewolf/src/components/PlayersGridView.jsx)).
+
+## 4. Tự Động Lưu Trữ & Phục Hồi Tiến Trình Ván Đấu (LocalStorage Instant Auto-Save & Restore)
+- **Vấn đề đã xử lý**: Trước đây mỗi khi người dùng F5 hoặc reload tab, ván chơi bị reset trắng về trạng thái ban đầu.
+- **Giải pháp triển khai trong [App.jsx](file:///home/levi/Desktop/Projects/werewolf/src/App.jsx)**:
+  - Khởi tạo đồng bộ (`getInitialSavedState()` với lazy `useState(() => ...)`): Khi người dùng F5 / reload, React đọc ngay `werewolf_active_game_state` từ `localStorage` để render trạng thái ván chơi tức thì trong **0ms** (không bị chớp giật hay flash màn hình trắng).
+  - Tự động lưu tức thời (`useEffect`): Bất kỳ thay đổi nào (gán vai, cắn người, soi bài, bảo vệ, phù thủy, chuyển Đêm/Ngày, treo cổ...) đều được lưu ngay vào `localStorage` và đồng bộ ngầm lên Neon DB.
+  - Phục hồi đầy đủ: `players`, `roundNumber`, `isNight`, `activeTab`, `nightState`, `deckRoleIds`, `nightLogs`, `lynchedTodayPlayerId`, `gameEndResult`.
+  - Nút **Reset Về 0** (`handleResetGame`): Có hộp thoại xác nhận; chỉ khi Quản trò xác nhận xóa ván thì `localStorage` mới được dọn dẹp để chơi ván mới sạch sẽ.
+
+## 5. Cải Tiến Luồng Sói Nguyền (Chuyển Thành Sói Ngay & Tiếp Tục Cắn)
+- **Luồng thao tác Quản trò mới**:
+  - Khi Quản trò chọn 1 người chơi để cắn (ví dụ #14 Thu Hà), panel Sói Nguyền hiện nút hành động tức thì: **`🔮 Nguyền [Tên người] Thành Sói & Cắn Tiếp ➔`**.
+  - Bấm nút này:
+    1. Người đó **lập tức hóa thành Ma Sói ngay trong đêm** (`isCursedWolf: true`, lưu `originalRoleId` vai gốc, đổi `currentRoleId = 'soi-thuong'`).
+    2. Người đó được thêm ngay vào danh sách đàn Sói (`isWolfPlayer` là true, ghế chuyển viền đỏ Sói, hiển thị "🐺 Đồng bọn" và không thể bị cắn nữa).
+    3. Trạng thái cắn được reset (`wolfTargetId = null`) để bầy Sói **tiếp tục chọn 1 người khác để cắn đêm nay**.
+    4. Hiển thị banner xác nhận tím kèm nút **`↩ Hoàn tác nguyền`** phòng trường hợp bấm nhầm.
+    5. Sáng hôm sau: Ghi nhận đầy đủ nhật ký Sói Nguyền lây nhiễm, đồng thời xử lý nạn nhân thứ 2 theo quy trình cắn thông thường.
+  - Tích hợp tại: [NightPhaseView.jsx](file:///home/levi/Desktop/Projects/werewolf/src/components/NightPhaseView.jsx), [App.jsx](file:///home/levi/Desktop/Projects/werewolf/src/App.jsx), [gameLogic.js](file:///home/levi/Desktop/Projects/werewolf/src/utils/gameLogic.js).
+
+## 6. Tối Giản Thông Báo Trên Thanh Điều Hướng Đáy (Compact Mobile Sticky Note)
+- Rút gọn toàn bộ các câu thông báo bước đêm trên thanh điều hướng đáy (`sticky bottom bar`):
+  - Ví dụ: `⚠️ Chưa gán ai là Cupid (Thần Tình Yêu)! Hãy chạm...` ➔ Rút gọn thành `⚠️ Chưa gán vai Cupid` (vừa vặn 100%, không bao giờ bị cắt thành `...` trên màn hình hẹp).
+  - Tương tự cho các bước: `Chưa đủ 1/2 Sói`, `Chưa chọn mục tiêu cắn`, `Chọn cặp đôi (0/2)`, `Chưa chọn bảo vệ`, `Chưa chọn Thần Tượng`...
+  - Giữ nguyên tooltip hover và banner nội dung cho giải thích chi tiết.
+
+## 7. Triệt Tiêu Layout Shift Của Nút "Xóa Chọn Lại" & Loại Bỏ Text Over-Explained
+- **Chuyển nút "Xóa chọn lại" của Cupid xuống dưới cùng**:
+  - Trước: Nút xuất hiện có điều kiện ở giữa tiêu đề và đoạn mô tả, khiến mỗi khi chọn 1 người thì toàn bộ component phía dưới bị giật khựng tụt xuống.
+  - Sau: Xóa bỏ khỏi header; đưa xuống **dưới cùng** (bên dưới ma trận ghế `PlayerSeatPicker`). Khi chọn người chơi, các component phía trên đứng yên 100% không dịch chuyển (CLS = 0).
+- **Tối giản nút hành động (Chống over-explained)**:
+  - `🔮 Nguyền Thu Hà Thành Sói & Cắn Tiếp ➔` ➔ **`🔮 Nguyền thành Sói`**
+  - `🚫 Đêm Nay Bỏ Qua (Chưa Dùng)` ➔ **`Bỏ qua`**
+  - `🚫 Bầy Sói Đêm Nay Không Cắn Ai` ➔ **`Đêm nay không cắn`**
+  - `Xác Nhận Treo Cổ Người Này (Chỉ 1 người)` ➔ **`Xác nhận treo cổ`**
+  - `HẾT NGÀY - ĐÊM BUÔNG XUỐNG` ➔ **`Hết ngày ➔ Ban đêm`**
+  - `Thẩm Phán Lắp Bắp kích hoạt (Treo thêm lượt 2)` ➔ **`Thẩm Phán kích hoạt`**
+- **Cập nhật quy chuẩn thiết kế**: Bổ sung điều khoản cấm nút bấm over-explained và quy định vị trí nút xóa chọn vào [docs/DESIGN_RULES.md](file:///home/levi/Desktop/Projects/werewolf/docs/DESIGN_RULES.md).

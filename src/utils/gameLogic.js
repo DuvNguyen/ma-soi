@@ -2,6 +2,8 @@
  * Game logic engine for Werewolf GM
  */
 
+import { getRole, getPlayerRole, getPlayerOriginalRole, isWolfPlayer } from './roleUtils.js';
+
 export function checkGameEnd(players, extraRules = {}) {
   const alivePlayers = players.filter(p => p.isAlive);
   
@@ -23,13 +25,14 @@ export function checkGameEnd(players, extraRules = {}) {
       }
     }
 
-    if (p.role?.teamCode === 'W') {
+    const role = getPlayerRole(p);
+    if (isWolfPlayer(p)) {
       aliveWolves++;
-    } else if (p.role?.teamCode === 'V') {
+    } else if (role?.teamCode === 'V') {
       aliveVillagers++;
     } else {
       // 3rd party or variable
-      if (p.role?.id === 'soi-trang') {
+      if (role?.id === 'soi-trang') {
         aliveWolves++; // counts toward wolf count initially
       } else {
         aliveVillagers++; // default to non-wolf
@@ -38,7 +41,7 @@ export function checkGameEnd(players, extraRules = {}) {
   });
 
   // 1. Special 3rd party: Pied Piper (Người Thổi Sáo)
-  const piedPiper = alivePlayers.find(p => p.role?.id === 'nguoi-thoi-sao');
+  const piedPiper = alivePlayers.find(p => getPlayerRole(p)?.id === 'nguoi-thoi-sao');
   if (piedPiper) {
     const others = alivePlayers.filter(p => p.id !== piedPiper.id);
     if (others.length > 0 && others.every(p => p.isHypnotized)) {
@@ -56,21 +59,23 @@ export function checkGameEnd(players, extraRules = {}) {
   if (couplePlayers.length === 2 && alivePlayers.length === 2) {
     const p1 = couplePlayers[0];
     const p2 = couplePlayers[1];
-    const isP1Wolf = p1.role?.teamCode === 'W';
-    const isP2Wolf = p2.role?.teamCode === 'W';
+    const isP1Wolf = isWolfPlayer(p1);
+    const isP2Wolf = isWolfPlayer(p2);
     if ((isP1Wolf && !isP2Wolf) || (!isP1Wolf && isP2Wolf)) {
+      const p1Role = getPlayerRole(p1);
+      const p2Role = getPlayerRole(p2);
       return {
         isEnded: true,
         winner: 'Lovers',
         winnerTitle: 'Cặp Đôi Tình Yêu Khác Phe Chiến Thắng!',
         teamCode: '3',
-        description: `${p1.name} (${p1.role?.name}) và ${p2.name} (${p2.role?.name}) là hai người duy nhất sống sót vượt qua mọi định kiến!`
+        description: `${p1.name} (${p1Role?.name || 'Chưa rõ'}) và ${p2.name} (${p2Role?.name || 'Chưa rõ'}) là hai người duy nhất sống sót vượt qua mọi định kiến!`
       };
     }
   }
 
   // 3. Special 3rd party: White Werewolf (Sói Trắng)
-  const whiteWolf = alivePlayers.find(p => p.role?.id === 'soi-trang');
+  const whiteWolf = alivePlayers.find(p => getPlayerRole(p)?.id === 'soi-trang');
   if (whiteWolf && alivePlayers.length === 1) {
     return {
       isEnded: true,
@@ -126,8 +131,18 @@ export function resolveNightPhase(players, nightActions, roundNumber) {
     protectedPlayerId,
     witchSaved,
     witchPoisonTargetId,
-    isCursedInfect
+    isCursedInfect,
+    lastCursedVictimId
   } = nightActions;
+
+  // 0. Process Immediate Cursed Wolf Infection if occurred in current round
+  if (lastCursedVictimId) {
+    const cursedTarget = updatedPlayers.find(p => p.id === lastCursedVictimId);
+    if (cursedTarget) {
+      const origRole = getPlayerOriginalRole(cursedTarget);
+      logs.push(`🔮 SÓI NGUYỀN ĐÃ LÂY NHIỄM: ${cursedTarget.name} (vốn giữ vai ${origRole?.name || 'Chưa lộ vai'}) không bị cắn chết mà đã được Sói Nguyền lây nhiễm, gia nhập bầy Ma Sói của làng!`);
+    }
+  }
 
   // 1. Process Werewolf Kill or Cursed Wolf Infection
   if (wolfTargetId) {
@@ -135,22 +150,17 @@ export function resolveNightPhase(players, nightActions, roundNumber) {
     if (target && target.isAlive) {
       if (isCursedInfect) {
         // SÓI NGUYỀN (NGƯỜI CHA CỦA SÓI) ĐỒNG HÓA LÂY NHIỄM
-        // Người này không chết, lưu cả vai trò cũ và nhận vai trò Ma Sói
-        const oldRole = target.role;
-        const oldRoleId = target.roleId;
-        target.originalRole = target.originalRole || oldRole;
+        // Người này không chết, lưu ID vai trò cũ và nhận vai trò Ma Sói
+        const oldRoleId = target.currentRoleId || target.roleId;
         target.originalRoleId = target.originalRoleId || oldRoleId;
         target.isCursedWolf = true;
         target.curseNight = roundNumber;
+        target.currentRoleId = 'soi-thuong';
         target.roleId = 'soi-thuong';
-        target.role = {
-          id: 'soi-thuong',
-          name: 'Ma Sói (Bị Nguyền)',
-          team: 'Phe Sói',
-          teamCode: 'W',
-          originalRole: target.originalRole
-        };
-        logs.push(`🔮 SÓI NGUYỀN ĐÃ LÂY NHIỄM: ${target.name} (vốn giữ vai ${target.originalRole?.name || 'Dân Làng'}) không bị cắn chết mà đã được Sói Nguyền lây nhiễm, trở thành Ma Sói mới của làng!`);
+        delete target.role;
+        delete target.originalRole;
+        const origRole = getPlayerOriginalRole(target);
+        logs.push(`🔮 SÓI NGUYỀN ĐÃ LÂY NHIỄM: ${target.name} (vốn giữ vai ${origRole?.name || 'Chưa lộ vai'}) không bị cắn chết mà đã được Sói Nguyền lây nhiễm, trở thành Ma Sói mới của làng!`);
       } else {
         const isProtected = protectedPlayerId === target.id;
         const isSavedByWitch = witchSaved;
@@ -159,24 +169,21 @@ export function resolveNightPhase(players, nightActions, roundNumber) {
           let reason = isProtected ? 'được Bảo Vệ che chở' : 'được Phù Thủy dùng bình thần dược cứu sống';
           logs.push(`${target.name} bị Ma Sói tấn công nhưng may mắn ${reason}!`);
         } else {
+          const targetRole = getPlayerRole(target);
           // Check Elder (Già Làng - 2 lives against wolves)
-          if (target.role?.id === 'gia-lang' && (target.elderLives || 2) > 1) {
+          if (targetRole?.id === 'gia-lang' && (target.elderLives || 2) > 1) {
             target.elderLives = (target.elderLives || 2) - 1;
             logs.push(`Già Làng ${target.name} bị Ma Sói cắn nhưng đã kiên cường sống sót nhờ mạng sống thứ nhất (Còn 1 mạng)!`);
-          } else if (target.role?.id === 'nua-nguoi-nua-soi') {
-            // Nửa Người Nửa Sói turns into werewolf - also preserve original role
-            target.originalRole = target.originalRole || target.role;
-            target.originalRoleId = target.originalRoleId || target.roleId;
+          } else if (targetRole?.id === 'nua-nguoi-nua-soi') {
+            // Nửa Người Nửa Sói turns into werewolf - preserve original role
+            const oldRoleId = target.currentRoleId || target.roleId;
+            target.originalRoleId = target.originalRoleId || oldRoleId;
             target.isCursedWolf = true;
             target.curseNight = roundNumber;
+            target.currentRoleId = 'soi-thuong';
             target.roleId = 'soi-thuong';
-            target.role = {
-              id: 'soi-thuong',
-              name: 'Ma Sói (Đã Thức Tỉnh)',
-              team: 'Phe Sói',
-              teamCode: 'W',
-              originalRole: target.originalRole
-            };
+            delete target.role;
+            delete target.originalRole;
             logs.push(`Nửa Người Nửa Sói ${target.name} bị Ma Sói cắn và đã chính thức thức tỉnh gen Sói, gia nhập đàn Sói!`);
           } else {
             killedPlayerIds.add(target.id);
@@ -228,21 +235,17 @@ export function resolveNightPhase(players, nightActions, roundNumber) {
 
   // 5. Check Wild Child (Đứa Trẻ Hoang Dã) idol death
   updatedPlayers.forEach(p => {
-    if (p.isAlive && p.role?.id === 'dua-tre-hoang-da' && p.idolId) {
+    if (p.isAlive && getPlayerRole(p)?.id === 'dua-tre-hoang-da' && p.idolId) {
       const idol = updatedPlayers.find(x => x.id === p.idolId);
       if (idol && !idol.isAlive) {
-        p.originalRole = p.originalRole || p.role;
-        p.originalRoleId = p.originalRoleId || p.roleId;
+        const oldRoleId = p.currentRoleId || p.roleId;
+        p.originalRoleId = p.originalRoleId || oldRoleId;
         p.isCursedWolf = true;
         p.curseNight = roundNumber;
+        p.currentRoleId = 'soi-thuong';
         p.roleId = 'soi-thuong';
-        p.role = {
-          id: 'soi-thuong',
-          name: 'Ma Sói (Đứa Trẻ Hóa Sói)',
-          team: 'Phe Sói',
-          teamCode: 'W',
-          originalRole: p.originalRole
-        };
+        delete p.role;
+        delete p.originalRole;
         logs.push(`Thần tượng (${idol.name}) của Đứa Trẻ Hoang Dã (${p.name}) đã chết! Đứa Trẻ nổi giận biến thành Ma Sói!`);
       }
     }

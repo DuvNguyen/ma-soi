@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Skull, Clock, Play, Pause, RotateCcw, Send, Settings, Check, Volume2, VolumeX, MessageSquare, ChevronRight, UserCheck, Trash2, AlertCircle } from 'lucide-react';
 import GothicButton from './ui/GothicButton';
 import GothicBadge from './ui/GothicBadge';
+import { isWolfPlayer, getPlayerRole } from '../utils/roleUtils';
 
 export default function WolfWhisperBox({
   players,
@@ -16,11 +17,6 @@ export default function WolfWhisperBox({
   });
   const [showSettings, setShowSettings] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(true);
-
-  // Identify living werewolves
-  const isWolfPlayer = (p) => {
-    return p?.role?.teamCode === 'W' || ['soi-thuong', 'soi-con', 'soi-lon-xau-xa', 'soi-trang'].includes(p?.role?.id);
-  };
 
   const livingWolves = players.filter(p => p.isAlive && isWolfPlayer(p));
   const aliveVictimCandidates = players.filter(p => p.isAlive);
@@ -286,7 +282,7 @@ export default function WolfWhisperBox({
                     </div>
                     <div className="text-lg sm:text-xl font-black font-cinzel text-white flex items-center gap-2">
                       <span>{currentWolf.name}</span>
-                      <span className="text-xs text-rose-300 font-sans font-normal">({currentWolf.role?.name || 'Ma Sói'})</span>
+                      <span className="text-xs text-rose-300 font-sans font-normal">({getPlayerRole(currentWolf)?.name || 'Ma Sói'})</span>
                     </div>
                   </div>
                 </div>

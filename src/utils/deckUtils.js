@@ -46,8 +46,9 @@ export function getRemainingDeckCards(players, deckRoleIds = []) {
   // Count assigned roles among players
   const assignedCounts = {};
   players.forEach(p => {
-    if (p.roleId) {
-      assignedCounts[p.roleId] = (assignedCounts[p.roleId] || 0) + 1;
+    const pCurrentId = p.currentRoleId || p.roleId;
+    if (pCurrentId) {
+      assignedCounts[pCurrentId] = (assignedCounts[pCurrentId] || 0) + 1;
     }
   });
 

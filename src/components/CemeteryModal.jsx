@@ -3,6 +3,7 @@ import { Skull, Clock, Heart, Shield, X } from 'lucide-react';
 import GothicModalContainer from './ui/GothicModalContainer';
 import GothicButton from './ui/GothicButton';
 import WolfHead from './ui/WolfHead';
+import { isWolfPlayer, getPlayerRole } from '../utils/roleUtils';
 
 export default function CemeteryModal({ isOpen, onClose, players, roundNumber }) {
   if (!isOpen) return null;
@@ -36,7 +37,8 @@ export default function CemeteryModal({ isOpen, onClose, players, roundNumber })
         ) : (
           <div className="space-y-2.5 max-h-[60vh] overflow-y-auto pr-1">
             {deadPlayers.map(p => {
-              const isWolf = p.role?.teamCode === 'W';
+              const isWolf = isWolfPlayer(p);
+              const pRole = getPlayerRole(p);
               return (
                 <div
                   key={p.id}
@@ -56,13 +58,13 @@ export default function CemeteryModal({ isOpen, onClose, players, roundNumber })
                     <div>
                       <div className="flex items-center gap-2">
                         <span className="font-bold text-sm text-slate-100">{p.name}</span>
-                        {p.role?.name && (
+                        {pRole?.name && (
                           <span className={`text-[10px] px-2 py-0.2 rounded font-bold border ${
                             isWolf 
                               ? 'bg-rose-950 text-rose-300 border-rose-600' 
                               : 'bg-purple-950 text-purple-300 border-purple-700'
                           }`}>
-                            {p.role.name}
+                            {pRole.name}
                           </span>
                         )}
                       </div>

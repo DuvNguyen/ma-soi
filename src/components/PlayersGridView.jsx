@@ -1,15 +1,12 @@
 import React from 'react';
-import { Heart, Skull, Shield, Eye, UserCheck, AlertCircle, Sparkles } from 'lucide-react';
+import { Heart, Skull, Shield, Eye, UserCheck, AlertCircle, Sparkles, Star } from 'lucide-react';
 import GothicBadge from './ui/GothicBadge';
+import { isWolfPlayer, getPlayerRole, getPlayerOriginalRole } from '../utils/roleUtils';
 
 export default function PlayersGridView({ players, onOpenAssignRole }) {
   const aliveCount = players.filter(p => p.isAlive).length;
-  const wolfCount = players.filter(p => p.isAlive && p.role?.teamCode === 'W').length;
-  const villagerCount = players.filter(p => p.isAlive && p.role?.teamCode === 'V').length;
-
-  const isWolfPlayer = (p) => {
-    return p.role?.teamCode === 'W' || ['soi-thuong', 'soi-con', 'soi-lon-xau-xa', 'soi-trang'].includes(p.role?.id);
-  };
+  const wolfCount = players.filter(p => p.isAlive && isWolfPlayer(p)).length;
+  const villagerCount = players.filter(p => p.isAlive && !isWolfPlayer(p) && getPlayerRole(p)?.teamCode === 'V').length;
 
   return (
     <div className="space-y-4 sm:space-y-6 max-w-5xl mx-auto">
@@ -72,14 +69,16 @@ export default function PlayersGridView({ players, onOpenAssignRole }) {
           {players.map(p => {
             const partner = p.loverId ? players.find(x => x.id === p.loverId) : null;
             const isWolf = isWolfPlayer(p);
-            const hasRole = Boolean(p.roleId);
+            const pRole = getPlayerRole(p);
+            const origRole = getPlayerOriginalRole(p);
+            const hasRole = Boolean(pRole || p.currentRoleId || p.roleId);
 
             return (
               <button
                 key={p.id}
                 type="button"
                 onClick={() => onOpenAssignRole(p)}
-                title={`Ghế #${p.id} - ${p.name} (${p.role?.name || 'Chưa gán vai'}) - Bấm để đổi vai trò`}
+                title={`Ghế #${p.id} - ${p.name} (${pRole?.name || 'Chưa gán vai'}) - Bấm để đổi vai trò`}
                 className={`relative p-2 sm:p-2.5 rounded-xl border text-center transition-all duration-200 cursor-pointer flex flex-col items-center justify-between min-h-[90px] sm:min-h-[105px] group ${
                   !p.isAlive
                     ? 'bg-[#08080c]/80 border-slate-900 opacity-40 hover:opacity-75'
@@ -108,6 +107,7 @@ export default function PlayersGridView({ players, onOpenAssignRole }) {
                   }`}>
                     #{p.id}
                   </span>
+                  {p.isSheriff && <Star className="w-3 h-3 text-amber-400 fill-amber-400 shrink-0" title="Cảnh Sát Trưởng (x2 phiếu)" />}
                   {partner && <Heart className="w-3 h-3 text-pink-400 fill-pink-500 shrink-0" />}
                 </div>
 
@@ -129,13 +129,13 @@ export default function PlayersGridView({ players, onOpenAssignRole }) {
                       <Skull className="w-2.5 h-2.5" /> Chết
                     </span>
                   ) : hasRole ? (
-                    p.isCursedWolf && p.originalRole ? (
+                    p.isCursedWolf && origRole ? (
                       <div className="space-y-0.5">
                         <span className="text-[8px] font-bold px-1 py-0.2 rounded block truncate bg-rose-950 text-rose-200 border border-rose-600 shadow-sm">
                           🐺 Sói (Bị Nguyền)
                         </span>
-                        <span className="text-[8px] text-amber-300 font-medium block truncate" title={`Vai ban đầu: ${p.originalRole.name}`}>
-                          Gốc: {p.originalRole.name}
+                        <span className="text-[8px] text-amber-300 font-medium block truncate" title={`Vai ban đầu: ${origRole.name}`}>
+                          Gốc: {origRole.name}
                         </span>
                       </div>
                     ) : (
@@ -144,7 +144,7 @@ export default function PlayersGridView({ players, onOpenAssignRole }) {
                           ? 'bg-rose-950 text-rose-300 border border-rose-800'
                           : 'bg-purple-950 text-purple-300 border border-purple-800'
                       }`}>
-                        {p.role.name}
+                        {pRole?.name || 'Đã gán vai'}
                       </span>
                     )
                   ) : (

@@ -12,6 +12,7 @@ import DeckInventoryRadar from './DeckInventoryRadar';
 import PlayerSeatPicker from './PlayerSeatPicker';
 import { getRoleCapacity } from '../utils/deckUtils';
 import { useGothicDialog } from '../context/GothicDialogContext';
+import { isWolfPlayer, getPlayerRole, getPlayerOriginalRole, getRole, WOLF_ROLE_IDS } from '../utils/roleUtils';
 
 export default function NightPhaseView({
   roundNumber,
@@ -28,12 +29,6 @@ export default function NightPhaseView({
 }) {
   const { showConfirm, showAlert } = useGothicDialog();
 
-  const isWolfPlayer = (p) => {
-    return p?.isCursedWolf || p?.role?.teamCode === 'W' || [
-      'soi-thuong', 'soi-con', 'soi-lon-xau-xa', 'soi-trang', 
-      'nguoi-cha-cua-soi', 'soi-lua', 'anh-em-soi'
-    ].includes(p?.role?.id);
-  };
   // Sort roles according to canonical night wake-up order
   const getOrderedNightRoles = () => {
     // Standard night order priorities matching official rulebook
@@ -121,7 +116,7 @@ export default function NightPhaseView({
   const isSummaryStep = currentRole.id === 'night-summary';
 
   // Players assigned to this role
-  const assignedPlayers = players.filter(p => p.roleId === currentRole.id);
+  const assignedPlayers = players.filter(p => (p.currentRoleId || p.roleId) === currentRole.id);
   const alivePlayers = players.filter(p => p.isAlive);
 
   // Actions state local helpers
@@ -130,7 +125,7 @@ export default function NightPhaseView({
 
   // STRICT GATEKEEPER VALIDATION
   const isSkipped = (nightState?.skippedRoles || []).includes(currentRole?.id);
-  const roleHolders = isWolfStep ? players.filter(isWolfPlayer) : players.filter(p => p.roleId === currentRole?.id);
+  const roleHolders = isWolfStep ? players.filter(isWolfPlayer) : players.filter(p => (p.currentRoleId || p.roleId) === currentRole?.id);
   const hasHolders = roleHolders.length > 0;
 
   const WOLF_ROLE_IDS = [
@@ -141,7 +136,9 @@ export default function NightPhaseView({
   const currentWolves = players.filter(isWolfPlayer);
 
   const getStepValidationState = () => {
-    if (!currentRole || isSummaryStep) return { isValid: true, message: '' };
+    if (!currentRole || isSummaryStep) return { isValid: true, message: '', shortMessage: '' };
+
+    const shortRoleName = (currentRole.name || '').split(' (')[0].split('/')[0].trim();
 
     // Strict Rule: WEREWOLVES CANNOT BE SKIPPED UNDER ANY CIRCUMSTANCES
     if (isWolfStep) {
@@ -149,85 +146,163 @@ export default function NightPhaseView({
         return {
           isValid: false,
           isStrictBlock: true,
-          message: `BẮT BUỘC gán đủ ${maxWolves} Ma Sói theo bộ bài! (Hiện có ${currentWolves.length}/${maxWolves} Sói). Không được phép bỏ qua bước này!`
+          message: `BẮT BUỘC gán đủ ${maxWolves} Ma Sói theo bộ bài! (Hiện có ${currentWolves.length}/${maxWolves} Sói).`,
+          shortMessage: `Chưa đủ ${currentWolves.length}/${maxWolves} Sói`
         };
       }
       if (nightState.wolfTargetId === null && !nightState.wolfSkipped) {
-        return { isValid: false, message: 'Bầy Sói phải chọn 1 con mồi hoặc bấm Bầy Sói Không Cắn Ai' };
+        return { 
+          isValid: false, 
+          message: 'Bầy Sói phải chọn 1 con mồi hoặc bấm Bầy Sói Không Cắn Ai',
+          shortMessage: 'Chưa chọn mục tiêu cắn'
+        };
       }
-      return { isValid: true, message: 'Bầy Sói đã chọn mục tiêu' };
+      return { 
+        isValid: true, 
+        message: 'Bầy Sói đã chọn mục tiêu',
+        shortMessage: 'Đã chọn mục tiêu ✓'
+      };
     }
 
     // If role is skipped by moderator: allow pass
     if (isSkipped) {
-      return { isValid: true, message: `Quản trò đã bỏ qua vai ${currentRole.name}` };
+      return { 
+        isValid: true, 
+        message: `Quản trò đã bỏ qua vai ${shortRoleName}`,
+        shortMessage: 'Đã bỏ qua vai ✓'
+      };
     }
 
     // If role has assigned players and all living holders are dead, allow auto-skip
     const hasLivingHolders = roleHolders.some(p => p.isAlive);
     if (roleHolders.length > 0 && !hasLivingHolders) {
-      return { isValid: true, isDeadRole: true, message: 'Người giữ vai này đã chết ➔ Có thể bỏ qua' };
+      return { 
+        isValid: true, 
+        isDeadRole: true, 
+        message: 'Người giữ vai này đã chết ➔ Có thể bỏ qua',
+        shortMessage: 'Người giữ vai đã chết'
+      };
     }
 
     // If no holders assigned yet: require assignment or skip
     if (!hasHolders) {
-      return { isValid: false, message: `Chưa gán ai là ${currentRole.name}! Hãy chạm số ghế người chơi để gán hoặc bấm Bỏ qua.` };
+      return { 
+        isValid: false, 
+        message: `Chưa gán ai là ${shortRoleName}! Chạm số ghế người chơi để gán.`,
+        shortMessage: `Chưa gán vai ${shortRoleName}`
+      };
     }
 
     switch (currentRole.id) {
       case 'cupid': {
         const count = (nightState.cupidChosenIds || []).length;
         if (count !== 2) {
-          return { isValid: false, message: `Bắt buộc chọn đúng 2 người yêu nhau (${count}/2)` };
+          return { 
+            isValid: false, 
+            message: `Bắt buộc chọn đúng 2 người yêu nhau (${count}/2)`,
+            shortMessage: `Chọn cặp đôi (${count}/2)`
+          };
         }
-        return { isValid: true, message: 'Đã ghép đôi 2 người' };
+        return { 
+          isValid: true, 
+          message: 'Đã ghép đôi 2 người',
+          shortMessage: 'Đã ghép đôi ✓'
+        };
       }
 
       case 'bao-ve': {
         if (!nightState.protectedPlayerId && !nightState.protectSkipped) {
-          return { isValid: false, message: 'Vui lòng chọn 1 người để bảo vệ hoặc bấm Bỏ qua' };
+          return { 
+            isValid: false, 
+            message: 'Vui lòng chọn 1 người để bảo vệ hoặc bấm Bỏ qua',
+            shortMessage: 'Chưa chọn bảo vệ'
+          };
         }
         if (nightState.protectedPlayerId && nightState.protectedPlayerId === nightState.lastNightProtectedId) {
-          return { isValid: false, message: 'Không được bảo vệ người này 2 đêm liên tiếp!' };
+          return { 
+            isValid: false, 
+            message: 'Không được bảo vệ người này 2 đêm liên tiếp!',
+            shortMessage: 'Trùng đêm trước!'
+          };
         }
-        return { isValid: true, message: 'Đã chọn người bảo vệ' };
+        return { 
+          isValid: true, 
+          message: 'Đã chọn người bảo vệ',
+          shortMessage: 'Đã bảo vệ ✓'
+        };
       }
 
       case 'tien-tri': {
-        return { isValid: true, message: 'Chạm vào người chơi để xem lá bài & ra dấu cho Tiên Tri' };
+        return { 
+          isValid: true, 
+          message: 'Chạm vào người chơi để xem lá bài & ra dấu cho Tiên Tri',
+          shortMessage: 'Chạm để xem bài'
+        };
       }
 
       case 'soi-thuong': {
         if (nightState.wolfTargetId === null && !nightState.wolfSkipped) {
-          return { isValid: false, message: 'Bầy Sói phải chọn 1 con mồi hoặc bấm Bỏ qua' };
+          return { 
+            isValid: false, 
+            message: 'Bầy Sói phải chọn 1 con mồi hoặc bấm Bỏ qua',
+            shortMessage: 'Chưa chọn mục tiêu cắn'
+          };
         }
-        return { isValid: true, message: 'Bầy Sói đã chọn mục tiêu' };
+        return { 
+          isValid: true, 
+          message: 'Bầy Sói đã chọn mục tiêu',
+          shortMessage: 'Đã chọn mục tiêu ✓'
+        };
       }
 
       case 'dua-tre-hoang-da': {
         if (!nightState.wildChildIdolId) {
-          return { isValid: false, message: 'Đứa Trẻ Hoang Dã bắt buộc chọn 1 Thần Tượng' };
+          return { 
+            isValid: false, 
+            message: 'Đứa Trẻ Hoang Dã bắt buộc chọn 1 Thần Tượng',
+            shortMessage: 'Chưa chọn Thần Tượng'
+          };
         }
-        return { isValid: true, message: 'Đã chọn Thần Tượng' };
+        return { 
+          isValid: true, 
+          message: 'Đã chọn Thần Tượng',
+          shortMessage: 'Đã chọn Thần Tượng ✓'
+        };
       }
 
       case 'nguoi-thoi-sao': {
         const count = (nightState.piperChosenIds || []).length;
         if (count !== 2) {
-          return { isValid: false, message: `Thổi Sáo phải chọn đúng 2 người (${count}/2)` };
+          return { 
+            isValid: false, 
+            message: `Thổi Sáo phải chọn đúng 2 người (${count}/2)`,
+            shortMessage: `Chọn mê hoặc (${count}/2)`
+          };
         }
-        return { isValid: true, message: 'Đã chọn 2 người mê hoặc' };
+        return { 
+          isValid: true, 
+          message: 'Đã chọn 2 người mê hoặc',
+          shortMessage: 'Đã mê hoặc ✓'
+        };
       }
 
       case 'con-qua': {
         if (!nightState.ravenTargetId && !nightState.ravenSkipped) {
-          return { isValid: false, message: 'Quạ phải chọn 1 người để gieo 2 phiếu phạt' };
+          return { 
+            isValid: false, 
+            message: 'Quạ phải chọn 1 người để gieo 2 phiếu phạt',
+            shortMessage: 'Chưa chọn người tố cáo'
+          };
         }
-        return { isValid: true, message: 'Đã chọn người tố cáo' };
+        return { 
+          isValid: true, 
+          message: 'Đã chọn người tố cáo',
+          shortMessage: 'Đã tố cáo ✓'
+        };
       }
 
       default:
-        return { isValid: true, message: '' };
+        return { isValid: true, message: '', shortMessage: '' };
     }
   };
 
@@ -322,7 +397,7 @@ export default function NightPhaseView({
             onClick={() => handleNextStep(false)}
             title={!stepValidation.isValid ? stepValidation.message : ''}
           >
-            <span>{isSummaryStep ? '☀️ BẬT TRỜI SÁNG' : `Cho ${currentRole.name} Ngủ & Tiếp`}</span>
+            <span>{isSummaryStep ? '☀️ BẬT TRỜI SÁNG' : 'Đi Ngủ 💤'}</span>
             <ChevronRight className="w-4 h-4 ml-1 inline" />
           </GothicButton>
         </div>
@@ -562,7 +637,7 @@ export default function NightPhaseView({
                               {isSelected && <Shield className="w-4 h-4 text-teal-400 fill-teal-400 ml-1" />}
                             </div>
                             <div className="text-xs text-slate-400">
-                              Vai: <span className="text-slate-300 font-medium">{p.role?.name || '❓ Chưa lộ vai'}</span>
+                              Vai: <span className="text-slate-300 font-medium">{getPlayerRole(p)?.name || '❓ Chưa lộ vai'}</span>
                             </div>
                           </div>
                         </div>
@@ -605,7 +680,7 @@ export default function NightPhaseView({
                       confirmText: 'Đã Ghi Nhận ✓'
                     })}
                   >
-                    🚫 Đêm Nay Bỏ Qua (Chưa Dùng)
+                    Bỏ qua
                   </GothicButton>
                 </div>
               </div>
@@ -643,10 +718,42 @@ export default function NightPhaseView({
                           : 'bg-slate-900 hover:bg-slate-800 border-slate-700 text-slate-300'
                       }`}
                     >
-                      🚫 Bầy Sói Đêm Nay Không Cắn Ai
+                      Đêm nay không cắn
                     </button>
                   </div>
                 </div>
+
+                {/* Banner when a player has been converted into a Werewolf via Sói Nguyền */}
+                {nightState.lastCursedVictimId && (() => {
+                  const cursedP = players.find(p => p.id === nightState.lastCursedVictimId);
+                  const origRole = getPlayerOriginalRole(cursedP);
+                  return (
+                    <div className="p-3.5 rounded-2xl bg-gradient-to-r from-purple-950/90 via-[#260736] to-[#160421] border border-purple-500/80 text-xs text-purple-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 shadow-[0_0_20px_rgba(168,85,247,0.35)] animate-fade-in">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-8 h-8 rounded-xl bg-purple-900 border border-purple-400 flex items-center justify-center text-sm shrink-0">
+                          🔮
+                        </div>
+                        <div>
+                          <div className="font-bold text-white flex items-center gap-1.5">
+                            <span>Đã nguyền {cursedP?.name} thành Ma Sói</span>
+                            <span className="text-[10px] text-amber-300 font-normal">({origRole?.name || 'Chưa lộ vai'})</span>
+                          </div>
+                          <div className="text-[11px] text-purple-300/80">
+                            Bầy Sói chọn tiếp 1 người bên dưới để cắn.
+                          </div>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => onSaveAction('undo_curse_convert', nightState.lastCursedVictimId)}
+                        className="text-[11px] font-bold px-2.5 py-1 rounded-xl bg-purple-900 hover:bg-purple-800 border border-purple-500 text-purple-200 transition-all cursor-pointer self-end sm:self-auto shrink-0 shadow-sm"
+                        title="Bấm để hủy nguyền và trả lại vai ban đầu nếu bấm nhầm"
+                      >
+                        ↩ Hoàn tác nguyền
+                      </button>
+                    </div>
+                  );
+                })()}
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5">
                   {alivePlayers.map(p => {
@@ -682,7 +789,7 @@ export default function NightPhaseView({
                               )}
                             </div>
                             <div className="text-xs text-slate-400">
-                              Vai: <span className="text-slate-300 font-medium">{p.role?.name || '❓ Chưa lộ vai'}</span>
+                              Vai: <span className="text-slate-300 font-medium">{getPlayerRole(p)?.name || '❓ Chưa lộ vai'}</span>
                             </div>
                           </div>
                         </div>
@@ -702,64 +809,34 @@ export default function NightPhaseView({
                 </div>
 
                 {/* SÓI NGUYỀN (NGƯỜI CHA CỦA SÓI) LÂY NHIỄM PANEL */}
-                {wolfVictim && !nightState.wolfSkipped && (
-                  <div className={`p-4 rounded-2xl border transition-all mt-3 ${
-                    nightState.isCursedInfect
-                      ? 'bg-gradient-to-r from-[#2c0840] via-[#1a0526] to-[#25071a] border-purple-500 shadow-[0_0_20px_rgba(168,85,247,0.4)] ring-1 ring-purple-400'
-                      : 'bg-[#12071a]/80 border-purple-900/60'
-                  }`}>
+                {wolfVictim && !nightState.wolfSkipped && !nightState.cursedUsed && (
+                  <div className="p-4 rounded-2xl border transition-all mt-3 bg-gradient-to-r from-[#220736] via-[#160424] to-[#220736] border-purple-600/90 shadow-[0_0_25px_rgba(168,85,247,0.4)] animate-fade-in">
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                       <div className="flex items-center gap-3">
-                        <div className={`w-9 h-9 rounded-xl flex items-center justify-center font-bold text-base shrink-0 border ${
-                          nightState.isCursedInfect
-                            ? 'bg-purple-900 border-purple-400 text-purple-200 shadow-md'
-                            : 'bg-purple-950/90 border-purple-800 text-purple-400'
-                        }`}>
+                        <div className="w-9 h-9 rounded-xl flex items-center justify-center font-bold text-base shrink-0 border bg-purple-900 border-purple-400 text-purple-200 shadow-md">
                           🔮
                         </div>
                         <div>
                           <div className="font-bold text-sm text-purple-200 flex items-center gap-2">
-                            <span>SÓI NGUYỀN (NGƯỜI CHA CỦA SÓI) LÂY NHIỄM</span>
+                            <span>SÓI NGUYỀN (SÓI QUỶ)</span>
                             <span className="text-[10px] px-2 py-0.5 rounded font-mono bg-purple-950 text-purple-300 border border-purple-800">
-                              {nightState.cursedUsed ? 'Đã dùng trong ván' : '1 lần/ván'}
+                              1 lần/ván
                             </span>
                           </div>
                           <p className="text-xs text-slate-300 mt-0.5">
-                            {nightState.isCursedInfect ? (
-                              <span className="text-emerald-300 font-semibold">
-                                ✨ Nạn nhân <strong>{wolfVictim.name}</strong> sẽ <u>KHÔNG CHẾT</u>! Hệ thống lưu cả vai gốc ({wolfVictim.role?.name || 'Dân Làng'}) và biến thành Ma Sói mới.
-                              </span>
-                            ) : (
-                              <span>Bấm kích hoạt nếu Sói Nguyền giơ tay đồng hóa <strong>{wolfVictim.name}</strong> thành Ma Sói thay vì giết chết.</span>
-                            )}
+                            Đồng hóa thành Ma Sói (giữ vai gốc). Bầy Sói được chọn cắn tiếp.
                           </p>
                         </div>
                       </div>
 
-                      <div className="shrink-0 self-end sm:self-auto">
-                        {nightState.cursedUsed ? (
-                          <span className="text-xs font-bold text-slate-500 bg-slate-900 px-3 py-1.5 rounded-xl border border-slate-800">
-                            Đã dùng 1 lần duy nhất
-                          </span>
-                        ) : (
-                          <button
-                            type="button"
-                            onClick={() => {
-                              const nextVal = !nightState.isCursedInfect;
-                              onSaveAction('wolves', wolfVictim.id, {
-                                wolfSkipped: false,
-                                isCursedInfect: nextVal
-                              });
-                            }}
-                            className={`px-3.5 py-2 rounded-xl text-xs font-black transition-all border cursor-pointer flex items-center gap-1.5 shadow-md ${
-                              nightState.isCursedInfect
-                                ? 'bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white border-purple-300 shadow-[0_0_15px_rgba(168,85,247,0.6)]'
-                                : 'bg-purple-950 hover:bg-purple-900 text-purple-200 border-purple-700/80 hover:border-purple-400'
-                            }`}
-                          >
-                            <span>{nightState.isCursedInfect ? '✓ Đang Bật Lây Nhiễm Sói' : '🪄 Bật Sói Nguyền'}</span>
-                          </button>
-                        )}
+                      <div className="shrink-0 self-end sm:self-auto flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => onSaveAction('curse_convert', wolfVictim.id)}
+                          className="px-3.5 py-2 rounded-xl text-xs font-black transition-all border cursor-pointer flex items-center gap-1.5 shadow-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white border-purple-300 hover:scale-105 active:scale-95"
+                        >
+                          <span>🔮 Nguyền thành Sói</span>
+                        </button>
                       </div>
                     </div>
                   </div>
@@ -789,65 +866,71 @@ export default function NightPhaseView({
                 </div>
 
                 {/* THE REVEALED CARD OF INSPECTED PLAYER */}
-                {selectedSeerTarget ? (
-                  <div className={`p-4 rounded-2xl border transition-all animate-fade-in flex flex-col sm:flex-row items-center gap-4 text-center sm:text-left ${
-                    isWolfPlayer(selectedSeerTarget)
-                      ? 'bg-gradient-to-r from-[#3b080c] via-[#200305] to-[#120204] border-rose-600 shadow-[0_0_30px_rgba(225,29,72,0.6)]'
-                      : 'bg-gradient-to-r from-[#0d1a33] via-[#091224] to-[#050b18] border-blue-500 shadow-[0_0_30px_rgba(59,130,246,0.5)]'
-                  }`}>
-                    {/* The Big Card */}
-                    <div className="relative shrink-0">
-                      <div className={`w-24 h-34 sm:w-28 sm:h-40 rounded-xl overflow-hidden border-2 p-1 shadow-2xl flex items-center justify-center bg-black/80 ${
-                        isWolfPlayer(selectedSeerTarget) ? 'border-rose-500 shadow-[0_0_20px_rgba(225,29,72,0.8)]' : 'border-blue-400 shadow-[0_0_20px_rgba(59,130,246,0.6)]'
-                      }`}>
-                        {selectedSeerTarget.role?.image ? (
-                          <img
-                            src={selectedSeerTarget.role.image}
-                            alt={selectedSeerTarget.role.name}
-                            className="w-full h-full object-contain"
-                          />
-                        ) : (
-                          <div className="text-4xl">
-                            {isWolfPlayer(selectedSeerTarget) ? '🐺' : '👨‍🌾'}
+                {selectedSeerTarget ? (() => {
+                  const targetRole = getPlayerRole(selectedSeerTarget);
+                  const targetOrigRole = getPlayerOriginalRole(selectedSeerTarget);
+                  const isTargetWolf = isWolfPlayer(selectedSeerTarget);
+
+                  return (
+                    <div className={`p-4 rounded-2xl border transition-all animate-fade-in flex flex-col sm:flex-row items-center gap-4 text-center sm:text-left ${
+                      isTargetWolf
+                        ? 'bg-gradient-to-r from-[#3b080c] via-[#200305] to-[#120204] border-rose-600 shadow-[0_0_30px_rgba(225,29,72,0.6)]'
+                        : 'bg-gradient-to-r from-[#0d1a33] via-[#091224] to-[#050b18] border-blue-500 shadow-[0_0_30px_rgba(59,130,246,0.5)]'
+                    }`}>
+                      {/* The Big Card */}
+                      <div className="relative shrink-0">
+                        <div className={`w-24 h-34 sm:w-28 sm:h-40 rounded-xl overflow-hidden border-2 p-1 shadow-2xl flex items-center justify-center bg-black/80 ${
+                          isTargetWolf ? 'border-rose-500 shadow-[0_0_20px_rgba(225,29,72,0.8)]' : 'border-blue-400 shadow-[0_0_20px_rgba(59,130,246,0.6)]'
+                        }`}>
+                          {targetRole?.image ? (
+                            <img
+                              src={targetRole.image}
+                              alt={targetRole.name}
+                              className="w-full h-full object-contain"
+                            />
+                          ) : (
+                            <div className="text-4xl">
+                              {isTargetWolf ? '🐺' : '👨‍🌾'}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Card Info & GM Signal Instruction */}
+                      <div className="flex-1 space-y-1.5">
+                        <div className="text-xs uppercase font-bold tracking-wider text-slate-400">
+                          Thẻ bài của #{selectedSeerTarget.id} {selectedSeerTarget.name}:
+                        </div>
+                        <h3 className={`text-xl sm:text-2xl font-black font-cinzel ${
+                          isTargetWolf ? 'text-rose-100' : 'text-blue-100'
+                        }`}>
+                          {targetRole?.name || 'Chưa lộ vai'}
+                        </h3>
+                        <div className="text-xs text-slate-300">
+                          Phe: <strong>[{targetRole?.teamCode || '?'}] {targetRole?.team || 'Chưa lộ phe'}</strong>
+                        </div>
+
+                        {/* Display both original role and wolf role if infected by Cursed Wolf */}
+                        {selectedSeerTarget.isCursedWolf && targetOrigRole && (
+                          <div className="mt-1 p-2 rounded-xl bg-purple-950/80 border border-purple-500/80 text-xs text-purple-200 shadow-sm">
+                            🔮 <strong>SÓI NGUYỀN ĐỒNG HÓA:</strong> Người này vốn giữ vai <u>{targetOrigRole.name}</u>, đã bị Sói Nguyền lây nhiễm thành Ma Sói!
                           </div>
                         )}
-                      </div>
-                    </div>
 
-                    {/* Card Info & GM Signal Instruction */}
-                    <div className="flex-1 space-y-1.5">
-                      <div className="text-xs uppercase font-bold tracking-wider text-slate-400">
-                        Thẻ bài của #{selectedSeerTarget.id} {selectedSeerTarget.name}:
-                      </div>
-                      <h3 className={`text-xl sm:text-2xl font-black font-cinzel ${
-                        isWolfPlayer(selectedSeerTarget) ? 'text-rose-100' : 'text-blue-100'
-                      }`}>
-                        {selectedSeerTarget.role?.name || 'Dân Làng'}
-                      </h3>
-                      <div className="text-xs text-slate-300">
-                        Phe: <strong>[{selectedSeerTarget.role?.teamCode || 'V'}] {selectedSeerTarget.role?.team || 'Phe Dân Làng'}</strong>
-                      </div>
-
-                      {/* Display both original role and wolf role if infected by Cursed Wolf */}
-                      {selectedSeerTarget.isCursedWolf && selectedSeerTarget.originalRole && (
-                        <div className="mt-1 p-2 rounded-xl bg-purple-950/80 border border-purple-500/80 text-xs text-purple-200 shadow-sm">
-                          🔮 <strong>SÓI NGUYỀN ĐỒNG HÓA:</strong> Người này vốn giữ vai <u>{selectedSeerTarget.originalRole.name}</u>, đã bị Sói Nguyền lây nhiễm thành Ma Sói!
+                        {/* Explicit Hand Signal Instruction for GM */}
+                        <div className={`mt-2 p-2 rounded-xl text-xs font-black inline-block uppercase tracking-wider border shadow-md ${
+                          isTargetWolf
+                            ? 'bg-rose-950 text-rose-200 border-rose-600'
+                            : 'bg-blue-950 text-blue-200 border-blue-600'
+                        }`}>
+                          {isTargetWolf 
+                            ? '👉 RA DẤU CHO TIÊN TRI: LÀ MA SÓI! 🐺' 
+                            : '👉 RA DẤU CHO TIÊN TRI: LÀ DÂN LÀNG (Lương thiện)! 👨‍🌾'}
                         </div>
-                      )}
-
-                      {/* Explicit Hand Signal Instruction for GM */}
-                      <div className={`mt-2 p-2 rounded-xl text-xs font-black inline-block uppercase tracking-wider border shadow-md ${
-                        isWolfPlayer(selectedSeerTarget)
-                          ? 'bg-rose-950 text-rose-200 border-rose-600'
-                          : 'bg-blue-950 text-blue-200 border-blue-600'
-                      }`}>
-                        {isWolfPlayer(selectedSeerTarget) 
-                          ? '👉 RA DẤU CHO TIÊN TRI: LÀ MA SÓI! 🐺' 
-                          : '👉 RA DẤU CHO TIÊN TRI: LÀ DÂN LÀNG (Lương thiện)! 👨‍🌾'}
                       </div>
                     </div>
-                  </div>
-                ) : (
+                  );
+                })() : (
                   <div className="p-3 rounded-xl bg-purple-950/30 border border-purple-900/50 text-xs text-purple-300 text-center italic">
                     Chạm vào bất kỳ người chơi nào trong ma trận ghế dưới đây để lật xem thẻ bài của họ.
                   </div>
@@ -885,7 +968,7 @@ export default function NightPhaseView({
                     <span className="text-xs text-slate-400 block">Nạn nhân vừa bị Sói cắn đêm nay:</span>
                     {wolfVictim ? (
                       <span className="text-base font-bold text-rose-400">
-                        {wolfVictim.name} ({wolfVictim.role?.name || 'Dân'})
+                        {wolfVictim.name} ({getPlayerRole(wolfVictim)?.name || 'Chưa lộ vai'})
                       </span>
                     ) : (
                       <span className="text-sm font-bold text-emerald-400">
@@ -939,7 +1022,7 @@ export default function NightPhaseView({
                             }`}
                           >
                             <span className="truncate flex items-center gap-1">
-                              {p.name} <span className="text-slate-500">({p.role?.name || '❓ Chưa lộ vai'})</span>
+                              {p.name} <span className="text-slate-500">({getPlayerRole(p)?.name || '❓ Chưa lộ vai'})</span>
                               {isWolf && <span className="text-[9px] text-rose-400 font-bold">🐺</span>}
                             </span>
                             {isPoisoned && <span className="font-bold text-rose-400 ml-1 shrink-0">☠️ Độc</span>}
@@ -959,87 +1042,58 @@ export default function NightPhaseView({
               const chosen = nightState.cupidChosenIds || [];
               const p1 = players.find(x => x.id === chosen[0]);
               const p2 = players.find(x => x.id === chosen[1]);
-              const cupidHolder = players.find(x => x.roleId === 'cupid');
-              const isThirdParty = p1 && p2 && ((isWolfPlayer(p1) && !isWolfPlayer(p2)) || (!isWolfPlayer(p1) && isWolfPlayer(p2)));
-              const isSameTeam = p1 && p2 && !isThirdParty;
 
               return (
                 <div className="space-y-4">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                    <div className="flex items-center gap-2">
-                      <Heart className="w-5 h-5 text-pink-400 fill-pink-500/40" />
-                      <h4 className="font-bold text-sm text-pink-200 font-cinzel">
-                        CUPID GHÉP ĐÔI 2 NGƯỜI YÊU NHAU (ĐÊM 1):
-                      </h4>
-                    </div>
-                    {chosen.length > 0 && (
-                      <button
-                        type="button"
-                        onClick={() => onSaveAction('cupid', [])}
-                        className="text-xs text-pink-400 hover:text-pink-300 underline font-semibold cursor-pointer"
-                      >
-                        ✕ Xóa chọn lại
-                      </button>
-                    )}
+                  <div className="flex items-center gap-2">
+                    <Heart className="w-5 h-5 text-pink-400 fill-pink-500/40" />
+                    <h4 className="font-bold text-sm text-pink-200 font-cinzel">
+                      CUPID GHÉP ĐÔI 2 NGƯỜI YÊU NHAU (ĐÊM 1):
+                    </h4>
                   </div>
 
                   <p className="text-xs text-slate-400">
                     Chọn đúng 2 người chơi bất kỳ trong danh sách bên dưới để kết duyên. Hai người yêu nhau sẽ cùng sống cùng chết!
                   </p>
 
-                  {/* SUMMARY COUPLE BOX */}
-                  <div className="p-4 rounded-2xl bg-[#120d20] border border-pink-900/60 space-y-2">
+                  {/* SUMMARY COUPLE BOX (Fixed Geometry - Zero Layout Shift) */}
+                  <div className="p-3.5 rounded-2xl bg-[#120d20] border border-pink-900/60 space-y-2">
                     <div className="flex items-center justify-between text-xs">
-                      <span className="font-bold text-slate-300">Cặp đôi đang chọn ({chosen.length}/2):</span>
+                      <span className="font-bold text-slate-300">Cặp đôi ghép nối ({chosen.length}/2):</span>
                       <span className="text-pink-400 font-bold">
-                        {chosen.length === 2 ? '❤️ Đã chọn đủ 2 người' : `Chọn thêm ${2 - chosen.length} người nữa`}
+                        {chosen.length === 2 ? (
+                          <span className="text-pink-400 font-bold">❤️ Đã chọn đủ 2 người</span>
+                        ) : (
+                          <span className="text-slate-400 font-normal">Chọn thêm {2 - chosen.length} người</span>
+                        )}
                       </span>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-3 pt-1">
-                      <div className={`p-2.5 rounded-xl border text-center ${
+                    <div className="grid grid-cols-2 gap-2.5 pt-0.5">
+                      <div className={`p-2.5 rounded-xl border text-center transition-colors ${
                         p1 ? 'bg-pink-950/80 border-pink-500 text-pink-100' : 'bg-slate-900/60 border-slate-800 text-slate-500'
                       }`}>
                         <div className="text-[10px] uppercase font-bold text-slate-400">Người Yêu 1</div>
                         <div className="text-sm font-bold truncate mt-0.5">{p1 ? p1.name : '--- Chưa chọn ---'}</div>
-                        {p1 && <div className="text-[10px] text-pink-300">({p1.role?.name || 'Dân'})</div>}
+                        {p1 && (
+                          <div className="text-[10px] text-pink-300">
+                            {getPlayerRole(p1)?.name ? `(${getPlayerRole(p1).name})` : '(Chưa lộ vai)'}
+                          </div>
+                        )}
                       </div>
 
-                      <div className={`p-2.5 rounded-xl border text-center ${
+                      <div className={`p-2.5 rounded-xl border text-center transition-colors ${
                         p2 ? 'bg-pink-950/80 border-pink-500 text-pink-100' : 'bg-slate-900/60 border-slate-800 text-slate-500'
                       }`}>
                         <div className="text-[10px] uppercase font-bold text-slate-400">Người Yêu 2</div>
                         <div className="text-sm font-bold truncate mt-0.5">{p2 ? p2.name : '--- Chưa chọn ---'}</div>
-                        {p2 && <div className="text-[10px] text-pink-300">({p2.role?.name || 'Dân'})</div>}
-                      </div>
-                    </div>
-
-                    {/* DYNAMIC TEAM ALERT */}
-                    {chosen.length === 2 && (
-                      <div className={`mt-3 p-3 rounded-xl border text-xs leading-relaxed animate-fade-in ${
-                        isThirdParty
-                          ? 'bg-gradient-to-r from-purple-950 via-[#3a0a25] to-rose-950 border-rose-500 text-pink-100 shadow-[0_0_20px_rgba(225,29,72,0.4)]'
-                          : 'bg-emerald-950/70 border-emerald-700 text-emerald-200'
-                      }`}>
-                        {isThirdParty ? (
-                          <div>
-                            <div className="font-black text-rose-300 text-sm uppercase flex items-center gap-1.5 mb-1">
-                              <span>🔥 CẶP ĐÔI 1 DÂN + 1 SÓI ➔ CHÍNH THỨC THÀNH PHE THỨ BA!</span>
-                            </div>
-                            <p>
-                              Hai người này lập thành một phe độc lập. Điều kiện thắng duy nhất của họ là <strong>tiêu diệt toàn bộ người chơi còn lại</strong> trong làng!
-                            </p>
-                          </div>
-                        ) : (
-                          <div>
-                            <div className="font-bold text-emerald-300 text-xs flex items-center gap-1 mb-0.5">
-                              <span>💕 Cặp đôi cùng phe ({isWolfPlayer(p1) ? 'Phe Ma Sói' : 'Phe Dân Làng'})</span>
-                            </div>
-                            <p>Họ vẫn chiến thắng theo phe gốc của mình nhưng cùng chia sẻ số phận sinh tử.</p>
+                        {p2 && (
+                          <div className="text-[10px] text-pink-300">
+                            {getPlayerRole(p2)?.name ? `(${getPlayerRole(p2).name})` : '(Chưa lộ vai)'}
                           </div>
                         )}
                       </div>
-                    )}
+                    </div>
                   </div>
 
                   {/* SEAT MATRIX & CUSTOM SLIDER FOR CUPID (NO SCROLLING AGAIN AND AGAIN) */}
@@ -1061,6 +1115,19 @@ export default function NightPhaseView({
                     variant="cupid"
                     isWolfPlayer={isWolfPlayer}
                   />
+
+                  {/* NÚT XÓA CHỌN ĐẶT Ở ĐÁY - KHÔNG LÀM KHỰNG HAY ĐẨY COMPONENT KHÁC */}
+                  {chosen.length > 0 && (
+                    <div className="flex justify-end pt-1">
+                      <button
+                        type="button"
+                        onClick={() => onSaveAction('cupid', [])}
+                        className="text-xs text-slate-400 hover:text-pink-300 underline font-medium cursor-pointer"
+                      >
+                        ✕ Xóa chọn lại
+                      </button>
+                    </div>
+                  )}
                 </div>
               );
             })()}
@@ -1080,7 +1147,7 @@ export default function NightPhaseView({
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5">
                   {alivePlayers.map(p => {
-                    const isSelf = p.roleId === 'dua-tre-hoang-da';
+                    const isSelf = (p.currentRoleId || p.roleId) === 'dua-tre-hoang-da';
                     const isSelected = nightState.wildChildIdolId === p.id;
                     const isWolf = isWolfPlayer(p);
 
@@ -1111,7 +1178,7 @@ export default function NightPhaseView({
                               {isWolf && <span className="text-[9px] text-rose-400 font-bold">🐺</span>}
                             </div>
                             <div className="text-xs text-slate-400">
-                              Vai: {p.role?.name || '❓ Chưa lộ vai'}
+                              Vai: {getPlayerRole(p)?.name || '❓ Chưa lộ vai'}
                             </div>
                           </div>
                         </div>
@@ -1174,7 +1241,7 @@ export default function NightPhaseView({
                             </div>
                             <div className="truncate">
                               <div className="font-bold text-sm">{p.name}</div>
-                              <div className="text-xs text-slate-400">{p.role?.name || '❓ Chưa lộ vai'}</div>
+                              <div className="text-xs text-slate-400">{getPlayerRole(p)?.name || '❓ Chưa lộ vai'}</div>
                             </div>
                           </div>
 
@@ -1229,7 +1296,7 @@ export default function NightPhaseView({
                           </div>
                           <div className="truncate">
                             <div className="font-bold text-sm">{p.name}</div>
-                            <div className="text-xs text-slate-400">{p.role?.name || '❓ Chưa lộ vai'}</div>
+                            <div className="text-xs text-slate-400">{getPlayerRole(p)?.name || '❓ Chưa lộ vai'}</div>
                           </div>
                         </div>
 
@@ -1242,8 +1309,8 @@ export default function NightPhaseView({
             )}
           </div>
 
-          {/* STRICT VALIDATION BANNER & STEPPER FOOTER NAV */}
-          <div className="space-y-3 pt-2">
+          {/* STRICT VALIDATION BANNER & STEPPER FOOTER NAV (pb-28 on mobile ensures banner is NEVER cut off by sticky bottom bar) */}
+          <div className="space-y-3 pt-2 pb-24 sm:pb-6">
             {/* Gatekeeper Status Bar */}
             {!stepValidation.isValid ? (
               <div className="p-3 rounded-2xl bg-amber-950/80 border border-amber-600/80 text-amber-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2 shadow-lg animate-fade-in">
@@ -1287,7 +1354,7 @@ export default function NightPhaseView({
                   !stepValidation.isValid ? 'opacity-50 cursor-not-allowed' : ''
                 }`}
               >
-                <span>Cho {currentRole.name} Ngủ & Tiếp Tục 💤</span>
+                <span>Đi Ngủ 💤</span>
                 <ChevronRight className="w-5 h-5 ml-1 inline" />
               </GothicButton>
             </div>
@@ -1369,21 +1436,21 @@ export default function NightPhaseView({
           </GothicButton>
 
           {/* Validation Feedback in Middle */}
-          <div className="flex-1 text-center truncate px-2">
+          <div className="flex-1 text-center truncate px-1 sm:px-2">
             {stepValidation.isDeadRole ? (
               <span className="text-[11px] text-rose-300 font-semibold flex items-center justify-center gap-1 truncate">
                 <Skull className="w-3.5 h-3.5 text-rose-400 shrink-0 inline" />
-                <span className="truncate">Người giữ vai đã chết</span>
+                <span className="truncate">{stepValidation.shortMessage || 'Người giữ vai đã chết'}</span>
               </span>
             ) : !stepValidation.isValid ? (
               <span className="text-[11px] text-amber-300 font-bold flex items-center justify-center gap-1 truncate" title={stepValidation.message}>
                 <AlertTriangle className="w-3.5 h-3.5 text-amber-400 shrink-0 inline" />
-                <span className="truncate">{stepValidation.message}</span>
+                <span className="truncate">{stepValidation.shortMessage || stepValidation.message}</span>
               </span>
             ) : (
-              <span className="text-[11px] text-emerald-400 font-semibold flex items-center justify-center gap-1 truncate">
+              <span className="text-[11px] text-emerald-400 font-semibold flex items-center justify-center gap-1 truncate" title={stepValidation.message}>
                 <Check className="w-3.5 h-3.5 text-emerald-400 shrink-0 inline" />
-                <span className="truncate">{stepValidation.message || 'Sẵn sàng tiếp tục'}</span>
+                <span className="truncate">{stepValidation.shortMessage || stepValidation.message || 'Sẵn sàng tiếp tục'}</span>
               </span>
             )}
           </div>
@@ -1395,7 +1462,7 @@ export default function NightPhaseView({
             onClick={() => handleNextStep(false)}
             className="h-10 px-3 sm:px-4 text-xs font-black shrink-0 shadow-lg"
           >
-            <span className="truncate">{`Cho ${currentRole.name} Ngủ 💤`}</span>
+            <span className="truncate">Đi Ngủ 💤</span>
             <ChevronRight className="w-4 h-4 ml-0.5 inline shrink-0" />
           </GothicButton>
         </div>

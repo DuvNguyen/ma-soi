@@ -15,8 +15,8 @@ export default function DeckInventoryRadar({
 
   // Total players & assigned count
   const totalCount = players.length;
-  const assignedPlayers = players.filter(p => p.roleId);
-  const unassignedPlayers = players.filter(p => !p.roleId);
+  const assignedPlayers = players.filter(p => (p.currentRoleId || p.roleId));
+  const unassignedPlayers = players.filter(p => !(p.currentRoleId || p.roleId));
   const assignedCount = assignedPlayers.length;
 
   // Calculate remaining roles in deck
@@ -29,8 +29,9 @@ export default function DeckInventoryRadar({
   // Count already assigned roles
   const assignedRoleCounts = {};
   players.forEach(p => {
-    if (p.roleId) {
-      assignedRoleCounts[p.roleId] = (assignedRoleCounts[p.roleId] || 0) + 1;
+    const pCurrentId = p.currentRoleId || p.roleId;
+    if (pCurrentId) {
+      assignedRoleCounts[pCurrentId] = (assignedRoleCounts[pCurrentId] || 0) + 1;
     }
   });
 

@@ -7,6 +7,7 @@ import GothicButton from './ui/GothicButton';
 import GothicBadge from './ui/GothicBadge';
 import ClawMarks from './ui/ClawMarks';
 import { useGothicDialog } from '../context/GothicDialogContext';
+import { getPlayerRole, getRole } from '../utils/roleUtils';
 
 export default function MatchHistoryModal({ isOpen, onClose }) {
   const { showConfirm, showAlert } = useGothicDialog();
@@ -291,7 +292,7 @@ export default function MatchHistoryModal({ isOpen, onClose }) {
                             )}
                           </div>
                           <div className="text-[10px] text-slate-400 flex items-center justify-between mt-1">
-                            <span>{p.role?.name || p.roleId || 'Dân làng'}</span>
+                            <span>{getPlayerRole(p)?.name || p.role?.name || p.currentRoleId || p.roleId || 'Chưa gán vai'}</span>
                             {isLover && <Heart className="w-3 h-3 text-pink-500 fill-pink-500" />}
                           </div>
                         </div>

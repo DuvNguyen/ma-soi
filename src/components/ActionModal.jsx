@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Shield, Eye, Skull, Sparkles, Heart, Crosshair, AlertTriangle, Check, X, User } from 'lucide-react';
 import GothicButton from './ui/GothicButton';
 import GothicBadge from './ui/GothicBadge';
+import { isWolfPlayer, getPlayerRole } from '../utils/roleUtils';
 
 export default function ActionModal({
   isOpen,
@@ -22,10 +23,6 @@ export default function ActionModal({
   const [witchPoisonId, setWitchPoisonId] = useState(nightState?.witchPoisonTargetId || null);
 
   const wolfVictim = players.find(p => p.id === nightState?.wolfTargetId);
-
-  const isWolfPlayer = (p) => {
-    return p.role?.teamCode === 'W' || ['soi-thuong', 'soi-con', 'soi-lon-xau-xa', 'soi-trang'].includes(p.role?.id);
-  };
 
   const renderContent = () => {
     switch (actionType) {
@@ -91,7 +88,7 @@ export default function ActionModal({
                           )}
                         </div>
                         <div className="text-xs text-slate-400 mt-0.5">
-                          Vai: <span className="text-slate-300 font-medium">{p.role?.name || 'Dân làng'}</span>
+                          Vai: <span className="text-slate-300 font-medium">{getPlayerRole(p)?.name || 'Chưa lộ vai'}</span>
                         </div>
                       </div>
                     </div>
@@ -144,7 +141,7 @@ export default function ActionModal({
                   {seerResult.isWolf ? '🐺 LÀ MA SÓI !' : '👨‍🌾 LÀ DÂN LÀNG (Lương thiện)'}
                 </div>
                 <p className="text-xs mt-2 opacity-90">
-                  Mục tiêu: <strong>{seerResult.player.name}</strong> ({seerResult.player.role?.name || 'Dân'})
+                  Mục tiêu: <strong>{seerResult.player.name}</strong> ({getPlayerRole(seerResult.player)?.name || 'Chưa lộ vai'})
                 </p>
               </div>
             )}
@@ -181,7 +178,7 @@ export default function ActionModal({
                           )}
                         </div>
                         <div className="text-xs text-slate-400 mt-0.5">
-                          Vai trò thực: <span className="text-slate-300 font-medium">{p.role?.name || 'Dân làng'}</span>
+                          Vai trò thực: <span className="text-slate-300 font-medium">{getPlayerRole(p)?.name || 'Chưa lộ vai'}</span>
                         </div>
                       </div>
                     </div>
@@ -248,7 +245,7 @@ export default function ActionModal({
                           )}
                         </div>
                         <div className="text-xs text-slate-400 mt-0.5">
-                          Vai: <span className="text-slate-300 font-medium">{p.role?.name || 'Dân'}</span>
+                          Vai: <span className="text-slate-300 font-medium">{getPlayerRole(p)?.name || 'Chưa lộ vai'}</span>
                         </div>
                       </div>
                     </div>
@@ -292,7 +289,7 @@ export default function ActionModal({
                 <div className="flex items-center justify-between">
                   <div>
                     <span className="font-bold text-base text-rose-400">{wolfVictim.name}</span>
-                    <span className="text-xs text-slate-400 ml-2">({wolfVictim.role?.name || 'Dân'})</span>
+                    <span className="text-xs text-slate-400 ml-2">({getPlayerRole(wolfVictim)?.name || 'Chưa lộ vai'})</span>
                     <div className="text-xs text-rose-300/80">Sẽ chết vào sáng mai nếu không được cứu!</div>
                   </div>
                   {hasHeal ? (
@@ -356,7 +353,7 @@ export default function ActionModal({
                         }`}
                       >
                         <span className="font-bold flex items-center gap-1.5">
-                          {p.name} <span className="text-slate-500 font-normal">({p.role?.name || 'Dân'})</span>
+                          {p.name} <span className="text-slate-500 font-normal">({getPlayerRole(p)?.name || 'Chưa lộ vai'})</span>
                           {isWolf && <span className="text-[9px] text-rose-400 font-bold">[SÓI]</span>}
                         </span>
                         {isSelected && <span className="text-rose-400 font-bold">☠️ Đầu độc</span>}
@@ -422,33 +419,6 @@ export default function ActionModal({
               </div>
             </div>
 
-            {/* Couple Alert Banner */}
-            {selectedPair.length === 2 && (
-              <div className={`p-4 rounded-2xl border text-xs animate-fade-in ${
-                isCrossTeam
-                  ? 'bg-gradient-to-r from-[#2f060b] to-[#1a0204] border-rose-500 shadow-[0_0_20px_rgba(225,29,72,0.4)] text-rose-200'
-                  : 'bg-[#180929] border-purple-600 text-purple-200 shadow-[0_0_15px_rgba(147,51,234,0.3)]'
-              }`}>
-                <div className="font-bold text-sm flex items-center gap-2 mb-1">
-                  <span>❤️ Cặp Đôi:</span>
-                  <span className="text-white font-black">{p1?.name}</span>
-                  <span>({p1?.role?.name})</span>
-                  <span>&</span>
-                  <span className="text-white font-black">{p2?.name}</span>
-                  <span>({p2?.role?.name})</span>
-                </div>
-                {isCrossTeam ? (
-                  <p className="text-rose-300 font-semibold mt-1">
-                    ⚠️ <strong>CẶP ĐÔI KHÁC PHE (SÓI + DÂN)</strong>: Hai người này trở thành <strong>PHE THỨ 3</strong>! Phải là 2 người sống sót cuối cùng mới thắng ván đấu!
-                  </p>
-                ) : (
-                  <p className="text-purple-300 mt-1">
-                    ✓ Cùng phe ({p1?.role?.team || 'Dân'}). Giữ nguyên điều kiện thắng theo phe.
-                  </p>
-                )}
-              </div>
-            )}
-
             {/* Custom Dark Grid with HIGHLIGHT RED BORDER for Wolves */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 max-h-[48vh] overflow-y-auto pr-1">
               {players.map(p => {
@@ -490,7 +460,7 @@ export default function ActionModal({
                           )}
                         </div>
                         <div className="text-[11px] text-slate-400 truncate mt-0.5">
-                          Vai: <span className="font-medium text-slate-300">{p.role?.name || 'Dân'}</span>
+                          Vai: <span className="font-medium text-slate-300">{getPlayerRole(p)?.name || 'Chưa lộ vai'}</span>
                         </div>
                       </div>
                     </div>
@@ -562,7 +532,7 @@ export default function ActionModal({
                         )}
                       </div>
                       <div className="text-xs text-slate-400 mt-0.5">
-                        Vai: <span className="font-medium text-slate-300">{p.role?.name || 'Dân'}</span>
+                        Vai: <span className="font-medium text-slate-300">{getPlayerRole(p)?.name || 'Chưa lộ vai'}</span>
                       </div>
                     </div>
 
@@ -593,31 +563,44 @@ export default function ActionModal({
 
             <div className="space-y-2 max-h-[52vh] overflow-y-auto pr-1">
               {players.map(p => {
-                const isAssigned = p.roleId === role?.id;
+                const pCurrentId = p.currentRoleId || p.roleId;
+                const isAssigned = pCurrentId === role?.id;
+                const hasOtherRole = Boolean(pCurrentId && !isAssigned);
                 const isWolf = isWolfPlayer(p);
 
                 return (
                   <button
                     key={p.id}
+                    disabled={hasOtherRole}
                     onClick={() => {
                       onAssignRole(p.id, role);
                       onClose();
                     }}
                     className={`w-full flex items-center justify-between p-3 rounded-2xl border text-left transition-all ${
                       isAssigned
-                        ? 'bg-purple-950 border-purple-500 text-white shadow-[0_0_15px_rgba(168,85,247,0.4)]'
+                        ? 'bg-purple-950 border-purple-500 text-white shadow-[0_0_15px_rgba(168,85,247,0.4)] cursor-pointer'
+                        : hasOtherRole
+                        ? 'bg-[#0a0c16] border-slate-900/90 text-slate-500 opacity-40 cursor-not-allowed select-none'
                         : isWolf
-                        ? 'bg-[#18080a] border-rose-800/80 hover:border-rose-500 shadow-[0_0_12px_rgba(225,29,72,0.35)] text-slate-200'
-                        : 'bg-[#111320] hover:bg-slate-900 border-slate-800 text-slate-200'
+                        ? 'bg-[#18080a] border-rose-800/80 hover:border-rose-500 shadow-[0_0_12px_rgba(225,29,72,0.35)] text-slate-200 cursor-pointer'
+                        : 'bg-[#111320] hover:bg-slate-900 border-slate-800 text-slate-200 cursor-pointer'
                     }`}
                   >
                     <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-lg bg-slate-900 border border-slate-800 flex items-center justify-center font-bold text-xs text-slate-300">
+                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center font-bold text-xs border ${
+                        isAssigned
+                          ? 'bg-purple-900 border-purple-400 text-purple-200'
+                          : hasOtherRole
+                          ? 'bg-slate-950 border-slate-900 text-slate-600'
+                          : 'bg-slate-900 border-slate-800 text-slate-300'
+                      }`}>
                         {p.id}
                       </div>
                       <div>
                         <div className="font-bold text-sm flex items-center gap-1.5">
-                          {p.name}
+                          <span className={hasOtherRole ? 'text-slate-500' : 'text-slate-100'}>
+                            {p.name}
+                          </span>
                           {isWolf && (
                             <span className="text-[9px] px-1.5 py-0.2 rounded font-bold uppercase bg-rose-950 text-rose-300 border border-rose-600">
                               🐺 Sói
@@ -625,13 +608,25 @@ export default function ActionModal({
                           )}
                         </div>
                         <div className="text-xs text-slate-400 mt-0.5">
-                          Đang giữ: <span className="font-medium text-slate-300">{p.role?.name || 'Chưa gán vai'}</span>
+                          Đang giữ: {hasOtherRole ? (
+                            <span className="font-medium text-purple-400/80">🔒 {getPlayerRole(p)?.name || pCurrentId}</span>
+                          ) : isAssigned ? (
+                            <span className="font-medium text-purple-200">✓ {role?.name}</span>
+                          ) : (
+                            <span className="font-medium text-slate-500">Chưa có vai</span>
+                          )}
                         </div>
                       </div>
                     </div>
 
-                    <span className="text-xs text-purple-300 font-bold px-3 py-1 rounded-lg bg-purple-950/60 border border-purple-800/60 hover:bg-purple-600 hover:text-white transition-colors">
-                      {isAssigned ? 'Đang giữ vai này ✓' : 'Chọn người này'}
+                    <span className={`text-xs font-bold px-3 py-1 rounded-lg border transition-colors ${
+                      isAssigned
+                        ? 'text-purple-200 bg-purple-900/80 border-purple-400 hover:bg-purple-800'
+                        : hasOtherRole
+                        ? 'text-slate-600 bg-slate-950 border-slate-900'
+                        : 'text-purple-300 bg-purple-950/60 border-purple-800/60 hover:bg-purple-600 hover:text-white'
+                    }`}>
+                      {isAssigned ? '✓ Bỏ gán vai này' : hasOtherRole ? '🔒 Đã có vai khác' : 'Chọn người này'}
                     </span>
                   </button>
                 );

@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Sun, Skull, Flame, ShieldAlert, Clock, Moon, AlertTriangle, Check, UserX, RotateCcw, Gavel, Play, Pause } from 'lucide-react';
+import { Sun, Skull, Flame, ShieldAlert, Clock, Moon, AlertTriangle, Check, UserX, RotateCcw, Gavel, Play, Pause, Star, Award, ChevronDown, ChevronUp } from 'lucide-react';
 import GothicButton from './ui/GothicButton';
 import GothicBadge from './ui/GothicBadge';
+import { isWolfPlayer, getPlayerRole, getPlayerOriginalRole } from '../utils/roleUtils';
 
 export default function DayPhaseView({
   roundNumber,
@@ -10,15 +11,14 @@ export default function DayPhaseView({
   onLynchPlayer,
   onUndoLynch,
   onAdvanceToNight,
+  onToggleSheriff,
   lynchedTodayPlayerId
 }) {
-  const isWolfPlayer = (p) => {
-    return p?.role?.teamCode === 'W' || ['soi-thuong', 'soi-con', 'soi-lon-xau-xa', 'soi-trang'].includes(p?.role?.id);
-  };
   const [timeLeft, setTimeLeft] = useState(180); // 3 minutes discussion
   const [isTimerRunning, setIsTimerRunning] = useState(false);
   const [selectedLynchId, setSelectedLynchId] = useState(null);
   const [extraLynchAllowed, setExtraLynchAllowed] = useState(false);
+  const [showSheriffSelector, setShowSheriffSelector] = useState(false);
 
   // Timer effect
   useEffect(() => {
@@ -44,7 +44,7 @@ export default function DayPhaseView({
   const hasLynchedToday = !!lynchedTodayPlayerId && !extraLynchAllowed;
 
   // Stuttering judge exists in game
-  const hasStutteringJudge = players.some(p => p.role?.id === 'tham-phan-lap-bap' && p.isAlive);
+  const hasStutteringJudge = players.some(p => getPlayerRole(p)?.id === 'tham-phan-lap-bap' && p.isAlive);
 
   return (
     <div className="space-y-6 max-w-4xl mx-auto">
@@ -87,6 +87,125 @@ export default function DayPhaseView({
           </div>
         )}
       </div>
+
+      {/* PUBLIC OFFICE: SHERIFF (CẢNH SÁT TRƯỞNG / TRƯỞNG LÀNG - #09) */}
+      {(() => {
+        const sheriff = players.find(p => p.isSheriff);
+        const sheriffDead = sheriff && !sheriff.isAlive;
+
+        return (
+          <div className={`p-4 rounded-2xl border transition-all ${
+            sheriffDead
+              ? 'bg-rose-950/40 border-rose-600/90 shadow-[0_0_20px_rgba(225,29,72,0.3)]'
+              : sheriff
+              ? 'bg-[#151226] border-amber-600/60 shadow-[0_2px_15px_rgba(245,158,11,0.2)]'
+              : 'bg-[#10121d] border-purple-900/60'
+          }`}>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <div className={`w-9 h-9 rounded-xl flex items-center justify-center font-bold text-sm border shrink-0 ${
+                  sheriffDead
+                    ? 'bg-rose-900 border-rose-500 text-rose-200'
+                    : sheriff
+                    ? 'bg-amber-950 border-amber-500 text-amber-300 shadow-[0_0_12px_rgba(245,158,11,0.5)]'
+                    : 'bg-purple-950 border-purple-800 text-purple-300'
+                }`}>
+                  <Star className="w-5 h-5 fill-current" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] uppercase font-black tracking-widest text-amber-400">
+                      Chức Vụ Công Khai (#09)
+                    </span>
+                    <span className="text-[10px] px-1.5 py-0.2 rounded bg-amber-950/80 border border-amber-700/80 text-amber-300 font-bold">
+                      Phiếu vote x2
+                    </span>
+                  </div>
+                  <h4 className="text-sm sm:text-base font-black font-cinzel text-white">
+                    {sheriff ? (
+                      <span>
+                        Cảnh Sát Trưởng: <strong className="text-amber-300">{sheriff.name} (#{sheriff.id})</strong>
+                        <span className="text-xs text-slate-400 font-normal ml-2">
+                          (Vai: {getPlayerRole(sheriff)?.name || 'Chưa lộ vai'})
+                        </span>
+                      </span>
+                    ) : (
+                      <span>CHƯA BẦU CẢNH SÁT TRƯỞNG</span>
+                    )}
+                  </h4>
+                  {sheriffDead && (
+                    <p className="text-xs text-rose-300 font-bold mt-0.5">
+                      ⚠️ Cảnh Sát Trưởng đã hy sinh! Theo luật, người chết phải chỉ định người kế nhiệm huy hiệu.
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 shrink-0">
+                <GothicButton
+                  variant={sheriffDead ? 'blood' : sheriff ? 'gold' : 'witch'}
+                  size="sm"
+                  icon={sheriffDead ? RotateCcw : Award}
+                  onClick={() => setShowSheriffSelector(!showSheriffSelector)}
+                >
+                  {sheriffDead ? 'Chỉ Định Kế Nhiệm' : sheriff ? 'Đổi Người Giữ' : 'Bầu Cảnh Sát Trưởng'}
+                  {showSheriffSelector ? <ChevronUp className="w-3 h-3 ml-1" /> : <ChevronDown className="w-3 h-3 ml-1" />}
+                </GothicButton>
+              </div>
+            </div>
+
+            {/* Quick Sheriff Selector Drawer */}
+            {showSheriffSelector && (
+              <div className="mt-3 pt-3 border-t border-slate-800 animate-fade-in space-y-2">
+                <div className="text-xs text-slate-300 flex items-center justify-between">
+                  <span>Chạm vào người chơi còn sống để trao huy hiệu Cảnh Sát Trưởng (phiếu x2):</span>
+                  <span className="text-[11px] text-amber-300/80 italic">Chức vụ giữ song song cùng lá nhân vật chính</span>
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-1.5 max-h-48 overflow-y-auto pr-1">
+                  {alivePlayers.map(p => {
+                    const isCurrentSheriff = p.isSheriff;
+
+                    return (
+                      <button
+                        key={p.id}
+                        type="button"
+                        onClick={() => {
+                          if (onToggleSheriff) onToggleSheriff(p.id);
+                          setShowSheriffSelector(false);
+                        }}
+                        className={`p-2 rounded-xl text-xs font-semibold text-left border transition-all flex items-center justify-between gap-1.5 cursor-pointer ${
+                          isCurrentSheriff
+                            ? 'bg-amber-950 border-amber-400 text-amber-200 shadow-[0_0_12px_rgba(245,158,11,0.5)] ring-1 ring-amber-300'
+                            : 'bg-[#10121d] hover:bg-[#1a172e] text-slate-300 border-slate-800 hover:border-amber-600/60'
+                        }`}
+                      >
+                        <div className="min-w-0 flex-1 truncate">
+                          <div className="font-bold truncate text-slate-100 flex items-center gap-1">
+                            <span>#{p.id} {p.name}</span>
+                            {isCurrentSheriff && <Star className="w-3 h-3 text-amber-400 fill-amber-400 shrink-0" />}
+                          </div>
+                          <div className="text-[10px] text-slate-400 truncate">
+                            Vai: {getPlayerRole(p)?.name || 'Chưa lộ'}
+                          </div>
+                        </div>
+
+                        <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded border shrink-0 ${
+                          isCurrentSheriff
+                            ? 'bg-amber-900 text-amber-200 border-amber-500'
+                            : 'bg-slate-900 text-slate-400 border-slate-800'
+                        }`}>
+                          {isCurrentSheriff ? 'Đang giữ' : 'Trao'}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
+        );
+      })()}
 
       {/* Discussion Timer */}
       <div className="p-4 rounded-2xl bg-[#10121d] border border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-4">
@@ -166,7 +285,7 @@ export default function DayPhaseView({
                 Án Treo Cổ Đã Được Thực Hiện
               </div>
               <div className="text-xl font-black font-cinzel text-white">
-                Nạn nhân: {lynchedPlayer?.name || 'Người chơi'} ({lynchedPlayer?.role?.name || 'Dân'})
+                Nạn nhân: {lynchedPlayer?.name || 'Người chơi'} ({getPlayerRole(lynchedPlayer)?.name || 'Chưa lộ vai'})
               </div>
               <p className="text-xs text-slate-300 mt-1">
                 Làng đã hoàn tất xử tử 1 người trong ngày hôm nay. Không thể treo cổ thêm người nào khác!
@@ -181,7 +300,7 @@ export default function DayPhaseView({
                   icon={RotateCcw}
                   onClick={() => onUndoLynch(lynchedTodayPlayerId)}
                 >
-                  Hoàn tác lượt treo cổ này
+                  Hoàn tác treo cổ
                 </GothicButton>
               )}
 
@@ -192,7 +311,7 @@ export default function DayPhaseView({
                   icon={Gavel}
                   onClick={() => setExtraLynchAllowed(true)}
                 >
-                  Thẩm Phán Lắp Bắp kích hoạt (Treo thêm lượt 2)
+                  Thẩm Phán kích hoạt
                 </GothicButton>
               )}
             </div>
@@ -204,6 +323,8 @@ export default function DayPhaseView({
               {alivePlayers.map(p => {
                 const isSelected = selectedLynchId === p.id;
                 const isWolf = isWolfPlayer(p);
+                const pRole = getPlayerRole(p);
+                const origRole = getPlayerOriginalRole(p);
 
                 return (
                   <button
@@ -232,6 +353,11 @@ export default function DayPhaseView({
                           <span className={isWolf ? 'text-rose-200 font-black' : isSelected ? 'text-white' : 'text-slate-100'}>
                             {p.name}
                           </span>
+                          {p.isSheriff && (
+                            <span className="text-[9px] px-1.5 py-0.2 rounded font-black bg-amber-950 text-amber-300 border border-amber-600 shadow-[0_0_8px_rgba(245,158,11,0.5)] flex items-center gap-0.5">
+                              <Star className="w-2.5 h-2.5 fill-current" /> Trưởng Làng (x2)
+                            </span>
+                          )}
                           {isWolf && (
                             <span className="text-[9px] px-1.5 py-0.2 rounded font-black uppercase bg-rose-950 text-rose-300 border border-rose-600 shadow-[0_0_8px_rgba(225,29,72,0.5)]">
                               🐺 Sói
@@ -239,12 +365,12 @@ export default function DayPhaseView({
                           )}
                         </div>
                         <div className="text-[11px] text-slate-400">
-                          Vai: {p.isCursedWolf && p.originalRole ? (
+                          Vai: {p.isCursedWolf && origRole ? (
                             <span className="text-rose-300 font-bold">
-                              {p.role?.name} <span className="text-amber-300 font-medium">(Gốc: {p.originalRole.name})</span>
+                              {pRole?.name} <span className="text-amber-300 font-medium">(Gốc: {origRole.name})</span>
                             </span>
                           ) : (
-                            <span className="text-slate-300 font-medium">{p.role?.name || 'Dân'}</span>
+                            <span className="text-slate-300 font-medium">{pRole?.name || 'Chưa lộ vai'}</span>
                           )}
                         </div>
                       </div>
@@ -273,7 +399,7 @@ export default function DayPhaseView({
                   }}
                   className="shadow-2xl shadow-rose-950/80"
                 >
-                  Xác Nhận Treo Cổ Người Này (Chỉ 1 người)
+                  Xác nhận treo cổ
                 </GothicButton>
               </div>
             )}
@@ -290,7 +416,7 @@ export default function DayPhaseView({
           onClick={onAdvanceToNight}
           className="shadow-2xl shadow-purple-950/80"
         >
-          <span>HẾT NGÀY - ĐÊM BUÔNG XUỐNG</span>
+          <span>Hết ngày ➔ Ban đêm</span>
         </GothicButton>
       </div>
     </div>

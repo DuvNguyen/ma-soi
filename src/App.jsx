@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ROLES, PRESETS } from './data/roles';
 import { getRoleCapacity } from './utils/deckUtils';
+import { getRole, getPlayerRole, getPlayerOriginalRole, isWolfPlayer, WOLF_ROLE_IDS } from './utils/roleUtils';
 import { DEFAULT_PLAYER_NAMES, getDefaultPlayerNames } from './data/defaultPlayers';
 import { useGothicDialog } from './context/GothicDialogContext';
 import { checkGameEnd, resolveNightPhase } from './utils/gameLogic';
@@ -20,43 +21,92 @@ import GothicButton from './components/ui/GothicButton';
 import GothicBadge from './components/ui/GothicBadge';
 import { Moon, Sun, Users, BookOpen, RotateCcw, Shield, Eye, Skull, Sparkles, Trophy, Layers, Database, CheckCircle2, RefreshCw, History } from 'lucide-react';
 
+const STORAGE_KEY = 'werewolf_active_game_state';
+
+const DEFAULT_DECK_ROLE_IDS = [
+  "soi-thuong", "soi-thuong", "nua-nguoi-nua-soi", 
+  "tien-tri", "bao-ve", "phu-thuy", "tho-san", "cupid", "gia-lang", "thang-ngoc",
+  "dan-lang", "dan-lang", "dan-lang", "dan-lang"
+];
+
+function getInitialSavedState() {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (parsed && Array.isArray(parsed.players) && parsed.players.length > 0) {
+      return parsed;
+    }
+  } catch (err) {
+    console.error('Failed to parse saved game from localStorage:', err);
+  }
+  return null;
+}
+
 export default function App() {
   const { showConfirm, showAlert } = useGothicDialog();
 
+  // Load saved state synchronously on first render to prevent any layout flash
+  const savedInitial = getInitialSavedState();
+
   // Navigation tabs
-  const [activeTab, setActiveTab] = useState('night'); // 'night', 'day', 'table'
+  const [activeTab, setActiveTab] = useState(() => savedInitial?.activeTab || (savedInitial?.isNight === false ? 'day' : 'night'));
 
   // Neon DB Connection Status
   const [neonStatus, setNeonStatus] = useState({ ok: false, checked: false, branch: 'production' });
 
   // Game state
-  const [deckRoleIds, setDeckRoleIds] = useState([
-    "soi-thuong", "soi-thuong", "nua-nguoi-nua-soi", 
-    "tien-tri", "bao-ve", "phu-thuy", "tho-san", "cupid", "gia-lang", "thang-ngoc",
-    "dan-lang", "dan-lang", "dan-lang", "dan-lang"
-  ]);
-  const [roundNumber, setRoundNumber] = useState(1);
-  const [isNight, setIsNight] = useState(true);
-  const [rolesInGame, setRolesInGame] = useState([]);
-  const [players, setPlayers] = useState([]);
-  const [nightLogs, setNightLogs] = useState([]);
-  const [gameEndResult, setGameEndResult] = useState(null);
-  const [lynchedTodayPlayerId, setLynchedTodayPlayerId] = useState(null);
+  const [deckRoleIds, setDeckRoleIds] = useState(() => savedInitial?.deckRoleIds || DEFAULT_DECK_ROLE_IDS);
+  const [roundNumber, setRoundNumber] = useState(() => savedInitial?.roundNumber || 1);
+  const [isNight, setIsNight] = useState(() => savedInitial?.isNight !== undefined ? savedInitial.isNight : true);
+  
+  const [rolesInGame, setRolesInGame] = useState(() => {
+    const ids = savedInitial?.rolesInGameIds || savedInitial?.deckRoleIds || DEFAULT_DECK_ROLE_IDS;
+    return Array.from(new Set(ids)).map(id => ROLES.find(r => r.id === id)).filter(Boolean);
+  });
+
+  const [players, setPlayers] = useState(() => {
+    if (savedInitial?.players && savedInitial.players.length > 0) {
+      return savedInitial.players;
+    }
+    return Array.from({ length: 14 }, (_, i) => ({
+      id: i + 1,
+      name: DEFAULT_PLAYER_NAMES[i] || `Người chơi ${i + 1}`,
+      currentRoleId: null,
+      roleId: null,
+      originalRoleId: null,
+      isAlive: true,
+      deathReason: null,
+      deathPhase: null,
+      loverId: null,
+      elderLives: undefined,
+      isRevealedIdiot: false,
+      isSheriff: false
+    }));
+  });
+
+  const [nightLogs, setNightLogs] = useState(() => savedInitial?.nightLogs || []);
+  const [gameEndResult, setGameEndResult] = useState(() => savedInitial?.gameEndResult || null);
+  const [lynchedTodayPlayerId, setLynchedTodayPlayerId] = useState(() => savedInitial?.lynchedTodayPlayerId ?? null);
 
   // Night action state
-  const [nightState, setNightState] = useState({
-    protectedPlayerId: null,
-    lastNightProtectedId: null,
-    wolfTargetId: null,
-    wolfSkipped: false,
-    isCursedInfect: false,
-    cursedUsed: false,
-    witchSaved: false,
-    witchPoisonTargetId: null,
-    witchHasHeal: true,
-    witchHasPoison: true,
-    seerCheckedId: null,
-    cupidChosenIds: null
+  const [nightState, setNightState] = useState(() => {
+    return savedInitial?.nightState || {
+      protectedPlayerId: null,
+      lastNightProtectedId: null,
+      wolfTargetId: null,
+      wolfSkipped: false,
+      isCursedInfect: false,
+      cursedUsed: false,
+      witchSaved: false,
+      witchPoisonTargetId: null,
+      witchHasHeal: true,
+      witchHasPoison: true,
+      seerCheckedId: null,
+      cupidChosenIds: null,
+      skippedRoles: []
+    };
   });
 
   // Modals state
@@ -73,7 +123,7 @@ export default function App() {
     player: null
   });
 
-  // Initial load
+  // Initial load: Check Neon DB connection
   useEffect(() => {
     checkNeonConnection().then(res => {
       setNeonStatus({
@@ -83,17 +133,17 @@ export default function App() {
         dbName: res.connection?.db_name
       });
     });
-
-    initDefaultGame();
   }, []);
 
-  // Auto-sync game state to Neon DB
+  // Auto-sync game state to localStorage & Neon DB
   useEffect(() => {
     if (players.length > 0) {
       const stateToSave = {
         roundNumber,
         isNight,
+        activeTab,
         players,
+        deckRoleIds,
         rolesInGameIds: rolesInGame.map(r => r.id),
         nightState,
         nightLogs,
@@ -101,9 +151,18 @@ export default function App() {
         gameEndResult,
         updatedAt: new Date().toISOString()
       };
+
+      // 1. Instant local persistence (survival across F5 / reload)
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(stateToSave));
+      } catch (err) {
+        console.warn('Failed to save state to localStorage:', err);
+      }
+
+      // 2. Cloud DB sync (Neon)
       syncGameStateApi(stateToSave);
     }
-  }, [roundNumber, isNight, players, nightState, lynchedTodayPlayerId, gameEndResult]);
+  }, [roundNumber, isNight, activeTab, players, deckRoleIds, rolesInGame, nightState, lynchedTodayPlayerId, gameEndResult]);
 
   const initDefaultGame = () => {
     const defaultRoleIds = [
@@ -118,14 +177,16 @@ export default function App() {
     const initialPlayers = Array.from({ length: 14 }, (_, i) => ({
       id: i + 1,
       name: DEFAULT_PLAYER_NAMES[i] || `Người chơi ${i + 1}`,
-      roleId: null, // Chưa có role ngay từ đầu
-      role: null,
+      currentRoleId: null,
+      roleId: null,
+      originalRoleId: null,
       isAlive: true,
       deathReason: null,
       deathPhase: null,
       loverId: null,
       elderLives: undefined,
-      isRevealedIdiot: false
+      isRevealedIdiot: false,
+      isSheriff: false
     }));
 
     setPlayers(initialPlayers);
@@ -163,16 +224,20 @@ export default function App() {
       confirmText: 'Reset Về 0 Ngay 🩸',
       cancelText: 'Giữ Lại Ván Chơi',
       onConfirm: () => {
-        setPlayers(prev => prev.map((p, i) => ({
+        setPlayers(prev => prev.map((p) => ({
           ...p,
+          currentRoleId: null,
           roleId: null,
+          originalRoleId: null,
           role: null,
           isAlive: true,
           deathReason: null,
           deathPhase: null,
           loverId: null,
           elderLives: undefined,
-          isRevealedIdiot: false
+          isRevealedIdiot: false,
+          isSheriff: false,
+          isCursedWolf: false
         })));
 
         setRoundNumber(1);
@@ -185,6 +250,9 @@ export default function App() {
           protectedPlayerId: null,
           lastNightProtectedId: null,
           wolfTargetId: null,
+          wolfSkipped: false,
+          isCursedInfect: false,
+          cursedUsed: false,
           witchSaved: false,
           witchPoisonTargetId: null,
           witchHasHeal: true,
@@ -193,6 +261,12 @@ export default function App() {
           cupidChosenIds: null,
           skippedRoles: []
         });
+
+        try {
+          localStorage.removeItem(STORAGE_KEY);
+        } catch (e) {
+          console.error(e);
+        }
       }
     });
   };
@@ -208,14 +282,16 @@ export default function App() {
     const newPlayers = Array.from({ length: playerCount }, (_, i) => ({
       id: i + 1,
       name: (playerNames && playerNames[i]) || DEFAULT_PLAYER_NAMES[i] || `Người chơi ${i + 1}`,
-      roleId: null, // Mặc định chưa có role, gán dần từng đêm
-      role: null,
+      currentRoleId: null,
+      roleId: null,
+      originalRoleId: null,
       isAlive: true,
       deathReason: null,
       deathPhase: null,
       loverId: null,
       elderLives: undefined,
-      isRevealedIdiot: false
+      isRevealedIdiot: false,
+      isSheriff: false
     }));
 
     setPlayers(newPlayers);
@@ -253,14 +329,16 @@ export default function App() {
       return {
         id: i + 1,
         name: tplName || existingName || DEFAULT_PLAYER_NAMES[i] || `Người chơi ${i + 1}`,
-        roleId: null, // Mặc định chưa có role, gán dần từng đêm
-        role: null,
+        currentRoleId: null,
+        roleId: null,
+        originalRoleId: null,
         isAlive: true,
         deathReason: null,
         deathPhase: null,
         loverId: null,
         elderLives: undefined,
-        isRevealedIdiot: false
+        isRevealedIdiot: false,
+        isSheriff: false
       };
     });
 
@@ -292,8 +370,9 @@ export default function App() {
       return Array.from({ length: targetCount }, (_, i) => {
         const existing = prev[i] || {
           id: i + 1,
+          currentRoleId: null,
           roleId: null,
-          role: null,
+          originalRoleId: null,
           isAlive: true,
           deathReason: null,
           deathPhase: null,
@@ -323,7 +402,18 @@ export default function App() {
           player1: currentPlayers.find(p => p.id === nightState.cupidChosenIds[0]),
           player2: currentPlayers.find(p => p.id === nightState.cupidChosenIds[1])
         } : null,
-        playersSnapshot: currentPlayers,
+        playersSnapshot: currentPlayers.map(p => ({
+          id: p.id,
+          name: p.name,
+          currentRoleId: p.currentRoleId || p.roleId,
+          roleId: p.currentRoleId || p.roleId,
+          originalRoleId: p.originalRoleId || null,
+          isAlive: p.isAlive,
+          isCursedWolf: p.isCursedWolf || false,
+          deathReason: p.deathReason || null,
+          deathPhase: p.deathPhase || null,
+          loverId: p.loverId || null
+        })),
         nightLogs: nightLogs
       };
       saveMatchRecordApi(matchData).catch(err => console.error("Auto save match failed:", err));
@@ -344,6 +434,52 @@ export default function App() {
         next.wolfSkipped = !!extra.wolfSkipped;
         if (extra.isCursedInfect !== undefined) {
           next.isCursedInfect = !!extra.isCursedInfect;
+        }
+      } else if (type === 'curse_convert') {
+        // Immediately convert victim into Werewolf and clear bite target so wolves can pick again
+        const victimId = payload;
+        next.wolfTargetId = null;
+        next.isCursedInfect = false;
+        next.cursedUsed = true;
+        next.lastCursedVictimId = victimId;
+
+        setPlayers(current => current.map(p => {
+          if (p.id === victimId) {
+            const origId = p.originalRoleId || p.currentRoleId || p.roleId || 'dan-lang';
+            return {
+              ...p,
+              originalRoleId: origId,
+              currentRoleId: 'soi-thuong',
+              roleId: 'soi-thuong',
+              role: null,
+              isCursedWolf: true,
+              curseNight: roundNumber
+            };
+          }
+          return p;
+        }));
+      } else if (type === 'undo_curse_convert') {
+        // Revert cursed werewolf back to original role
+        const victimId = payload || prev.lastCursedVictimId;
+        if (victimId) {
+          next.cursedUsed = false;
+          next.lastCursedVictimId = null;
+          next.wolfTargetId = victimId;
+
+          setPlayers(current => current.map(p => {
+            if (p.id === victimId) {
+              const origId = p.originalRoleId || null;
+              return {
+                ...p,
+                currentRoleId: origId,
+                roleId: origId,
+                originalRoleId: null,
+                isCursedWolf: false,
+                curseNight: undefined
+              };
+            }
+            return p;
+          }));
         }
       } else if (type === 'witch') {
         next.witchSaved = payload.saved;
@@ -391,9 +527,16 @@ export default function App() {
 
     setPlayers(prev => {
       const targetPlayer = prev.find(p => p.id === playerId);
+      const targetCurrentId = targetPlayer?.currentRoleId || targetPlayer?.roleId;
       // Toggle unassign if clicking current holder
-      if (targetPlayer?.roleId === role.id) {
-        return prev.map(p => p.id === playerId ? { ...p, roleId: null, role: null } : p);
+      if (targetCurrentId === role.id) {
+        return prev.map(p => p.id === playerId ? { ...p, currentRoleId: null, roleId: null, role: null } : p);
+      }
+
+      // STRICT "ONE PERSON 1 ROLE" RULE:
+      // If target player already has ANOTHER character role, block assigning!
+      if (targetCurrentId && targetCurrentId !== role.id) {
+        return prev;
       }
 
       // Single role capacity (capacity === 1): STRICTLY REVOKE FROM ANY OTHER HOLDER
@@ -402,14 +545,17 @@ export default function App() {
           if (p.id === playerId) {
             return {
               ...p,
+              currentRoleId: role.id,
               roleId: role.id,
-              role: role,
+              role: null,
               elderLives: role.id === 'gia-lang' ? 2 : p.elderLives
             };
           }
-          if (p.roleId === role.id) {
+          const pCurrentId = p.currentRoleId || p.roleId;
+          if (pCurrentId === role.id) {
             return {
               ...p,
+              currentRoleId: null,
               roleId: null,
               role: null,
               elderLives: undefined
@@ -420,15 +566,15 @@ export default function App() {
       }
 
       // Multi-capacity role (e.g. werewolves / villagers):
-      const currentHolders = prev.filter(p => p.roleId === role.id);
+      const currentHolders = prev.filter(p => (p.currentRoleId || p.roleId) === role.id);
       if (currentHolders.length >= capacity && capacity > 1) {
         const oldestHolder = currentHolders[0];
         return prev.map(p => {
           if (p.id === playerId) {
-            return { ...p, roleId: role.id, role: role };
+            return { ...p, currentRoleId: role.id, roleId: role.id, role: null };
           }
           if (p.id === oldestHolder.id) {
-            return { ...p, roleId: null, role: null };
+            return { ...p, currentRoleId: null, roleId: null, role: null };
           }
           return p;
         });
@@ -438,8 +584,9 @@ export default function App() {
         if (p.id === playerId) {
           return {
             ...p,
+            currentRoleId: role.id,
             roleId: role.id,
-            role: role,
+            role: null,
             elderLives: role.id === 'gia-lang' ? 2 : p.elderLives
           };
         }
@@ -457,10 +604,6 @@ export default function App() {
 
   const handleAssignRoleToMultiple = (playerIds, role) => {
     if (!role) return;
-    const WOLF_ROLE_IDS = [
-      'soi-thuong', 'soi-con', 'soi-lon-xau-xa', 
-      'soi-trang', 'nguoi-cha-cua-soi', 'soi-lua', 'anh-em-soi'
-    ];
     const isWolf = WOLF_ROLE_IDS.includes(role.id);
     
     // For werewolves, maximum capacity is strictly configured by the deck
@@ -484,17 +627,19 @@ export default function App() {
         const assignedRole = (isWolf && wolfRolesInDeck[targetIdx]) ? wolfRolesInDeck[targetIdx] : role;
         return {
           ...p,
+          currentRoleId: assignedRole.id,
           roleId: assignedRole.id,
-          role: assignedRole,
+          role: null,
           elderLives: assignedRole.id === 'gia-lang' ? 2 : p.elderLives
         };
       }
       // If someone was previously assigned this role or wolf role but was removed from allowedIds
-      if (isWolf && (p.role?.teamCode === 'W' || WOLF_ROLE_IDS.includes(p.roleId)) && !allowedIds.includes(p.id)) {
-        return { ...p, roleId: null, role: null };
+      const pCurrentId = p.currentRoleId || p.roleId;
+      if (isWolf && (isWolfPlayer(p) || WOLF_ROLE_IDS.includes(pCurrentId)) && !allowedIds.includes(p.id)) {
+        return { ...p, currentRoleId: null, roleId: null, role: null };
       }
-      if (!isWolf && p.roleId === role.id && !allowedIds.includes(p.id)) {
-        return { ...p, roleId: null, role: null };
+      if (!isWolf && pCurrentId === role.id && !allowedIds.includes(p.id)) {
+        return { ...p, currentRoleId: null, roleId: null, role: null };
       }
       return p;
     }));
@@ -512,20 +657,14 @@ export default function App() {
   };
 
   const handleAutoAssignVillagers = () => {
-    const villagerRole = ROLES.find(r => r.id === 'dan-lang') || {
-      id: 'dan-lang',
-      name: 'Dân Làng',
-      enName: 'Simple Villager',
-      teamCode: 'V',
-      team: 'Phe Dân Làng'
-    };
-
     setPlayers(prev => prev.map(p => {
-      if (!p.roleId) {
+      const pCurrentId = p.currentRoleId || p.roleId;
+      if (!pCurrentId) {
         return {
           ...p,
+          currentRoleId: 'dan-lang',
           roleId: 'dan-lang',
-          role: villagerRole
+          role: null
         };
       }
       return p;
@@ -536,6 +675,15 @@ export default function App() {
     setNightState(prev => ({
       ...prev,
       skippedRoles: [...(prev.skippedRoles || []), roleId]
+    }));
+  };
+
+  const handleToggleSheriff = (playerId) => {
+    setPlayers(prev => prev.map(p => {
+      if (p.id === playerId) {
+        return { ...p, isSheriff: !p.isSheriff };
+      }
+      return { ...p, isSheriff: false };
     }));
   };
 
@@ -564,12 +712,12 @@ export default function App() {
     const end = evaluateGameEnd(updatedPlayers);
 
     if (!end.isEnded) {
-      const deadHunter = updatedPlayers.find(p => killedPlayerIds.includes(p.id) && p.role?.id === 'tho-san');
+      const deadHunter = updatedPlayers.find(p => killedPlayerIds.includes(p.id) && getPlayerRole(p)?.id === 'tho-san');
       if (deadHunter) {
         setActionModal({
           isOpen: true,
           actionType: 'hunter',
-          role: deadHunter.role,
+          role: getPlayerRole(deadHunter),
           player: deadHunter
         });
       }
@@ -579,8 +727,9 @@ export default function App() {
   const handleLynchPlayer = (playerId) => {
     const target = players.find(p => p.id === playerId);
     if (!target) return;
+    const targetRole = getPlayerRole(target);
 
-    if (target.role?.id === 'thang-ngoc' && !target.isRevealedIdiot) {
+    if (targetRole?.id === 'thang-ngoc' && !target.isRevealedIdiot) {
       showAlert({
         title: 'THẰNG NGỐC ĐÃ LẬT BÀI!',
         message: `${target.name} là THẰNG NGỐC!\n\nNgười này được cả làng tha thứ và không bị treo cổ. Tuy nhiên sẽ mất hoàn toàn quyền biểu quyết từ nay về sau!`,
@@ -623,11 +772,11 @@ export default function App() {
     setLynchedTodayPlayerId(playerId);
     const end = evaluateGameEnd(updated);
 
-    if (!end.isEnded && target.role?.id === 'tho-san') {
+    if (!end.isEnded && targetRole?.id === 'tho-san') {
       setActionModal({
         isOpen: true,
         actionType: 'hunter',
-        role: target.role,
+        role: targetRole,
         player: target
       });
     }
@@ -674,15 +823,10 @@ export default function App() {
     });
   };
 
-  const WOLF_ROLE_IDS = [
-    'soi-thuong', 'soi-con', 'soi-lon-xau-xa', 
-    'soi-trang', 'nguoi-cha-cua-soi', 'soi-lua', 'anh-em-soi'
-  ];
-  const isWolfPlayer = (p) => p?.isCursedWolf || p?.role?.teamCode === 'W' || WOLF_ROLE_IDS.includes(p?.role?.id);
   const alivePlayers = players.filter(p => p.isAlive);
   const aliveWolves = alivePlayers.filter(isWolfPlayer).length;
   const totalWolvesInDeck = deckRoleIds.filter(id => WOLF_ROLE_IDS.includes(id)).length || 2;
-  const aliveVillagers = alivePlayers.filter(p => !isWolfPlayer(p) && p.role?.teamCode !== '3').length;
+  const aliveVillagers = alivePlayers.filter(p => !isWolfPlayer(p) && getPlayerRole(p)?.teamCode !== '3').length;
 
   return (
     <div className="min-h-screen bg-[#07080d] text-slate-100 flex flex-col font-sans selection:bg-purple-900 selection:text-white">
@@ -857,6 +1001,7 @@ export default function App() {
             onLynchPlayer={handleLynchPlayer}
             onUndoLynch={handleUndoLynch}
             onAdvanceToNight={handleAdvanceToNight}
+            onToggleSheriff={handleToggleSheriff}
             lynchedTodayPlayerId={lynchedTodayPlayerId}
           />
         )}
@@ -868,7 +1013,7 @@ export default function App() {
               setActionModal({
                 isOpen: true,
                 actionType: 'assign_role',
-                role: p.role,
+                role: getPlayerRole(p),
                 player: p
               });
             }}

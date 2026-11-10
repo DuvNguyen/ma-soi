@@ -1,5 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { ChevronLeft, ChevronRight, Heart, Skull, Shield, Eye, Flame, Check } from 'lucide-react';
+import { getPlayerRole } from '../utils/roleUtils';
 
 export default function PlayerSeatPicker({
   players = [],
@@ -114,7 +115,7 @@ export default function PlayerSeatPicker({
         {/* Role or Action hint */}
         {showRole && (
           <div className="text-[9px] text-slate-400 truncate w-full mt-0.5">
-            {p.role?.name || (isDisabled ? 'Bị cấm' : 'Chưa lộ vai')}
+            {getPlayerRole(p)?.name || (isDisabled ? 'Bị cấm' : 'Chưa lộ vai')}
           </div>
         )}
       </button>
