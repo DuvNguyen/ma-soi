@@ -1,6 +1,12 @@
 # Session Handover - Werewolf Moderator Web App
 
 ## 1. Tổng Quan Tiến Độ & Tính Năng Đã Triển Khai
+- **Tái Thiết Kế Thư Viện Thẻ Bài RPG Chuyên Nghiệp & Responsive Hoàn Hảo ([RoleLibraryModal.jsx](file:///home/levi/Desktop/Projects/werewolf/src/components/RoleLibraryModal.jsx))**:
+  - **Khắc Phục 100% Lỗi Chồng Chéo (Broken Layout) Trên Mobile**: Xóa bỏ lỗi 2 khung danh sách và chi tiết bị đè lên nhau che khuất thông tin. Thay vào đó triển khai mô hình Master-Detail chuyển đổi trạng thái mượt mà chuẩn game RPG item codex.
+  - **Tủ Thẻ Bài RPG (Inventory Grid)**: Hiển thị lưới thẻ bài 3 cột trên mobile với ảnh bài Tarot, thứ tự gọi đêm (`#4`), huy hiệu phe (`[V]`, `[W]`, `[3]`), tên vai trò, viền dạ quang theo từng phe. Có nút chuyển đổi linh hoạt giữa Dạng Lưới RPG (`Grid`) và Danh Sách Thu Gọn (`List`).
+  - **Khung Soi Thẻ Bài Chi Tiết (RPG Card Inspector)**: Khi chạm vào bất kỳ thẻ bài nào trên mobile, giao diện chuyển sang màn hình soi thẻ bài to rõ kèm nút `← Bộ Sưu Tập` và cụm điều hướng `< Trước` / `Sau >` cho phép lướt qua lại giữa 48 thẻ bài cực kỳ mượt mà.
+  - **Bento Panels Đầy Đủ**: Giữ nguyên và nâng cấp toàn bộ các khối thông tin chuyên sâu: Phiên bản mở rộng, Huy hiệu phe, Thứ tự thức dậy, Tóm tắt chiến thuật, Chi tiết năng lực & luật chơi, Khẩu lệnh Quản trò, và Lưu ý quan trọng.
+
 - **Tối Ưu Trải Nghiệm Mobile: Khóa Trượt Ngang, Tăng Tốc Độ Chạm & Tự Động Cuộn Xem Thẻ Bài**:
   - **SVG Wolf Icon & Favicon Tab (`public/favicon.svg`, `src/components/ui/WolfIcon.jsx`)**: Thay thế icon tab mặc định bằng SVG đầu Sói gothic cực ngầu trên nền ngọc huyết; đồng thời thay thế emoji `🐺` ở badge thống kê `0/2 Sói` và logo Brand bằng component vector SVG đồng bộ sắc nét.
   - **Khóa Cứng Trượt Ngang (Fix Rigid Horizontal Drag Wobble)**: Khắc phục triệt để lỗi màn hình bị lắc lư/dịch chuyển qua lại khi vuốt ngang trên mobile bằng cách thêm `overflow-x: hidden`, `overscroll-behavior-x: none`, `touch-action: pan-y` trên `html`, `body`, `#root` và `overflow-x-clip` trên card `NightPhaseView`.
