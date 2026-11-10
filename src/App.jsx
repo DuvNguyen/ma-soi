@@ -19,6 +19,7 @@ import MatchHistoryModal from './components/MatchHistoryModal';
 import CemeteryModal from './components/CemeteryModal';
 import GothicButton from './components/ui/GothicButton';
 import GothicBadge from './components/ui/GothicBadge';
+import WolfIcon from './components/ui/WolfIcon';
 import { Moon, Sun, Users, BookOpen, RotateCcw, Shield, Eye, Skull, Sparkles, Trophy, Layers, Database, CheckCircle2, RefreshCw, History } from 'lucide-react';
 
 const STORAGE_KEY = 'werewolf_active_game_state';
@@ -829,14 +830,14 @@ export default function App() {
   const aliveVillagers = alivePlayers.filter(p => !isWolfPlayer(p) && getPlayerRole(p)?.teamCode !== '3').length;
 
   return (
-    <div className="min-h-screen bg-[#07080d] text-slate-100 flex flex-col font-sans selection:bg-purple-900 selection:text-white">
+    <div className="min-h-screen w-full max-w-full overflow-x-hidden bg-[#07080d] text-slate-100 flex flex-col font-sans selection:bg-purple-900 selection:text-white">
       {/* Top Navigation Bar - Consistent Gothic Dark & Mobile One-Screen */}
       <header className="sticky top-0 z-40 bg-[#0c0d16]/95 backdrop-blur-md border-b border-purple-950/80 px-3 sm:px-4 py-2 shadow-[0_4px_25px_rgba(0,0,0,0.8)]">
         <div className="max-w-7xl mx-auto flex items-center justify-between gap-2">
           {/* Brand & Mini Status */}
           <div className="flex items-center gap-2 shrink-0">
             <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-purple-800 to-rose-900 border border-purple-600/60 flex items-center justify-center font-cinzel font-black text-white text-base shadow-[0_0_12px_rgba(147,51,234,0.4)] shrink-0">
-              W
+              <WolfIcon className="w-4.5 h-4.5 text-rose-200" />
             </div>
             <div>
               <div className="flex items-center gap-1.5">
@@ -950,7 +951,8 @@ export default function App() {
               className="h-8 px-2.5 rounded-xl bg-gradient-to-r from-[#240609] to-[#160204] border border-rose-600/90 text-rose-200 text-xs font-black flex items-center gap-1.5 shadow-[0_0_12px_rgba(225,29,72,0.4)]"
               title={`Số Ma Sói còn sống: ${aliveWolves} / ${totalWolvesInDeck} Sói theo bộ bài`}
             >
-              <span>🐺 {aliveWolves}/{totalWolvesInDeck} Sói</span>
+              <WolfIcon className="w-3.5 h-3.5 text-rose-400" />
+              <span>{aliveWolves}/{totalWolvesInDeck} Sói</span>
             </div>
 
             {/* Villagers alive */}

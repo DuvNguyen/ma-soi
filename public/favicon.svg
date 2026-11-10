@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32">
+  <defs>
+    <linearGradient id="wolfBg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#4c0519"/>
+      <stop offset="50%" stop-color="#1f0208"/>
+      <stop offset="100%" stop-color="#0a0103"/>
+    </linearGradient>
+    <linearGradient id="wolfSilver" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="60%" stop-color="#e2e8f0"/>
+      <stop offset="100%" stop-color="#94a3b8"/>
+    </linearGradient>
+  </defs>
+  <!-- Background with gothic border -->
+  <rect width="32" height="32" rx="7" fill="url(#wolfBg)" stroke="#e11d48" stroke-width="1.2" stroke-opacity="0.8"/>
+  
+  <!-- Stylized Gothic Werewolf Head -->
+  <path d="M16 4.5L12.5 10 7 6l2 7-5 3.5 5 3-.5 6 6.5-3 1 1 1-1 6.5 3-.5-6 5-3-5-3.5 2-7-5.5 4L16 4.5z" fill="url(#wolfSilver)"/>
+  
+  <!-- Glowing Blood Eyes -->
+  <polygon points="11,14 13.5,15.5 11.5,17" fill="#e11d48"/>
+  <polygon points="21,14 18.5,15.5 20.5,17" fill="#e11d48"/>
+  
+  <!-- Snout / Nose -->
+  <polygon points="16,21.5 14.5,19.5 17.5,19.5" fill="#4c0519"/>
+</svg>

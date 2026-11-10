@@ -1,5 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { ChevronLeft, ChevronRight, Heart, Skull, Shield, Eye, Flame, Check } from 'lucide-react';
+import WolfIcon from './ui/WolfIcon';
 import { getPlayerRole } from '../utils/roleUtils';
 
 export default function PlayerSeatPicker({
@@ -68,7 +69,7 @@ export default function PlayerSeatPicker({
         type="button"
         disabled={isDisabled}
         onClick={() => onSelect(p.id)}
-        className={`p-2 rounded-xl border text-left transition-all duration-200 cursor-pointer flex flex-col justify-between min-h-[64px] sm:min-h-[72px] relative overflow-hidden ${getVariantStyles(
+        className={`p-2 rounded-xl border text-left transition-all duration-75 select-none touch-manipulation active:scale-95 cursor-pointer flex flex-col justify-between min-h-[64px] sm:min-h-[72px] relative overflow-hidden ${getVariantStyles(
           isSelected,
           isWolf,
           isDisabled
@@ -101,7 +102,7 @@ export default function PlayerSeatPicker({
             )
           )}
           {!isSelected && isWolf && (
-            <span className="text-[9px] text-rose-400 font-bold">🐺</span>
+            <WolfIcon className="w-3 h-3 text-rose-400 inline" />
           )}
         </div>
 

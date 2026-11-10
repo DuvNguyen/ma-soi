@@ -12,7 +12,7 @@ export default function GothicButton({
   icon: Icon = null,
   ...props
 }) {
-  const baseStyles = 'inline-flex items-center justify-center font-bold tracking-wider rounded-xl transition-all duration-200 select-none cursor-pointer disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:scale-100 active:scale-[0.98]';
+  const baseStyles = 'inline-flex items-center justify-center font-bold tracking-wider rounded-xl transition-all duration-75 select-none cursor-pointer disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:scale-100 active:scale-95 touch-manipulation';
 
   const sizeStyles = {
     sm: 'text-xs py-1.5 px-3 gap-1.5 min-h-[34px]',

@@ -1,6 +1,12 @@
 # Session Handover - Werewolf Moderator Web App
 
 ## 1. Tổng Quan Tiến Độ & Tính Năng Đã Triển Khai
+- **Tối Ưu Trải Nghiệm Mobile: Khóa Trượt Ngang, Tăng Tốc Độ Chạm & Tự Động Cuộn Xem Thẻ Bài**:
+  - **SVG Wolf Icon & Favicon Tab (`public/favicon.svg`, `src/components/ui/WolfIcon.jsx`)**: Thay thế icon tab mặc định bằng SVG đầu Sói gothic cực ngầu trên nền ngọc huyết; đồng thời thay thế emoji `🐺` ở badge thống kê `0/2 Sói` và logo Brand bằng component vector SVG đồng bộ sắc nét.
+  - **Khóa Cứng Trượt Ngang (Fix Rigid Horizontal Drag Wobble)**: Khắc phục triệt để lỗi màn hình bị lắc lư/dịch chuyển qua lại khi vuốt ngang trên mobile bằng cách thêm `overflow-x: hidden`, `overscroll-behavior-x: none`, `touch-action: pan-y` trên `html`, `body`, `#root` và `overflow-x-clip` trên card `NightPhaseView`.
+  - **Triệt Tiêu Độ Trễ Chạm (Zero Tap Delay)**: Loại bỏ độ trễ 300ms của trình duyệt di động qua `touch-action: manipulation;`, `user-scalable=no`, giảm thời gian phản hồi nút bấm xuống `duration-75 active:scale-95`, tạo cảm giác bấm cơ học tức thì ngay khi ngón tay vừa chạm.
+  - **Tự Động Cuộn Mượt (Smooth Auto-scroll) Lên Thẻ Bài**: Bổ sung `useRef` và `useEffect` khi bấm `Đi Ngủ 💤` hoặc chuyển bước vai trò, màn hình sẽ tự động kích hoạt animation cuộn mượt mà đưa thẳng lá bài Tarot và thông tin nhân vật tiếp theo vào tầm mắt Quản trò.
+
 - **Triển Khai Vercel Production & Serverless API Kết Nối Neon DB**:
   - **Vercel Serverless Function Endpoints (`api/index.js`, `api/[...path].js`)**: Tạo bộ xử lý Serverless chuẩn cho Vercel, hỗ trợ tự động toàn bộ API `/api/matches`, `/api/matches/:id`, `/api/templates`, `/api/rosters`, `/api/game-state`, `/api/db-check`.
   - **Cấu hình `vercel.json`**: Định tuyến SPA client-side rewrite và ánh xạ `/api/*` tới Serverless Functions; build output trỏ về `dist`.

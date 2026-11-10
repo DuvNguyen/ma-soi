@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { 
   Shield, Eye, Skull, Sparkles, Heart, ChevronRight, ChevronLeft, 
   Sun, Moon, Check, UserCheck, AlertTriangle, AlertCircle, Wand2, Ghost, Flame, MoonStar 
 } from 'lucide-react';
 import GothicButton from './ui/GothicButton';
 import GothicBadge from './ui/GothicBadge';
+import WolfIcon from './ui/WolfIcon';
 import WolfWhisperBox from './WolfWhisperBox';
 import RoleHolderBanner from './RoleHolderBanner';
 import RoleClaimBox from './RoleClaimBox';
@@ -28,6 +29,8 @@ export default function NightPhaseView({
   onAdvanceToDay
 }) {
   const { showConfirm, showAlert } = useGothicDialog();
+  const topContainerRef = useRef(null);
+  const cardRef = useRef(null);
 
   // Sort roles according to canonical night wake-up order
   const getOrderedNightRoles = () => {
@@ -347,12 +350,27 @@ export default function NightPhaseView({
     }
   };
 
+  // Smooth auto-scroll to Tarot Card when advancing or rewinding role steps
+  useEffect(() => {
+    if (cardRef.current) {
+      const yOffset = -90; // offset for sticky top header
+      const y = cardRef.current.getBoundingClientRect().top + window.pageYOffset + yOffset;
+      window.scrollTo({ top: Math.max(0, y), behavior: 'smooth' });
+    } else if (topContainerRef.current) {
+      const yOffset = -80;
+      const y = topContainerRef.current.getBoundingClientRect().top + window.pageYOffset + yOffset;
+      window.scrollTo({ top: Math.max(0, y), behavior: 'smooth' });
+    }
+  }, [currentStepIdx]);
+
   // Victim of wolves tonight
   const wolfVictim = players.find(p => p.id === nightState.wolfTargetId);
   const protectedPlayer = players.find(p => p.id === nightState.protectedPlayerId);
 
   return (
-    <div className={`space-y-6 max-w-5xl mx-auto transition-colors duration-500 rounded-3xl p-4 md:p-6 border shadow-2xl ${
+    <div 
+      ref={topContainerRef}
+      className={`space-y-6 max-w-5xl w-full mx-auto transition-colors duration-500 rounded-3xl p-4 md:p-6 border shadow-2xl overflow-x-clip ${
       isWolfStep
         ? 'bg-gradient-to-b from-[#2a080c] via-[#150406] to-[#090203] border-rose-900/80 shadow-rose-950/70'
         : 'bg-[#10121d] border-slate-800 shadow-slate-950/80'
@@ -484,7 +502,7 @@ export default function NightPhaseView({
             )}
 
             {/* The Main Center Card */}
-            <div className="relative shrink-0">
+            <div ref={cardRef} className="relative shrink-0 scroll-mt-24">
               <div className={`w-28 h-40 sm:w-36 sm:h-50 md:w-40 md:h-56 rounded-2xl overflow-hidden border-2 p-1.5 shadow-2xl flex items-center justify-center bg-black/80 transition-transform duration-300 hover:scale-105 ${
                 isWolfStep ? 'border-rose-500 shadow-[0_0_30px_rgba(225,29,72,0.7)] animate-pulse' : 'border-purple-500/80 shadow-[0_0_25px_rgba(147,51,234,0.45)]'
               }`}>
@@ -495,8 +513,8 @@ export default function NightPhaseView({
                     className="w-full h-full object-contain"
                   />
                 ) : (
-                  <div className="text-5xl">
-                    {isWolfStep ? '🐺' : '✨'}
+                  <div className="text-5xl flex items-center justify-center">
+                    {isWolfStep ? <WolfIcon className="w-16 h-16 text-rose-500" /> : '✨'}
                   </div>
                 )}
               </div>
