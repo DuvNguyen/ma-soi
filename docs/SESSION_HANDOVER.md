@@ -1,6 +1,11 @@
 # Session Handover - Werewolf Moderator Web App
 
 ## 1. Tổng Quan Tiến Độ & Tính Năng Đã Triển Khai
+- **Sửa Lỗi Đồng Bộ Số Lượng Người Chơi Khi Nạp Nhóm Roster ([App.jsx](file:///home/levi/Desktop/Projects/werewolf/src/App.jsx))**:
+  - **Khắc Phục Hiện Tượng Dư Người Chơi Cũ (Lỗi "Thu Hà thứ 14")**: Trước đây `handleApplyRoster` dùng `Math.max(prev.length, names.length)`, khiến cho khi nạp nhóm 13 người vào bàn có sẵn 14 người thì người thứ 14 ("Thu Hà") không bị loại bỏ.
+  - **Chuẩn Hóa Số Lượng Ghế Bàn Chơi**: Cập nhật hàm `handleApplyRoster` để số lượng ghế bàn chơi `players` khớp chính xác 100% với số lượng thành viên trong nhóm nạp vào (`targetCount = names.length`).
+  - **Tự Động Cân Bằng Bộ Bài (`deckRoleIds`) & Làm Sạch Target Đêm**: Tự động tăng/giảm số lượng thẻ `dan-lang` tương ứng khi nạp nhóm người chơi mới để số thẻ bài luôn khớp với số người chơi, đồng thời lọc sạch các mục tiêu đêm (Sói cắn, Bảo vệ, Tiên tri soi, Cupid) vượt quá giới hạn ghế mới.
+
 - **Tái Thiết Kế Thư Viện Thẻ Bài RPG Chuyên Nghiệp & Responsive Hoàn Hảo ([RoleLibraryModal.jsx](file:///home/levi/Desktop/Projects/werewolf/src/components/RoleLibraryModal.jsx))**:
   - **Khắc Phục 100% Lỗi Chồng Chéo (Broken Layout) Trên Mobile**: Xóa bỏ lỗi 2 khung danh sách và chi tiết bị đè lên nhau che khuất thông tin. Thay vào đó triển khai mô hình Master-Detail chuyển đổi trạng thái mượt mà chuẩn game RPG item codex.
   - **Tủ Thẻ Bài RPG (Inventory Grid)**: Hiển thị lưới thẻ bài 3 cột trên mobile với ảnh bài Tarot, thứ tự gọi đêm (`#4`), huy hiệu phe (`[V]`, `[W]`, `[3]`), tên vai trò, viền dạ quang theo từng phe. Có nút chuyển đổi linh hoạt giữa Dạng Lưới RPG (`Grid`) và Danh Sách Thu Gọn (`List`).

@@ -366,11 +366,25 @@ export default function App() {
 
   const handleApplyRoster = (roster) => {
     const names = roster.playerNames;
+    if (!names || names.length === 0) return;
+
+    // Set the table size to match exactly the roster count
+    const targetCount = names.length;
+
     setPlayers(prev => {
-      const targetCount = Math.max(prev.length, names.length);
       return Array.from({ length: targetCount }, (_, i) => {
-        const existing = prev[i] || {
+        const existing = prev[i];
+        if (existing) {
+          return {
+            ...existing,
+            id: i + 1,
+            name: names[i] || `Người chơi ${i + 1}`,
+            loverId: existing.loverId && existing.loverId <= targetCount ? existing.loverId : null
+          };
+        }
+        return {
           id: i + 1,
+          name: names[i] || `Người chơi ${i + 1}`,
           currentRoleId: null,
           roleId: null,
           originalRoleId: null,
@@ -378,14 +392,43 @@ export default function App() {
           deathReason: null,
           deathPhase: null,
           loverId: null,
-          isRevealedIdiot: false
-        };
-        return {
-          ...existing,
-          name: names[i] || existing.name || `Người chơi ${i + 1}`
+          elderLives: undefined,
+          isRevealedIdiot: false,
+          isSheriff: false
         };
       });
     });
+
+    // Automatically adjust deck size to match the new player count
+    setDeckRoleIds(prevDeck => {
+      let nextDeck = [...prevDeck];
+      if (nextDeck.length > targetCount) {
+        // If deck has more cards than players, remove excess "dan-lang" first
+        while (nextDeck.length > targetCount && nextDeck.includes('dan-lang')) {
+          const idx = nextDeck.lastIndexOf('dan-lang');
+          nextDeck.splice(idx, 1);
+        }
+        // If still more cards than players, slice to targetCount
+        if (nextDeck.length > targetCount) {
+          nextDeck = nextDeck.slice(0, targetCount);
+        }
+      } else if (nextDeck.length < targetCount) {
+        // If deck has fewer cards than players, pad with "dan-lang"
+        while (nextDeck.length < targetCount) {
+          nextDeck.push('dan-lang');
+        }
+      }
+      return nextDeck;
+    });
+
+    // Sanitize night state for targets beyond targetCount
+    setNightState(prev => ({
+      ...prev,
+      cupidChosenIds: (prev.cupidChosenIds || []).filter(id => id <= targetCount),
+      wolfTargetId: prev.wolfTargetId && prev.wolfTargetId <= targetCount ? prev.wolfTargetId : null,
+      protectedPlayerId: prev.protectedPlayerId && prev.protectedPlayerId <= targetCount ? prev.protectedPlayerId : null,
+      seerCheckedId: prev.seerCheckedId && prev.seerCheckedId <= targetCount ? prev.seerCheckedId : null,
+    }));
   };
 
   const evaluateGameEnd = (currentPlayers) => {
