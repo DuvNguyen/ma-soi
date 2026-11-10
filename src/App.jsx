@@ -17,10 +17,11 @@ import DeckTemplateModal from './components/DeckTemplateModal';
 import PlayerRosterModal from './components/PlayerRosterModal';
 import MatchHistoryModal from './components/MatchHistoryModal';
 import CemeteryModal from './components/CemeteryModal';
+import GameGuideModal from './components/GameGuideModal';
 import GothicButton from './components/ui/GothicButton';
 import GothicBadge from './components/ui/GothicBadge';
 import WolfIcon from './components/ui/WolfIcon';
-import { Moon, Sun, Users, BookOpen, RotateCcw, Shield, Eye, Skull, Sparkles, Trophy, Layers, Database, CheckCircle2, RefreshCw, History } from 'lucide-react';
+import { Moon, Sun, Users, BookOpen, RotateCcw, Shield, Eye, Skull, Sparkles, Trophy, Layers, Database, CheckCircle2, RefreshCw, History, HelpCircle } from 'lucide-react';
 
 const STORAGE_KEY = 'werewolf_active_game_state';
 
@@ -113,6 +114,7 @@ export default function App() {
   // Modals state
   const [isSetupOpen, setIsSetupOpen] = useState(false);
   const [isLibraryOpen, setIsLibraryOpen] = useState(false);
+  const [isGuideOpen, setIsGuideOpen] = useState(false);
   const [isTemplatesOpen, setIsTemplatesOpen] = useState(false);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [isCemeteryOpen, setIsCemeteryOpen] = useState(false);
@@ -875,20 +877,20 @@ export default function App() {
   return (
     <div className="min-h-screen w-full max-w-full overflow-x-hidden bg-[#07080d] text-slate-100 flex flex-col font-sans selection:bg-purple-900 selection:text-white">
       {/* Top Navigation Bar - Consistent Gothic Dark & Mobile One-Screen */}
-      <header className="sticky top-0 z-40 bg-[#0c0d16]/95 backdrop-blur-md border-b border-purple-950/80 px-3 sm:px-4 py-2 shadow-[0_4px_25px_rgba(0,0,0,0.8)]">
-        <div className="max-w-7xl mx-auto flex items-center justify-between gap-2">
+      <header className="sticky top-0 z-40 bg-[#0c0d16]/95 backdrop-blur-md border-b border-purple-950/80 px-2 sm:px-4 py-1.5 sm:py-2 shadow-[0_4px_25px_rgba(0,0,0,0.8)]">
+        <div className="max-w-7xl mx-auto flex items-center justify-between gap-1.5 sm:gap-2">
           {/* Brand & Mini Status */}
-          <div className="flex items-center gap-2 shrink-0">
-            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-purple-800 to-rose-900 border border-purple-600/60 flex items-center justify-center font-cinzel font-black text-white text-base shadow-[0_0_12px_rgba(147,51,234,0.4)] shrink-0">
-              <WolfIcon className="w-4.5 h-4.5 text-rose-200" />
+          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl bg-gradient-to-br from-purple-800 to-rose-900 border border-purple-600/60 flex items-center justify-center font-cinzel font-black text-white text-base shadow-[0_0_12px_rgba(147,51,234,0.4)] shrink-0">
+              <WolfIcon className="w-3.5 h-3.5 sm:w-4.5 sm:h-4.5 text-rose-200" />
             </div>
             <div>
-              <div className="flex items-center gap-1.5">
-                <h1 className="font-cinzel font-black text-xs sm:text-sm md:text-base tracking-wider text-slate-100 leading-tight">
+              <div className="flex items-center gap-1 sm:gap-1.5">
+                <h1 className="font-cinzel font-black text-xs sm:text-sm md:text-base tracking-wider text-slate-100 leading-tight whitespace-nowrap">
                   QUẢN TRÒ MA SÓI
                 </h1>
                 {neonStatus.ok && (
-                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" title="Đã kết nối Neon DB"></span>
+                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0" title="Đã kết nối Neon DB"></span>
                 )}
               </div>
               <div className="text-[10px] text-purple-300/70 font-medium hidden sm:block">
@@ -897,16 +899,26 @@ export default function App() {
             </div>
           </div>
 
-          {/* Quick Actions & Modals Triggers - EXACTLY CONSISTENT SIZES */}
-          <div className="flex items-center gap-1.5">
+          {/* Quick Actions & Modals Triggers - EXACTLY ONE LINE ON ALL SCREENS */}
+          <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
+            {/* Hướng Dẫn Sử Dụng (Dấu chấm hỏi hình tròn nhỏ) */}
+            <button
+              type="button"
+              onClick={() => setIsGuideOpen(true)}
+              title="Cẩm nang hướng dẫn sử dụng & quy trình Quản trò"
+              className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-amber-950/80 hover:bg-amber-900 border border-amber-600/80 hover:border-amber-400 text-amber-200 text-xs font-black transition-all flex items-center justify-center cursor-pointer shadow-sm active:scale-95 shrink-0"
+            >
+              <HelpCircle className="w-4 h-4 text-amber-300" />
+            </button>
+
             {/* RESET GAME BUTTON */}
             <button
               type="button"
               onClick={handleResetGame}
               title="Reset toàn bộ ván chơi về 0 để chơi lại từ đầu"
-              className="h-9 w-9 sm:w-auto sm:px-3 rounded-xl bg-rose-950/80 hover:bg-rose-900 border border-rose-600/80 hover:border-rose-400 text-rose-200 text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-sm"
+              className="h-7 w-7 sm:h-8 sm:w-auto sm:px-2.5 rounded-lg sm:rounded-xl bg-rose-950/80 hover:bg-rose-900 border border-rose-600/80 hover:border-rose-400 text-rose-200 text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-sm active:scale-95 shrink-0"
             >
-              <RefreshCw className="w-4 h-4 shrink-0 text-rose-300" />
+              <RefreshCw className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0 text-rose-300" />
               <span className="hidden sm:inline">Reset Về 0</span>
             </button>
 
@@ -915,9 +927,9 @@ export default function App() {
               type="button"
               onClick={() => setIsTemplatesOpen(true)}
               title="Chọn hoặc tạo template bộ bài"
-              className="h-9 w-9 sm:w-auto sm:px-3 rounded-xl bg-purple-950/70 hover:bg-purple-900 border border-purple-700/80 hover:border-purple-500 text-purple-200 text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-sm"
+              className="h-7 w-7 sm:h-8 sm:w-auto sm:px-2.5 rounded-lg sm:rounded-xl bg-purple-950/70 hover:bg-purple-900 border border-purple-700/80 hover:border-purple-500 text-purple-200 text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-sm active:scale-95 shrink-0"
             >
-              <Layers className="w-4 h-4 shrink-0 text-purple-300" />
+              <Layers className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0 text-purple-300" />
               <span className="hidden sm:inline">Bộ Bài</span>
             </button>
 
@@ -926,10 +938,10 @@ export default function App() {
               type="button"
               onClick={() => setIsRostersOpen(true)}
               title="Danh sách người chơi đã lưu"
-              className="h-9 w-9 sm:w-auto sm:px-3 rounded-xl bg-purple-950/70 hover:bg-purple-900 border border-purple-700/80 hover:border-purple-500 text-purple-200 text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-sm"
+              className="h-7 w-7 sm:h-8 sm:w-auto sm:px-2.5 rounded-lg sm:rounded-xl bg-purple-950/70 hover:bg-purple-900 border border-purple-700/80 hover:border-purple-500 text-purple-200 text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-sm active:scale-95 shrink-0"
             >
-              <Users className="w-4 h-4 shrink-0 text-purple-300" />
-              <span className="hidden sm:inline">Tên Người Chơi</span>
+              <Users className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0 text-purple-300" />
+              <span className="hidden sm:inline">Tên</span>
             </button>
 
             {/* Lịch Sử */}
@@ -937,9 +949,9 @@ export default function App() {
               type="button"
               onClick={() => setIsHistoryOpen(true)}
               title="Xem lịch sử các trận đấu đã lưu trên Neon DB"
-              className="h-9 w-9 sm:w-auto sm:px-3 rounded-xl bg-[#141628] hover:bg-[#1e2038] border border-slate-800 hover:border-purple-600 text-slate-300 text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-sm"
+              className="h-7 w-7 sm:h-8 sm:w-auto sm:px-2.5 rounded-lg sm:rounded-xl bg-[#141628] hover:bg-[#1e2038] border border-slate-800 hover:border-purple-600 text-slate-300 text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-sm active:scale-95 shrink-0"
             >
-              <History className="w-4 h-4 shrink-0 text-slate-300" />
+              <History className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0 text-slate-300" />
               <span className="hidden md:inline">Lịch Sử</span>
             </button>
 
@@ -947,17 +959,17 @@ export default function App() {
             <button
               type="button"
               onClick={() => setIsLibraryOpen(true)}
-              title="Thư viện hướng dẫn các vai trò"
-              className="h-9 w-9 sm:w-auto sm:px-3 rounded-xl bg-[#141628] hover:bg-[#1e2038] border border-slate-800 hover:border-purple-600 text-slate-300 text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-sm"
+              title="Thư viện hướng dẫn 48 vai trò Ma Sói"
+              className="h-7 w-7 sm:h-8 sm:w-auto sm:px-2.5 rounded-lg sm:rounded-xl bg-[#141628] hover:bg-[#1e2038] border border-slate-800 hover:border-purple-600 text-slate-300 text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-sm active:scale-95 shrink-0"
             >
-              <BookOpen className="w-4 h-4 shrink-0 text-slate-300" />
+              <BookOpen className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0 text-slate-300" />
               <span className="hidden md:inline">Thư Viện</span>
             </button>
           </div>
         </div>
 
         {/* Row 2: Unified Segmented Tabs & Live Game Stats */}
-        <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-2 mt-2 pt-2 border-t border-purple-950/50">
+        <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-1.5 sm:gap-2 mt-1.5 pt-1.5 border-t border-purple-950/50">
           {/* Left: Tab Switcher (Unified 32px height) */}
           <div className="flex items-center gap-1.5 bg-[#0a0c16] p-0.5 rounded-xl border border-purple-950/80">
             <button
@@ -1124,6 +1136,12 @@ export default function App() {
       <RoleLibraryModal
         isOpen={isLibraryOpen}
         onClose={() => setIsLibraryOpen(false)}
+      />
+
+      {/* Game Guide & Rules Modal (Parchment Theme) */}
+      <GameGuideModal
+        isOpen={isGuideOpen}
+        onClose={() => setIsGuideOpen(false)}
       />
     </div>
   );

@@ -1,6 +1,11 @@
 # Session Handover - Werewolf Moderator Web App
 
 ## 1. Tổng Quan Tiến Độ & Tính Năng Đã Triển Khai
+- **Tích Hợp Cẩm Nang Quản Trò Nền Giấy Da Cổ (Parchment Guide) & Tối Ưu Header 1 Dòng ([GameGuideModal.jsx](file:///home/levi/Desktop/Projects/werewolf/src/components/GameGuideModal.jsx), [App.jsx](file:///home/levi/Desktop/Projects/werewolf/src/App.jsx))**:
+  - **Cẩm Nang Nền Giấy Da Cổ Điển (`public/parchment-bg.png`)**: Sử dụng hình ảnh giấy da cổ với viền cháy rách làm phông nền toàn diện cho cửa sổ Hướng Dẫn Sử Dụng. Chữ viết màu mực đen/nâu sepia cổ điển kết hợp font Cinzel sang trọng, bố cục 3 tab: *📜 Quy Trình Ván Đấu*, *🐺 Quyền Năng & Thao Tác*, *💡 Mẹo & Lưu Ý Quản Trò*.
+  - **Nút Chấm Hỏi Hình Tròn Nhỏ (`?`) Trên Header**: Bổ sung icon `HelpCircle` tròn nhỏ màu vàng đất cổ điển ngay đầu cụm thao tác nhanh để Quản trò mở cẩm nang bất kỳ lúc nào.
+  - **Khóa Cứng Header 1 Dòng Duy Nhất**: Tinh chỉnh kích thước các nút bấm trên mobile (`w-7 h-7 sm:w-auto sm:h-8`), đảm bảo toàn bộ thanh công cụ hàng 1 luôn hiển thị thẳng hàng trên 1 dòng duy nhất trên mọi độ phân giải màn hình từ 360px trở lên, tuyệt đối không bị gãy thành 2-3 dòng.
+
 - **Sửa Lỗi Đồng Bộ Số Lượng Người Chơi Khi Nạp Nhóm Roster ([App.jsx](file:///home/levi/Desktop/Projects/werewolf/src/App.jsx))**:
   - **Khắc Phục Hiện Tượng Dư Người Chơi Cũ (Lỗi "Thu Hà thứ 14")**: Trước đây `handleApplyRoster` dùng `Math.max(prev.length, names.length)`, khiến cho khi nạp nhóm 13 người vào bàn có sẵn 14 người thì người thứ 14 ("Thu Hà") không bị loại bỏ.
   - **Chuẩn Hóa Số Lượng Ghế Bàn Chơi**: Cập nhật hàm `handleApplyRoster` để số lượng ghế bàn chơi `players` khớp chính xác 100% với số lượng thành viên trong nhóm nạp vào (`targetCount = names.length`).
