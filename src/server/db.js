@@ -2,8 +2,10 @@ import { neon } from '@neondatabase/serverless';
 import fs from 'fs';
 import path from 'path';
 
-// Read DATABASE_URL from .env.local or process.env
-function getDatabaseUrl() {
+let _cachedUrl = null;
+let _cachedSql = null;
+
+export function getDatabaseUrl() {
   if (process.env.DATABASE_URL) {
     return process.env.DATABASE_URL;
   }
@@ -23,17 +25,30 @@ function getDatabaseUrl() {
   return null;
 }
 
+export function getSql() {
+  const url = getDatabaseUrl();
+  if (!url) return null;
+  if (_cachedSql && _cachedUrl === url) return _cachedSql;
+  _cachedUrl = url;
+  _cachedSql = neon(url);
+  return _cachedSql;
+}
+
 export const dbUrl = getDatabaseUrl();
-export const sql = dbUrl ? neon(dbUrl) : null;
+export const sql = (...args) => {
+  const client = getSql();
+  if (!client) throw new Error('DATABASE_URL not found in environment');
+  return client(...args);
+};
 
 export async function testConnection() {
-  if (!sql) throw new Error('DATABASE_URL not found in environment');
+  if (!getSql()) throw new Error('DATABASE_URL not found in environment');
   const res = await sql`SELECT 1 as connected, now() as timestamp, current_database() as db_name`;
   return res[0];
 }
 
 export async function getTemplates() {
-  if (!sql) return [];
+  if (!getSql()) return [];
   const rows = await sql`
     SELECT id, name, description, player_count, role_ids, created_at, updated_at 
     FROM deck_templates 
@@ -51,7 +66,7 @@ export async function getTemplates() {
 }
 
 export async function saveTemplate({ id, name, desc, playerCount, roleIds }) {
-  if (!sql) throw new Error('Database not connected');
+  if (!getSql()) throw new Error('Database not connected');
   const roleIdsJson = JSON.stringify(roleIds);
   await sql`
     INSERT INTO deck_templates (id, name, description, player_count, role_ids, updated_at)
@@ -67,13 +82,13 @@ export async function saveTemplate({ id, name, desc, playerCount, roleIds }) {
 }
 
 export async function deleteTemplate(id) {
-  if (!sql) throw new Error('Database not connected');
+  if (!getSql()) throw new Error('Database not connected');
   await sql`DELETE FROM deck_templates WHERE id = ${id}`;
   return { success: true };
 }
 
 export async function getRosters() {
-  if (!sql) return [];
+  if (!getSql()) return [];
   const rows = await sql`
     SELECT id, name, player_names, created_at, updated_at 
     FROM player_rosters 
@@ -89,7 +104,7 @@ export async function getRosters() {
 }
 
 export async function saveRoster({ id, name, playerNames }) {
-  if (!sql) throw new Error('Database not connected');
+  if (!getSql()) throw new Error('Database not connected');
   const namesJson = JSON.stringify(playerNames);
   await sql`
     INSERT INTO player_rosters (id, name, player_names, updated_at)
@@ -103,13 +118,13 @@ export async function saveRoster({ id, name, playerNames }) {
 }
 
 export async function deleteRoster(id) {
-  if (!sql) throw new Error('Database not connected');
+  if (!getSql()) throw new Error('Database not connected');
   await sql`DELETE FROM player_rosters WHERE id = ${id}`;
   return { success: true };
 }
 
 export async function getGameState() {
-  if (!sql) return null;
+  if (!getSql()) return null;
   const rows = await sql`SELECT state FROM game_state WHERE id = 'current'`;
   if (rows.length === 0) return null;
   const state = rows[0].state;
@@ -117,7 +132,7 @@ export async function getGameState() {
 }
 
 export async function saveGameState(state) {
-  if (!sql) throw new Error('Database not connected');
+  if (!getSql()) throw new Error('Database not connected');
   const stateJson = JSON.stringify(state);
   await sql`
     INSERT INTO game_state (id, state, updated_at)
@@ -132,7 +147,7 @@ export async function saveGameState(state) {
 // ================= MATCH RECORDS & GAME HISTORY =================
 
 export async function ensureTablesExist() {
-  if (!sql) return;
+  if (!getSql()) return;
   try {
     await sql`
       CREATE TABLE IF NOT EXISTS match_records (
@@ -162,7 +177,7 @@ export async function ensureTablesExist() {
 }
 
 export async function getMatchRecords(limit = 30) {
-  if (!sql) return [];
+  if (!getSql()) return [];
   await ensureTablesExist();
   const rows = await sql`
     SELECT 
@@ -189,7 +204,7 @@ export async function getMatchRecords(limit = 30) {
 }
 
 export async function getMatchDetail(id) {
-  if (!sql) return null;
+  if (!getSql()) return null;
   await ensureTablesExist();
   const rows = await sql`
     SELECT * FROM match_records WHERE id = ${id}
@@ -216,7 +231,7 @@ export async function getMatchDetail(id) {
 }
 
 export async function saveMatchRecord(data) {
-  if (!sql) throw new Error('Database not connected');
+  if (!getSql()) throw new Error('Database not connected');
   await ensureTablesExist();
 
   const id = data.id || `match-${Date.now()}`;
@@ -266,7 +281,7 @@ export async function saveMatchRecord(data) {
 }
 
 export async function deleteMatchRecord(id) {
-  if (!sql) throw new Error('Database not connected');
+  if (!getSql()) throw new Error('Database not connected');
   await ensureTablesExist();
   await sql`DELETE FROM match_records WHERE id = ${id}`;
   return { success: true };
