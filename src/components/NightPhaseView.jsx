@@ -6,50 +6,74 @@ import {
 import GothicButton from './ui/GothicButton';
 import GothicBadge from './ui/GothicBadge';
 import WolfWhisperBox from './WolfWhisperBox';
+import RoleHolderBanner from './RoleHolderBanner';
+import RoleClaimBox from './RoleClaimBox';
+import DeckInventoryRadar from './DeckInventoryRadar';
+import PlayerSeatPicker from './PlayerSeatPicker';
+import { getRoleCapacity } from '../utils/deckUtils';
+import { useGothicDialog } from '../context/GothicDialogContext';
 
 export default function NightPhaseView({
   roundNumber,
   rolesInGame,
   players,
+  deckRoleIds = [],
   nightState,
   onSaveAction,
   onAssignRole,
+  onAssignRoleToMultiple,
+  onAutoAssignVillagers,
+  onSkipRole,
   onAdvanceToDay
 }) {
+  const { showConfirm, showAlert } = useGothicDialog();
+
   const isWolfPlayer = (p) => {
-    return p?.role?.teamCode === 'W' || ['soi-thuong', 'soi-con', 'soi-lon-xau-xa', 'soi-trang'].includes(p?.role?.id);
+    return p?.isCursedWolf || p?.role?.teamCode === 'W' || [
+      'soi-thuong', 'soi-con', 'soi-lon-xau-xa', 'soi-trang', 
+      'nguoi-cha-cua-soi', 'soi-lua', 'anh-em-soi'
+    ].includes(p?.role?.id);
   };
   // Sort roles according to canonical night wake-up order
   const getOrderedNightRoles = () => {
-    // Standard night order priorities
+    // Standard night order priorities matching official rulebook
     const orderPriority = {
-      'anh-tu': 1,
+      'nguyet-nu': 0.5,
+      'an-trom': 1,
       'cupid': 2,
+      'anh-tu': 2.5,
       'dua-tre-hoang-da': 3,
+      'nua-nguoi-nua-soi': 3.1,
+      'dien-vien': 3.5,
       'bao-ve': 4,
-      'nguoi-cha-cua-soi': 5,
-      'nua-nguoi-nua-soi': 5.1,
-      'soi-thuong': 6,
-      'soi-con': 6.1,
-      'soi-lon-xau-xa': 6.2,
-      'soi-trang': 6.3,
-      'tien-tri': 7,
-      'cao': 7.1,
-      'phu-thuy': 8,
-      'duoc-si': 8.1,
-      'nguoi-thoi-sao': 9,
-      'con-qua': 10,
-      'nguoi-goi-hon': 11
+      'nguoi-cha-cua-soi': 4.9,
+      'soi-thuong': 5,
+      'soi-con': 5.1,
+      'soi-lon-xau-xa': 5.2,
+      'soi-trang': 5.3,
+      'cao-lua': 5.4,
+      'tien-tri': 6,
+      'cao': 6.1,
+      'thay-thoi-mien': 6.5,
+      'phu-thuy': 7,
+      'duoc-si': 7.5,
+      'nguoi-thoi-sao': 8,
+      'con-qua': 9,
+      'nguoi-goi-hon': 10
     };
 
     // Filter roles that actually wake up during this night
     const activeRoles = rolesInGame.filter(r => {
-      // Cupid & Đứa trẻ only wake on Night 1
-      if (['cupid', 'dua-tre-hoang-da', 'anh-tu'].includes(r.id) && roundNumber > 1) {
+      // Night 1 only roles
+      if (['cupid', 'dua-tre-hoang-da', 'anh-tu', 'an-trom', 'ke-bao-thu', 'soi-lai'].includes(r.id) && roundNumber > 1) {
         return false;
       }
-      // Dân thường, Thợ săn, Già làng, Thằng ngốc do not wake up at night
-      if (['dan-lang', 'dan-thuong', 'tho-san', 'gia-lang', 'thang-ngoc', 'canh-sat-truong', 'nguoi-the-than'].includes(r.id)) {
+      // Roles that do not wake up at night (Day only, passive, or event-driven)
+      if ([
+        'dan-lang', 'dan-thuong', 'tho-san', 'gia-lang', 'thang-ngoc', 'canh-sat-truong', 
+        'nguoi-the-than', 'oan-nhan', 'nguoi-day-to-tan-tuy', 'hiep-si-gia', 'ky-si', 
+        'thien-su', 'thien-than', 'bo-lao', 'thang-mo', 'nguoi-thuan-phuc-gau', 'than-gau'
+      ].includes(r.id)) {
         return false;
       }
       return true;
@@ -104,8 +128,133 @@ export default function NightPhaseView({
   const [selectedSeerTarget, setSelectedSeerTarget] = useState(null);
   const [showAssignDropdown, setShowAssignDropdown] = useState(false);
 
-  // Advance to next step
-  const handleNextStep = () => {
+  // STRICT GATEKEEPER VALIDATION
+  const isSkipped = (nightState?.skippedRoles || []).includes(currentRole?.id);
+  const roleHolders = isWolfStep ? players.filter(isWolfPlayer) : players.filter(p => p.roleId === currentRole?.id);
+  const hasHolders = roleHolders.length > 0;
+
+  const WOLF_ROLE_IDS = [
+    'soi-thuong', 'soi-con', 'soi-lon-xau-xa', 'soi-trang', 
+    'nguoi-cha-cua-soi', 'soi-lua', 'anh-em-soi'
+  ];
+  const maxWolves = deckRoleIds.filter(id => WOLF_ROLE_IDS.includes(id)).length || 2;
+  const currentWolves = players.filter(isWolfPlayer);
+
+  const getStepValidationState = () => {
+    if (!currentRole || isSummaryStep) return { isValid: true, message: '' };
+
+    // Strict Rule: WEREWOLVES CANNOT BE SKIPPED UNDER ANY CIRCUMSTANCES
+    if (isWolfStep) {
+      if (currentWolves.length < maxWolves) {
+        return {
+          isValid: false,
+          isStrictBlock: true,
+          message: `BẮT BUỘC gán đủ ${maxWolves} Ma Sói theo bộ bài! (Hiện có ${currentWolves.length}/${maxWolves} Sói). Không được phép bỏ qua bước này!`
+        };
+      }
+      if (nightState.wolfTargetId === null && !nightState.wolfSkipped) {
+        return { isValid: false, message: 'Bầy Sói phải chọn 1 con mồi hoặc bấm Bầy Sói Không Cắn Ai' };
+      }
+      return { isValid: true, message: 'Bầy Sói đã chọn mục tiêu' };
+    }
+
+    // If role is skipped by moderator: allow pass
+    if (isSkipped) {
+      return { isValid: true, message: `Quản trò đã bỏ qua vai ${currentRole.name}` };
+    }
+
+    // If role has assigned players and all living holders are dead, allow auto-skip
+    const hasLivingHolders = roleHolders.some(p => p.isAlive);
+    if (roleHolders.length > 0 && !hasLivingHolders) {
+      return { isValid: true, isDeadRole: true, message: 'Người giữ vai này đã chết ➔ Có thể bỏ qua' };
+    }
+
+    // If no holders assigned yet: require assignment or skip
+    if (!hasHolders) {
+      return { isValid: false, message: `Chưa gán ai là ${currentRole.name}! Hãy chạm số ghế người chơi để gán hoặc bấm Bỏ qua.` };
+    }
+
+    switch (currentRole.id) {
+      case 'cupid': {
+        const count = (nightState.cupidChosenIds || []).length;
+        if (count !== 2) {
+          return { isValid: false, message: `Bắt buộc chọn đúng 2 người yêu nhau (${count}/2)` };
+        }
+        return { isValid: true, message: 'Đã ghép đôi 2 người' };
+      }
+
+      case 'bao-ve': {
+        if (!nightState.protectedPlayerId && !nightState.protectSkipped) {
+          return { isValid: false, message: 'Vui lòng chọn 1 người để bảo vệ hoặc bấm Bỏ qua' };
+        }
+        if (nightState.protectedPlayerId && nightState.protectedPlayerId === nightState.lastNightProtectedId) {
+          return { isValid: false, message: 'Không được bảo vệ người này 2 đêm liên tiếp!' };
+        }
+        return { isValid: true, message: 'Đã chọn người bảo vệ' };
+      }
+
+      case 'tien-tri': {
+        return { isValid: true, message: 'Chạm vào người chơi để xem lá bài & ra dấu cho Tiên Tri' };
+      }
+
+      case 'soi-thuong': {
+        if (nightState.wolfTargetId === null && !nightState.wolfSkipped) {
+          return { isValid: false, message: 'Bầy Sói phải chọn 1 con mồi hoặc bấm Bỏ qua' };
+        }
+        return { isValid: true, message: 'Bầy Sói đã chọn mục tiêu' };
+      }
+
+      case 'dua-tre-hoang-da': {
+        if (!nightState.wildChildIdolId) {
+          return { isValid: false, message: 'Đứa Trẻ Hoang Dã bắt buộc chọn 1 Thần Tượng' };
+        }
+        return { isValid: true, message: 'Đã chọn Thần Tượng' };
+      }
+
+      case 'nguoi-thoi-sao': {
+        const count = (nightState.piperChosenIds || []).length;
+        if (count !== 2) {
+          return { isValid: false, message: `Thổi Sáo phải chọn đúng 2 người (${count}/2)` };
+        }
+        return { isValid: true, message: 'Đã chọn 2 người mê hoặc' };
+      }
+
+      case 'con-qua': {
+        if (!nightState.ravenTargetId && !nightState.ravenSkipped) {
+          return { isValid: false, message: 'Quạ phải chọn 1 người để gieo 2 phiếu phạt' };
+        }
+        return { isValid: true, message: 'Đã chọn người tố cáo' };
+      }
+
+      default:
+        return { isValid: true, message: '' };
+    }
+  };
+
+  const stepValidation = getStepValidationState();
+
+  // Advance to next step with strict validation
+  const handleNextStep = (force = false) => {
+    // If strict block (e.g. werewolves not assigned enough), NEVER allow skip or bypass!
+    if (stepValidation.isStrictBlock) {
+      showAlert({
+        title: 'BẮT BUỘC GÁN ĐỦ MA SÓI!',
+        message: stepValidation.message,
+        variant: 'danger',
+        confirmText: 'Đã Hiểu & Đi Chọn Sói'
+      });
+      return;
+    }
+
+    if (!stepValidation.isValid && !force) {
+      showAlert({
+        title: 'HÀNH ĐỘNG CHƯA HỢP LỆ!',
+        message: stepValidation.message,
+        variant: 'warning',
+        confirmText: 'Kiểm Tra Lại'
+      });
+      return;
+    }
     if (currentStepIdx < nightSteps.length - 1) {
       setCurrentStepIdx(c => c + 1);
       setSelectedSeerTarget(null);
@@ -134,28 +283,28 @@ export default function NightPhaseView({
         : 'bg-[#10121d] border-slate-800 shadow-slate-950/80'
     }`}>
       {/* Top Header & Round Indicator */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/10 pb-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-3 border-b border-white/10 pb-3 sm:pb-4">
         <div>
           <div className="flex items-center gap-2">
-            <span className={`px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider flex items-center gap-1.5 border ${
+            <span className={`px-2.5 py-0.5 sm:px-3 sm:py-1 rounded-full text-[11px] sm:text-xs font-black uppercase tracking-wider flex items-center gap-1.5 border ${
               isWolfStep 
                 ? 'bg-rose-950 text-rose-300 border-rose-700 animate-pulse' 
                 : 'bg-indigo-950 text-indigo-300 border-indigo-800'
             }`}>
-              <Moon className="w-3.5 h-3.5 fill-current" />
-              Đêm Thứ {roundNumber}
+              <Moon className="w-3 h-3 sm:w-3.5 sm:h-3.5 fill-current" />
+              Đêm {roundNumber}
             </span>
-            <span className="text-xs text-slate-400">
+            <span className="text-[11px] sm:text-xs text-slate-400">
               Bước {currentStepIdx + 1} / {nightSteps.length}
             </span>
           </div>
-          <h2 className="text-xl md:text-2xl font-cinzel font-black tracking-wide text-slate-100 mt-1">
+          <h2 className="text-base sm:text-xl md:text-2xl font-cinzel font-black tracking-wide text-slate-100 mt-1 hidden sm:block">
             QUY TRÌNH QUẢN TRÒ GỌI ĐÊM (LẦN LƯỢT)
           </h2>
         </div>
 
-        {/* Navigation buttons */}
-        <div className="flex items-center gap-2">
+        {/* Navigation buttons - Hidden on mobile because of sticky bottom nav bar */}
+        <div className="hidden sm:flex items-center gap-2">
           <GothicButton
             variant="dark"
             size="sm"
@@ -169,13 +318,23 @@ export default function NightPhaseView({
           <GothicButton
             variant={isSummaryStep ? 'gold' : isWolfStep ? 'blood' : 'witch'}
             size="sm"
-            onClick={handleNextStep}
+            disabled={!stepValidation.isValid}
+            onClick={() => handleNextStep(false)}
+            title={!stepValidation.isValid ? stepValidation.message : ''}
           >
             <span>{isSummaryStep ? '☀️ BẬT TRỜI SÁNG' : `Cho ${currentRole.name} Ngủ & Tiếp`}</span>
             <ChevronRight className="w-4 h-4 ml-1 inline" />
           </GothicButton>
         </div>
       </div>
+
+      {/* DECK INVENTORY RADAR (TRACK REMAINING CARDS IN DECK) */}
+      <DeckInventoryRadar
+        players={players}
+        deckRoleIds={deckRoleIds}
+        onAutoAssignVillagers={onAutoAssignVillagers}
+        onAssignRole={onAssignRole}
+      />
 
       {/* Stepper Progress Bar (Breadcrumbs) */}
       <div className="overflow-x-auto pb-2 scrollbar-none">
@@ -188,8 +347,34 @@ export default function NightPhaseView({
               <button
                 key={`${step.id}-${idx}`}
                 onClick={() => {
+                  if (idx > currentStepIdx && !stepValidation.isValid) {
+                    if (stepValidation.isStrictBlock) {
+                      showAlert({
+                        title: 'BẮT BUỘC GÁN ĐỦ MA SÓI!',
+                        message: stepValidation.message,
+                        variant: 'danger',
+                        confirmText: 'Đã Hiểu & Đi Chọn Sói'
+                      });
+                      return;
+                    }
+
+                    showConfirm({
+                      title: 'BỎ QUA BƯỚC ĐÊM BẮT BUỘC?',
+                      message: `Bước hiện tại chưa hoàn thành:\n"${stepValidation.message}"\n\nBạn có chắc muốn bỏ qua để nhảy thẳng sang bước tiếp theo?`,
+                      variant: 'warning',
+                      confirmText: 'Bỏ Qua & Nhảy Bước',
+                      cancelText: 'Ở Lại Hoàn Thành',
+                      onConfirm: () => {
+                        setCurrentStepIdx(idx);
+                        setSelectedSeerTarget(null);
+                        setShowAssignDropdown(false);
+                      }
+                    });
+                    return;
+                  }
                   setCurrentStepIdx(idx);
                   setSelectedSeerTarget(null);
+                  setShowAssignDropdown(false);
                 }}
                 className={`py-1.5 px-3 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 border cursor-pointer ${
                   isCurrent
@@ -211,22 +396,22 @@ export default function NightPhaseView({
 
       {/* MAIN GUIDED CARD HERO AREA */}
       {!isSummaryStep ? (
-        <div className="space-y-6">
-          {/* Hero Banner for current role */}
-          <div className={`p-5 rounded-3xl border transition-all flex flex-col md:flex-row items-center gap-6 relative overflow-hidden ${
+        <div className="space-y-4 sm:space-y-6">
+          {/* Hero Banner for current role - Card as Main Center, Name Underneath */}
+          <div className={`p-4 sm:p-5 rounded-2xl sm:rounded-3xl border transition-all relative overflow-hidden flex flex-col items-center justify-center text-center ${
             isWolfStep
-              ? 'bg-gradient-to-r from-[#2a0509] via-[#150204] to-[#250408] border-rose-600/90 shadow-[0_0_35px_rgba(225,29,72,0.4)] ring-1 ring-rose-500/50'
-              : 'bg-gradient-to-r from-[#170a2c] via-[#0d0e19] to-[#120822] border-purple-900/70 shadow-[0_4px_25px_rgba(0,0,0,0.7)]'
+              ? 'bg-gradient-to-b from-[#2a0509] via-[#150204] to-[#250408] border-rose-600/90 shadow-[0_0_35px_rgba(225,29,72,0.4)] ring-1 ring-rose-500/50'
+              : 'bg-gradient-to-b from-[#170a2c] via-[#0d0e19] to-[#120822] border-purple-900/70 shadow-[0_4px_25px_rgba(0,0,0,0.7)]'
           }`}>
             {/* Ambient Background Glow */}
             {isWolfStep && (
-              <div className="absolute -right-10 -bottom-10 w-64 h-64 bg-rose-600/20 rounded-full blur-3xl pointer-events-none"></div>
+              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-72 h-72 bg-rose-600/20 rounded-full blur-3xl pointer-events-none"></div>
             )}
 
-            {/* Visual Avatar / Card Art / Icon */}
+            {/* The Main Center Card */}
             <div className="relative shrink-0">
-              <div className={`w-32 h-44 rounded-2xl overflow-hidden border-2 p-1.5 shadow-2xl flex items-center justify-center bg-black/60 ${
-                isWolfStep ? 'border-rose-500 shadow-[0_0_25px_rgba(225,29,72,0.6)] animate-pulse' : 'border-purple-600/70 shadow-[0_0_20px_rgba(147,51,234,0.35)]'
+              <div className={`w-28 h-40 sm:w-36 sm:h-50 md:w-40 md:h-56 rounded-2xl overflow-hidden border-2 p-1.5 shadow-2xl flex items-center justify-center bg-black/80 transition-transform duration-300 hover:scale-105 ${
+                isWolfStep ? 'border-rose-500 shadow-[0_0_30px_rgba(225,29,72,0.7)] animate-pulse' : 'border-purple-500/80 shadow-[0_0_25px_rgba(147,51,234,0.45)]'
               }`}>
                 {currentRole.image ? (
                   <img
@@ -235,147 +420,121 @@ export default function NightPhaseView({
                     className="w-full h-full object-contain"
                   />
                 ) : (
-                  <div className="text-4xl">
+                  <div className="text-5xl">
                     {isWolfStep ? '🐺' : '✨'}
                   </div>
                 )}
               </div>
 
-              {/* Badges on artwork */}
+              {/* Tactical Badges on artwork */}
               {currentRole.id === 'bao-ve' && (
-                <div className="absolute -bottom-2 -right-2 w-9 h-9 rounded-full bg-teal-500 text-slate-950 flex items-center justify-center shadow-lg border-2 border-slate-900 animate-bounce">
+                <div className="absolute -bottom-2 -right-2 w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-teal-500 text-slate-950 flex items-center justify-center shadow-lg border-2 border-slate-900 animate-bounce">
                   <Shield className="w-5 h-5 fill-slate-950" />
                 </div>
               )}
               {currentRole.id === 'tien-tri' && (
-                <div className="absolute -bottom-2 -right-2 w-9 h-9 rounded-full bg-purple-500 text-white flex items-center justify-center shadow-lg border-2 border-slate-900 animate-pulse">
+                <div className="absolute -bottom-2 -right-2 w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-purple-500 text-white flex items-center justify-center shadow-lg border-2 border-slate-900 animate-pulse">
                   <Eye className="w-5 h-5" />
                 </div>
               )}
               {isWolfStep && (
-                <div className="absolute -bottom-2 -right-2 w-9 h-9 rounded-full bg-rose-600 text-white flex items-center justify-center shadow-[0_0_12px_rgba(225,29,72,0.8)] border-2 border-slate-900 animate-pulse">
+                <div className="absolute -bottom-2 -right-2 w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-rose-600 text-white flex items-center justify-center shadow-[0_0_12px_rgba(225,29,72,0.8)] border-2 border-slate-900 animate-pulse">
                   <Skull className="w-5 h-5" />
                 </div>
               )}
               {currentRole.id === 'phu-thuy' && (
-                <div className="absolute -bottom-2 -right-2 w-9 h-9 rounded-full bg-purple-500 text-white flex items-center justify-center shadow-lg border-2 border-slate-900">
+                <div className="absolute -bottom-2 -right-2 w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-purple-500 text-white flex items-center justify-center shadow-lg border-2 border-slate-900">
                   <Sparkles className="w-5 h-5" />
                 </div>
               )}
             </div>
 
-            {/* Role Header Info & Voice Call */}
-            <div className="flex-1 space-y-3 text-center md:text-left">
-              <div className="flex flex-wrap items-center justify-center md:justify-start gap-2">
-                <GothicBadge variant={isWolfStep ? 'wolf' : 'witch'}>
-                  [{currentRole.teamCode}] {currentRole.team}
-                </GothicBadge>
-
-                {/* Assigned players badge */}
-                <div className="text-xs text-slate-300 bg-[#0b0c15] px-3 py-1 rounded-xl border border-slate-800 flex items-center gap-1.5 shadow-inner">
-                  <UserCheck className="w-3.5 h-3.5 text-purple-400" />
-                  <span>Người giữ vai: </span>
-                  {assignedPlayers.length > 0 ? (
-                    <strong className="text-white">{assignedPlayers.map(p => p.name).join(', ')}</strong>
-                  ) : (
-                    <span className="text-amber-400 italic font-medium">Chưa gán (Bấm chọn bên dưới)</span>
-                  )}
-                </div>
-              </div>
-
-              <h3 className={`text-2xl md:text-3xl font-black font-cinzel ${
+            {/* Name Under the Card */}
+            <div className="mt-3.5 space-y-1.5 max-w-md mx-auto">
+              {/* Prominent Role Name */}
+              <h3 className={`text-xl sm:text-2xl md:text-3xl font-black font-cinzel leading-tight tracking-wider ${
                 isWolfStep ? 'text-rose-100 drop-shadow-[0_2px_15px_rgba(225,29,72,0.8)]' : 'text-slate-100'
               }`}>
                 {currentRole.name}
               </h3>
 
-              {/* GM Voice Script Box */}
-              <div className={`p-3 rounded-2xl border text-xs leading-relaxed italic ${
-                isWolfStep 
-                  ? 'bg-[#1e0407]/80 border-rose-800/80 text-rose-200 shadow-[0_0_15px_rgba(225,29,72,0.25)]' 
-                  : 'bg-[#180a2b]/80 border-purple-800/70 text-purple-200'
-              }`}>
-                <span className="font-bold not-italic uppercase tracking-wider block text-[10px] text-slate-400 mb-0.5">
-                  🗣️ Lời Thoại Quản Trò Đọc Lên:
+              {/* Compact Badge: Team */}
+              <div className="flex items-center justify-center pt-0.5">
+                <span className={`text-[10px] sm:text-[11px] font-bold px-2.5 py-0.5 rounded-lg border uppercase tracking-wider ${
+                  isWolfStep ? 'bg-rose-950 text-rose-300 border-rose-700' : 'bg-purple-950 text-purple-300 border-purple-700'
+                }`}>
+                  [{currentRole.teamCode}] {currentRole.team}
                 </span>
-                "{currentRole.gmCall || 'Gọi vai trò này thức dậy và thực hiện hành động.'}"
-              </div>
-
-              {/* Quick Assign Player Dropdown button */}
-              <div>
-                <button
-                  type="button"
-                  onClick={() => setShowAssignDropdown(!showAssignDropdown)}
-                  className="text-xs text-purple-400 hover:text-purple-300 underline font-semibold cursor-pointer"
-                >
-                  {showAssignDropdown ? '▲ Ẩn chọn người giữ vai' : '▼ Nhấn vào đây để gán ai là ' + currentRole.name}
-                </button>
-
-                {showAssignDropdown && (
-                  <div className="mt-2 p-3 bg-[#0c0e18] border border-purple-900/60 rounded-2xl space-y-1.5 max-h-44 overflow-y-auto shadow-2xl">
-                    <div className="text-[11px] text-slate-400 mb-1">
-                      Chọn người chơi đang giơ tay nhận vai <strong>{currentRole.name}</strong>:
-                    </div>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
-                      {players.map(p => {
-                        const isWolf = isWolfPlayer(p);
-                        return (
-                          <button
-                            key={p.id}
-                            onClick={() => {
-                              onAssignRole(p.id, currentRole);
-                              setShowAssignDropdown(false);
-                            }}
-                            className={`p-2 rounded-xl text-xs font-semibold text-left truncate border transition-all cursor-pointer ${
-                              p.roleId === currentRole.id
-                                ? 'bg-purple-800 text-white border-purple-400 shadow-[0_0_10px_rgba(168,85,247,0.4)]'
-                                : isWolf
-                                ? 'bg-[#1c0507] text-rose-300 border-rose-800/80 hover:border-rose-500'
-                                : 'bg-[#121422] hover:bg-[#1c1e33] text-slate-300 border-slate-800'
-                            }`}
-                          >
-                            <span>{p.name}</span>
-                            {isWolf && <span className="text-[9px] text-rose-400 ml-1 font-bold">🐺</span>}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
               </div>
             </div>
           </div>
+
+          {/* 1-TAP ROLE CLAIM BOX (IF NO HOLDER HAS BEEN ASSIGNED YET) */}
+          {!hasHolders && !isSkipped ? (
+            <RoleClaimBox
+              currentRole={currentRole}
+              players={players}
+              deckRoleIds={deckRoleIds}
+              onAssignRole={onAssignRole}
+              onAssignRoleToMultiple={onAssignRoleToMultiple}
+              onSkipRole={isWolfStep ? null : onSkipRole}
+              isWolfStep={isWolfStep}
+              isWolfPlayer={isWolfPlayer}
+            />
+          ) : (
+            <RoleHolderBanner
+              currentRole={currentRole}
+              players={players}
+              deckRoleIds={deckRoleIds}
+              onAssignRole={onAssignRole}
+              isWolfStep={isWolfStep}
+              isWolfPlayer={isWolfPlayer}
+            />
+          )}
 
           {/* STEP SPECIFIC ACTION INTERFACE */}
           <div className="p-5 rounded-3xl bg-[#0f111c] border border-purple-950/80 shadow-[0_4px_25px_rgba(0,0,0,0.6)] space-y-4">
             {/* 1. BẢO VỆ ACTION */}
             {currentRole.id === 'bao-ve' && (
               <div className="space-y-3">
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                   <div className="flex items-center gap-2">
                     <Shield className="w-5 h-5 text-teal-400" />
                     <h4 className="font-bold text-sm text-teal-200 font-cinzel">
                       CHỌN 1 NGƯỜI ĐỂ BẢO VỆ ĐÊM NAY:
                     </h4>
                   </div>
-                  {nightState.lastNightProtectedId && (
-                    <span className="text-[11px] text-rose-400 bg-rose-950/80 px-2.5 py-1 rounded-lg border border-rose-800">
-                      Đêm trước đã bảo vệ: {players.find(x => x.id === nightState.lastNightProtectedId)?.name}
-                    </span>
-                  )}
+                  <div className="flex items-center gap-2">
+                    {nightState.lastNightProtectedId && (
+                      <span className="text-[11px] text-rose-400 bg-rose-950/80 px-2.5 py-1 rounded-lg border border-rose-800">
+                        Đêm trước đã bảo vệ: {players.find(x => x.id === nightState.lastNightProtectedId)?.name}
+                      </span>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => onSaveAction('protect', null, { protectSkipped: true })}
+                      className={`text-xs px-3 py-1 rounded-xl border transition-all font-bold cursor-pointer ${
+                        nightState.protectSkipped
+                          ? 'bg-amber-950 border-amber-500 text-amber-200 shadow-md'
+                          : 'bg-slate-900 hover:bg-slate-800 border-slate-700 text-slate-300'
+                      }`}
+                    >
+                      🚫 Đêm Nay Không Bảo Vệ Ai
+                    </button>
+                  </div>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5">
                   {alivePlayers.map(p => {
                     const isLastNight = p.id === nightState.lastNightProtectedId;
-                    const isSelected = nightState.protectedPlayerId === p.id;
+                    const isSelected = nightState.protectedPlayerId === p.id && !nightState.protectSkipped;
                     const isWolf = isWolfPlayer(p);
 
                     return (
                       <button
                         key={p.id}
                         disabled={isLastNight}
-                        onClick={() => onSaveAction('protect', p.id)}
+                        onClick={() => onSaveAction('protect', p.id, { protectSkipped: false })}
                         className={`p-3 rounded-2xl border text-left transition-all duration-200 flex items-center justify-between cursor-pointer ${
                           isLastNight
                             ? 'opacity-30 cursor-not-allowed bg-black/40 border-slate-900 text-slate-600'
@@ -403,7 +562,7 @@ export default function NightPhaseView({
                               {isSelected && <Shield className="w-4 h-4 text-teal-400 fill-teal-400 ml-1" />}
                             </div>
                             <div className="text-xs text-slate-400">
-                              Vai: <span className="text-slate-300 font-medium">{p.role?.name || 'Dân'}</span>
+                              Vai: <span className="text-slate-300 font-medium">{p.role?.name || '❓ Chưa lộ vai'}</span>
                             </div>
                           </div>
                         </div>
@@ -439,7 +598,12 @@ export default function NightPhaseView({
                   <GothicButton
                     variant="dark"
                     size="sm"
-                    onClick={() => alert('Đã ghi nhận bỏ qua đêm nay!')}
+                    onClick={() => showAlert({
+                      title: 'QUYỀN NĂNG SÓI NGUYỀN',
+                      message: 'Đã ghi nhận bỏ qua đêm nay! Sói nguyền vẫn giữ nguyên quyền năng lây nhiễm cho các đêm tiếp theo.',
+                      variant: 'info',
+                      confirmText: 'Đã Ghi Nhận ✓'
+                    })}
                   >
                     🚫 Đêm Nay Bỏ Qua (Chưa Dùng)
                   </GothicButton>
@@ -450,41 +614,55 @@ export default function NightPhaseView({
             {/* 3. BẦY MA SÓI CẮN NGƯỜI (CRIMSON DANGER ZONE) */}
             {isWolfStep && (
               <div className="space-y-4">
-                {/* Secret Wolf Hand-off Box with 25s Countdown (Customizable in Settings) */}
+                {/* Secret Wolf Hand-off Box */}
                 <WolfWhisperBox
                   players={players}
                   nightState={nightState}
                   onSaveAction={onSaveAction}
                 />
 
-                <div className="flex items-center justify-between pt-2">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-2">
                   <div className="flex items-center gap-2">
                     <Skull className="w-5 h-5 text-rose-500 animate-bounce" />
                     <h4 className="font-bold text-sm text-rose-300 font-cinzel">
-                      HOẶC QUẢN TRÒ BẤM CHỌN TRỰC TIẾP MỤC TIÊU BẦY SÓI CẮN:
+                      QUẢN TRÒ CHỌN MỤC TIÊU BẦY SÓI CẮN:
                     </h4>
                   </div>
-                  {wolfVictim && (
-                    <span className="text-xs font-black text-rose-300 bg-rose-950 px-3 py-1 rounded-xl border border-rose-600 shadow-[0_0_12px_rgba(225,29,72,0.5)]">
-                      Mục tiêu cắn: {wolfVictim.name} 🩸
-                    </span>
-                  )}
+                  <div className="flex items-center gap-2">
+                    {wolfVictim && !nightState.wolfSkipped && (
+                      <span className="text-xs font-black text-rose-300 bg-rose-950 px-3 py-1 rounded-xl border border-rose-600 shadow-[0_0_12px_rgba(225,29,72,0.5)]">
+                        Mục tiêu: {wolfVictim.name} 🩸
+                      </span>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => onSaveAction('wolves', null, { wolfSkipped: true })}
+                      className={`text-xs px-3 py-1 rounded-xl border transition-all font-bold cursor-pointer ${
+                        nightState.wolfSkipped
+                          ? 'bg-amber-950 border-amber-500 text-amber-200 shadow-md'
+                          : 'bg-slate-900 hover:bg-slate-800 border-slate-700 text-slate-300'
+                      }`}
+                    >
+                      🚫 Bầy Sói Đêm Nay Không Cắn Ai
+                    </button>
+                  </div>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5">
                   {alivePlayers.map(p => {
-                    const isSelected = nightState.wolfTargetId === p.id;
+                    const isSelected = nightState.wolfTargetId === p.id && !nightState.wolfSkipped;
                     const isWolf = isWolfPlayer(p);
 
                     return (
                       <button
                         key={p.id}
-                        onClick={() => onSaveAction('wolves', p.id)}
+                        disabled={isWolf}
+                        onClick={() => onSaveAction('wolves', p.id, { wolfSkipped: false })}
                         className={`p-3 rounded-2xl border text-left transition-all duration-200 flex items-center justify-between cursor-pointer ${
-                          isSelected
+                          isWolf
+                            ? 'opacity-40 cursor-not-allowed bg-[#180407] border-rose-950 text-slate-500'
+                            : isSelected
                             ? 'bg-gradient-to-r from-rose-950 via-[#3b090e] to-rose-950 border-rose-500 text-white shadow-[0_0_25px_rgba(225,29,72,0.7)] ring-1 ring-rose-400'
-                            : isWolf
-                            ? 'bg-gradient-to-r from-[#24070a] to-[#140305] border-rose-600/90 hover:border-rose-400 shadow-[0_0_16px_rgba(225,29,72,0.45)] ring-1 ring-rose-500/50 text-slate-200'
                             : 'bg-[#121422] hover:bg-[#1e1524] border-slate-800 hover:border-rose-800 text-slate-200'
                         }`}
                       >
@@ -496,103 +674,198 @@ export default function NightPhaseView({
                           </div>
                           <div>
                             <div className="font-bold text-sm flex items-center gap-1.5">
-                              <span className={isWolf ? 'text-rose-200 font-black' : 'text-slate-100'}>{p.name}</span>
+                              <span className={isWolf ? 'text-rose-400 font-bold' : 'text-slate-100'}>{p.name}</span>
                               {isWolf && (
-                                <span className="text-[9px] px-1.5 py-0.2 rounded font-black uppercase bg-rose-950 text-rose-300 border border-rose-600 shadow-[0_0_8px_rgba(225,29,72,0.5)]">
+                                <span className="text-[9px] px-1.5 py-0.2 rounded font-black uppercase bg-rose-950 text-rose-400 border border-rose-800">
                                   🐺 Đồng bọn
                                 </span>
                               )}
                             </div>
                             <div className="text-xs text-slate-400">
-                              Vai: <span className="text-slate-300 font-medium">{p.role?.name || 'Dân'}</span>
+                              Vai: <span className="text-slate-300 font-medium">{p.role?.name || '❓ Chưa lộ vai'}</span>
                             </div>
                           </div>
                         </div>
 
-                        {isSelected && (
+                        {isWolf ? (
+                          <span className="text-[10px] text-rose-400/80 bg-rose-950/40 px-2 py-0.5 rounded border border-rose-950">
+                            Không thể cắn
+                          </span>
+                        ) : isSelected ? (
                           <span className="text-xs font-black text-rose-400 flex items-center gap-1 animate-pulse">
                             <Skull className="w-4 h-4 fill-rose-500 text-rose-500" /> Bị cắn
                           </span>
-                        )}
+                        ) : null}
                       </button>
                     );
                   })}
                 </div>
+
+                {/* SÓI NGUYỀN (NGƯỜI CHA CỦA SÓI) LÂY NHIỄM PANEL */}
+                {wolfVictim && !nightState.wolfSkipped && (
+                  <div className={`p-4 rounded-2xl border transition-all mt-3 ${
+                    nightState.isCursedInfect
+                      ? 'bg-gradient-to-r from-[#2c0840] via-[#1a0526] to-[#25071a] border-purple-500 shadow-[0_0_20px_rgba(168,85,247,0.4)] ring-1 ring-purple-400'
+                      : 'bg-[#12071a]/80 border-purple-900/60'
+                  }`}>
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                      <div className="flex items-center gap-3">
+                        <div className={`w-9 h-9 rounded-xl flex items-center justify-center font-bold text-base shrink-0 border ${
+                          nightState.isCursedInfect
+                            ? 'bg-purple-900 border-purple-400 text-purple-200 shadow-md'
+                            : 'bg-purple-950/90 border-purple-800 text-purple-400'
+                        }`}>
+                          🔮
+                        </div>
+                        <div>
+                          <div className="font-bold text-sm text-purple-200 flex items-center gap-2">
+                            <span>SÓI NGUYỀN (NGƯỜI CHA CỦA SÓI) LÂY NHIỄM</span>
+                            <span className="text-[10px] px-2 py-0.5 rounded font-mono bg-purple-950 text-purple-300 border border-purple-800">
+                              {nightState.cursedUsed ? 'Đã dùng trong ván' : '1 lần/ván'}
+                            </span>
+                          </div>
+                          <p className="text-xs text-slate-300 mt-0.5">
+                            {nightState.isCursedInfect ? (
+                              <span className="text-emerald-300 font-semibold">
+                                ✨ Nạn nhân <strong>{wolfVictim.name}</strong> sẽ <u>KHÔNG CHẾT</u>! Hệ thống lưu cả vai gốc ({wolfVictim.role?.name || 'Dân Làng'}) và biến thành Ma Sói mới.
+                              </span>
+                            ) : (
+                              <span>Bấm kích hoạt nếu Sói Nguyền giơ tay đồng hóa <strong>{wolfVictim.name}</strong> thành Ma Sói thay vì giết chết.</span>
+                            )}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="shrink-0 self-end sm:self-auto">
+                        {nightState.cursedUsed ? (
+                          <span className="text-xs font-bold text-slate-500 bg-slate-900 px-3 py-1.5 rounded-xl border border-slate-800">
+                            Đã dùng 1 lần duy nhất
+                          </span>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const nextVal = !nightState.isCursedInfect;
+                              onSaveAction('wolves', wolfVictim.id, {
+                                wolfSkipped: false,
+                                isCursedInfect: nextVal
+                              });
+                            }}
+                            className={`px-3.5 py-2 rounded-xl text-xs font-black transition-all border cursor-pointer flex items-center gap-1.5 shadow-md ${
+                              nightState.isCursedInfect
+                                ? 'bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white border-purple-300 shadow-[0_0_15px_rgba(168,85,247,0.6)]'
+                                : 'bg-purple-950 hover:bg-purple-900 text-purple-200 border-purple-700/80 hover:border-purple-400'
+                            }`}
+                          >
+                            <span>{nightState.isCursedInfect ? '✓ Đang Bật Lây Nhiễm Sói' : '🪄 Bật Sói Nguyền'}</span>
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 
-            {/* 4. TIÊN TRI SOI */}
+            {/* 4. TIÊN TRI SOI (HIỂN THỊ THẺ BÀI NGƯỜI ĐƯỢC CHỌN ĐỂ RA DẤU) */}
             {currentRole.id === 'tien-tri' && (
-              <div className="space-y-4">
-                <div className="flex items-center gap-2">
-                  <Eye className="w-5 h-5 text-purple-400" />
-                  <h4 className="font-bold text-sm text-purple-200 font-cinzel">
-                    CHỌN NGƯỜI TIÊN TRI MUỐN SOI:
-                  </h4>
+              <div className="space-y-3 sm:space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Eye className="w-5 h-5 text-purple-400" />
+                    <h4 className="font-bold text-sm text-purple-200 font-cinzel">
+                      BẤM VÀO NGƯỜI ĐỂ LẬT THẺ BÀI:
+                    </h4>
+                  </div>
+                  {selectedSeerTarget && (
+                    <button
+                      type="button"
+                      onClick={() => setSelectedSeerTarget(null)}
+                      className="text-xs text-slate-400 hover:text-slate-200 underline cursor-pointer"
+                    >
+                      Đóng thẻ bài ✕
+                    </button>
+                  )}
                 </div>
 
-                {selectedSeerTarget && (
-                  <div className={`p-4 rounded-2xl border text-center animate-fade-in ${
+                {/* THE REVEALED CARD OF INSPECTED PLAYER */}
+                {selectedSeerTarget ? (
+                  <div className={`p-4 rounded-2xl border transition-all animate-fade-in flex flex-col sm:flex-row items-center gap-4 text-center sm:text-left ${
                     isWolfPlayer(selectedSeerTarget)
-                      ? 'bg-gradient-to-b from-[#3b080c] to-[#1c0205] border-rose-600 shadow-[0_0_30px_rgba(225,29,72,0.6)] text-rose-100'
-                      : 'bg-gradient-to-b from-[#091b36] to-[#040d1c] border-blue-500 shadow-[0_0_30px_rgba(59,130,246,0.5)] text-blue-100'
+                      ? 'bg-gradient-to-r from-[#3b080c] via-[#200305] to-[#120204] border-rose-600 shadow-[0_0_30px_rgba(225,29,72,0.6)]'
+                      : 'bg-gradient-to-r from-[#0d1a33] via-[#091224] to-[#050b18] border-blue-500 shadow-[0_0_30px_rgba(59,130,246,0.5)]'
                   }`}>
-                    <div className="text-xs uppercase tracking-wider font-bold mb-1 opacity-80">
-                      Kết quả Quản trò ra dấu bí mật cho Tiên Tri:
+                    {/* The Big Card */}
+                    <div className="relative shrink-0">
+                      <div className={`w-24 h-34 sm:w-28 sm:h-40 rounded-xl overflow-hidden border-2 p-1 shadow-2xl flex items-center justify-center bg-black/80 ${
+                        isWolfPlayer(selectedSeerTarget) ? 'border-rose-500 shadow-[0_0_20px_rgba(225,29,72,0.8)]' : 'border-blue-400 shadow-[0_0_20px_rgba(59,130,246,0.6)]'
+                      }`}>
+                        {selectedSeerTarget.role?.image ? (
+                          <img
+                            src={selectedSeerTarget.role.image}
+                            alt={selectedSeerTarget.role.name}
+                            className="w-full h-full object-contain"
+                          />
+                        ) : (
+                          <div className="text-4xl">
+                            {isWolfPlayer(selectedSeerTarget) ? '🐺' : '👨‍🌾'}
+                          </div>
+                        )}
+                      </div>
                     </div>
-                    <div className="text-3xl font-black font-cinzel">
-                      {isWolfPlayer(selectedSeerTarget) ? '🐺 LÀ MA SÓI !' : '👨‍🌾 LÀ DÂN LÀNG (Lương thiện)'}
+
+                    {/* Card Info & GM Signal Instruction */}
+                    <div className="flex-1 space-y-1.5">
+                      <div className="text-xs uppercase font-bold tracking-wider text-slate-400">
+                        Thẻ bài của #{selectedSeerTarget.id} {selectedSeerTarget.name}:
+                      </div>
+                      <h3 className={`text-xl sm:text-2xl font-black font-cinzel ${
+                        isWolfPlayer(selectedSeerTarget) ? 'text-rose-100' : 'text-blue-100'
+                      }`}>
+                        {selectedSeerTarget.role?.name || 'Dân Làng'}
+                      </h3>
+                      <div className="text-xs text-slate-300">
+                        Phe: <strong>[{selectedSeerTarget.role?.teamCode || 'V'}] {selectedSeerTarget.role?.team || 'Phe Dân Làng'}</strong>
+                      </div>
+
+                      {/* Display both original role and wolf role if infected by Cursed Wolf */}
+                      {selectedSeerTarget.isCursedWolf && selectedSeerTarget.originalRole && (
+                        <div className="mt-1 p-2 rounded-xl bg-purple-950/80 border border-purple-500/80 text-xs text-purple-200 shadow-sm">
+                          🔮 <strong>SÓI NGUYỀN ĐỒNG HÓA:</strong> Người này vốn giữ vai <u>{selectedSeerTarget.originalRole.name}</u>, đã bị Sói Nguyền lây nhiễm thành Ma Sói!
+                        </div>
+                      )}
+
+                      {/* Explicit Hand Signal Instruction for GM */}
+                      <div className={`mt-2 p-2 rounded-xl text-xs font-black inline-block uppercase tracking-wider border shadow-md ${
+                        isWolfPlayer(selectedSeerTarget)
+                          ? 'bg-rose-950 text-rose-200 border-rose-600'
+                          : 'bg-blue-950 text-blue-200 border-blue-600'
+                      }`}>
+                        {isWolfPlayer(selectedSeerTarget) 
+                          ? '👉 RA DẤU CHO TIÊN TRI: LÀ MA SÓI! 🐺' 
+                          : '👉 RA DẤU CHO TIÊN TRI: LÀ DÂN LÀNG (Lương thiện)! 👨‍🌾'}
+                      </div>
                     </div>
-                    <p className="text-xs mt-1.5 opacity-90">
-                      Mục tiêu: <strong>{selectedSeerTarget.name}</strong> ({selectedSeerTarget.role?.name || 'Dân'})
-                    </p>
+                  </div>
+                ) : (
+                  <div className="p-3 rounded-xl bg-purple-950/30 border border-purple-900/50 text-xs text-purple-300 text-center italic">
+                    Chạm vào bất kỳ người chơi nào trong ma trận ghế dưới đây để lật xem thẻ bài của họ.
                   </div>
                 )}
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5">
-                  {alivePlayers.map(p => {
-                    const isWolf = isWolfPlayer(p);
-                    return (
-                      <button
-                        key={p.id}
-                        onClick={() => {
-                          setSelectedSeerTarget(p);
-                          onSaveAction('seer', p.id);
-                        }}
-                        className={`p-3 rounded-2xl border text-left transition-all duration-200 flex items-center justify-between cursor-pointer ${
-                          isWolf
-                            ? 'bg-gradient-to-r from-[#22070a] to-[#120305] border-rose-600/90 hover:border-rose-400 shadow-[0_0_16px_rgba(225,29,72,0.45)] ring-1 ring-rose-500/50 text-slate-200'
-                            : 'bg-[#121422] hover:bg-[#1a1730] border-slate-800 hover:border-purple-600 text-slate-300'
-                        }`}
-                      >
-                        <div className="flex items-center gap-2.5">
-                          <div className={`w-7 h-7 rounded-lg flex items-center justify-center font-bold text-xs border ${
-                            isWolf ? 'bg-rose-950 text-rose-300 border-rose-600' : 'bg-slate-900 text-slate-300 border-slate-800'
-                          }`}>
-                            {p.id}
-                          </div>
-                          <div>
-                            <div className="font-bold text-sm flex items-center gap-1.5">
-                              <span className={isWolf ? 'text-rose-200 font-black' : 'text-slate-100'}>{p.name}</span>
-                              {isWolf && (
-                                <span className="text-[9px] px-1.5 py-0.2 rounded font-black uppercase bg-rose-950 text-rose-300 border border-rose-600 shadow-[0_0_8px_rgba(225,29,72,0.5)]">
-                                  🐺 Sói
-                                </span>
-                              )}
-                            </div>
-                            <div className="text-xs text-slate-400">
-                              Thực tế: <span className="font-medium text-slate-300">{p.role?.name || 'Dân'}</span>
-                            </div>
-                          </div>
-                        </div>
-
-                        <span className="text-xs font-semibold text-purple-300 bg-purple-950/70 px-2.5 py-1 rounded-xl border border-purple-800/60">
-                          Soi
-                        </span>
-                      </button>
-                    );
-                  })}
-                </div>
+                {/* THEATRE SEAT MATRIX / SLIDER PICKER */}
+                <PlayerSeatPicker
+                  players={alivePlayers}
+                  selectedIds={selectedSeerTarget ? [selectedSeerTarget.id] : []}
+                  onSelect={(id) => {
+                    const target = players.find(x => x.id === id);
+                    setSelectedSeerTarget(target);
+                    onSaveAction('seer', id);
+                  }}
+                  maxSelect={1}
+                  variant="seer"
+                  isWolfPlayer={isWolfPlayer}
+                />
               </div>
             )}
 
@@ -666,7 +939,7 @@ export default function NightPhaseView({
                             }`}
                           >
                             <span className="truncate flex items-center gap-1">
-                              {p.name} <span className="text-slate-500">({p.role?.name || 'Dân'})</span>
+                              {p.name} <span className="text-slate-500">({p.role?.name || '❓ Chưa lộ vai'})</span>
                               {isWolf && <span className="text-[9px] text-rose-400 font-bold">🐺</span>}
                             </span>
                             {isPoisoned && <span className="font-bold text-rose-400 ml-1 shrink-0">☠️ Độc</span>}
@@ -681,78 +954,286 @@ export default function NightPhaseView({
               </div>
             )}
 
-            {/* 6. CUPID GHÉP ĐÔI (ĐÊM 1) - FULL GOTHIC UPGRADE WITH WEREWOLF RED BORDERS */}
-            {currentRole.id === 'cupid' && (
+            {/* 6. CUPID GHÉP ĐÔI (ĐÊM 1) - FULL GOTHIC UPGRADE */}
+            {currentRole.id === 'cupid' && (() => {
+              const chosen = nightState.cupidChosenIds || [];
+              const p1 = players.find(x => x.id === chosen[0]);
+              const p2 = players.find(x => x.id === chosen[1]);
+              const cupidHolder = players.find(x => x.roleId === 'cupid');
+              const isThirdParty = p1 && p2 && ((isWolfPlayer(p1) && !isWolfPlayer(p2)) || (!isWolfPlayer(p1) && isWolfPlayer(p2)));
+              const isSameTeam = p1 && p2 && !isThirdParty;
+
+              return (
+                <div className="space-y-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      <Heart className="w-5 h-5 text-pink-400 fill-pink-500/40" />
+                      <h4 className="font-bold text-sm text-pink-200 font-cinzel">
+                        CUPID GHÉP ĐÔI 2 NGƯỜI YÊU NHAU (ĐÊM 1):
+                      </h4>
+                    </div>
+                    {chosen.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => onSaveAction('cupid', [])}
+                        className="text-xs text-pink-400 hover:text-pink-300 underline font-semibold cursor-pointer"
+                      >
+                        ✕ Xóa chọn lại
+                      </button>
+                    )}
+                  </div>
+
+                  <p className="text-xs text-slate-400">
+                    Chọn đúng 2 người chơi bất kỳ trong danh sách bên dưới để kết duyên. Hai người yêu nhau sẽ cùng sống cùng chết!
+                  </p>
+
+                  {/* SUMMARY COUPLE BOX */}
+                  <div className="p-4 rounded-2xl bg-[#120d20] border border-pink-900/60 space-y-2">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="font-bold text-slate-300">Cặp đôi đang chọn ({chosen.length}/2):</span>
+                      <span className="text-pink-400 font-bold">
+                        {chosen.length === 2 ? '❤️ Đã chọn đủ 2 người' : `Chọn thêm ${2 - chosen.length} người nữa`}
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3 pt-1">
+                      <div className={`p-2.5 rounded-xl border text-center ${
+                        p1 ? 'bg-pink-950/80 border-pink-500 text-pink-100' : 'bg-slate-900/60 border-slate-800 text-slate-500'
+                      }`}>
+                        <div className="text-[10px] uppercase font-bold text-slate-400">Người Yêu 1</div>
+                        <div className="text-sm font-bold truncate mt-0.5">{p1 ? p1.name : '--- Chưa chọn ---'}</div>
+                        {p1 && <div className="text-[10px] text-pink-300">({p1.role?.name || 'Dân'})</div>}
+                      </div>
+
+                      <div className={`p-2.5 rounded-xl border text-center ${
+                        p2 ? 'bg-pink-950/80 border-pink-500 text-pink-100' : 'bg-slate-900/60 border-slate-800 text-slate-500'
+                      }`}>
+                        <div className="text-[10px] uppercase font-bold text-slate-400">Người Yêu 2</div>
+                        <div className="text-sm font-bold truncate mt-0.5">{p2 ? p2.name : '--- Chưa chọn ---'}</div>
+                        {p2 && <div className="text-[10px] text-pink-300">({p2.role?.name || 'Dân'})</div>}
+                      </div>
+                    </div>
+
+                    {/* DYNAMIC TEAM ALERT */}
+                    {chosen.length === 2 && (
+                      <div className={`mt-3 p-3 rounded-xl border text-xs leading-relaxed animate-fade-in ${
+                        isThirdParty
+                          ? 'bg-gradient-to-r from-purple-950 via-[#3a0a25] to-rose-950 border-rose-500 text-pink-100 shadow-[0_0_20px_rgba(225,29,72,0.4)]'
+                          : 'bg-emerald-950/70 border-emerald-700 text-emerald-200'
+                      }`}>
+                        {isThirdParty ? (
+                          <div>
+                            <div className="font-black text-rose-300 text-sm uppercase flex items-center gap-1.5 mb-1">
+                              <span>🔥 CẶP ĐÔI 1 DÂN + 1 SÓI ➔ CHÍNH THỨC THÀNH PHE THỨ BA!</span>
+                            </div>
+                            <p>
+                              Hai người này lập thành một phe độc lập. Điều kiện thắng duy nhất của họ là <strong>tiêu diệt toàn bộ người chơi còn lại</strong> trong làng!
+                            </p>
+                          </div>
+                        ) : (
+                          <div>
+                            <div className="font-bold text-emerald-300 text-xs flex items-center gap-1 mb-0.5">
+                              <span>💕 Cặp đôi cùng phe ({isWolfPlayer(p1) ? 'Phe Ma Sói' : 'Phe Dân Làng'})</span>
+                            </div>
+                            <p>Họ vẫn chiến thắng theo phe gốc của mình nhưng cùng chia sẻ số phận sinh tử.</p>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* SEAT MATRIX & CUSTOM SLIDER FOR CUPID (NO SCROLLING AGAIN AND AGAIN) */}
+                  <PlayerSeatPicker
+                    players={players}
+                    selectedIds={chosen}
+                    onSelect={(id) => {
+                      let next = [];
+                      if (chosen.includes(id)) {
+                        next = chosen.filter(x => x !== id);
+                      } else if (chosen.length < 2) {
+                        next = [...chosen, id];
+                      } else {
+                        next = [chosen[1], id];
+                      }
+                      onSaveAction('cupid', next);
+                    }}
+                    maxSelect={2}
+                    variant="cupid"
+                    isWolfPlayer={isWolfPlayer}
+                  />
+                </div>
+              );
+            })()}
+
+            {/* 7. ĐỨA TRẺ HOANG DÃ (WILD CHILD) */}
+            {currentRole.id === 'dua-tre-hoang-da' && (
               <div className="space-y-3">
                 <div className="flex items-center gap-2">
-                  <Heart className="w-5 h-5 text-pink-400 fill-pink-500/40" />
-                  <h4 className="font-bold text-sm text-pink-200 font-cinzel">
-                    CUPID GHÉP ĐÔI 2 NGƯỜI YÊU NHAU (ĐÊM 1):
+                  <Flame className="w-5 h-5 text-amber-400" />
+                  <h4 className="font-bold text-sm text-amber-200 font-cinzel">
+                    ĐỨA TRẺ HOANG DÃ CHỌN 1 THẦN TƯỢNG (IDOL):
                   </h4>
                 </div>
                 <p className="text-xs text-slate-400">
-                  Chọn đúng 2 người chơi. Nếu 1 Sói + 1 Dân thì trở thành <span className="text-rose-400 font-bold uppercase">PHE THỨ BA</span>!
+                  Chọn 1 người chơi làm Thần Tượng. Nếu người này chết trong ván đấu, Đứa Trẻ Hoang Dã sẽ lập tức hóa thành <span className="text-rose-400 font-bold uppercase">MA SÓI</span>!
                 </p>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                  {players.map(p => {
-                    const isSelected = (nightState.cupidChosenIds || []).includes(p.id);
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5">
+                  {alivePlayers.map(p => {
+                    const isSelf = p.roleId === 'dua-tre-hoang-da';
+                    const isSelected = nightState.wildChildIdolId === p.id;
                     const isWolf = isWolfPlayer(p);
 
                     return (
                       <button
                         key={p.id}
-                        onClick={() => {
-                          const current = nightState.cupidChosenIds || [];
-                          let next = [];
-                          if (current.includes(p.id)) {
-                            next = current.filter(x => x !== p.id);
-                          } else if (current.length < 2) {
-                            next = [...current, p.id];
-                          } else {
-                            next = [current[1], p.id];
-                          }
-                          onSaveAction('cupid', next);
-                        }}
+                        disabled={isSelf}
+                        onClick={() => onSaveAction('wildChild', p.id)}
                         className={`p-3 rounded-2xl border text-left transition-all duration-200 flex items-center justify-between cursor-pointer ${
-                          isSelected
-                            ? 'bg-gradient-to-r from-purple-950 via-[#3b124d] to-pink-950/80 border-pink-500 text-white shadow-[0_0_20px_rgba(236,72,153,0.5)] ring-1 ring-pink-400'
+                          isSelf
+                            ? 'opacity-30 cursor-not-allowed bg-black/40 border-slate-900 text-slate-600'
+                            : isSelected
+                            ? 'bg-amber-950/90 border-amber-400 text-amber-100 shadow-[0_0_20px_rgba(245,158,11,0.4)] ring-1 ring-amber-400'
                             : isWolf
-                            ? 'bg-gradient-to-r from-[#22070a] to-[#120305] border-rose-600/90 hover:border-rose-400 shadow-[0_0_16px_rgba(225,29,72,0.45)] ring-1 ring-rose-500/50 text-slate-200'
-                            : 'bg-[#101322] hover:bg-[#161a30] border-slate-800 hover:border-purple-600/80 text-slate-300 shadow-[0_2px_8px_rgba(0,0,0,0.4)]'
+                            ? 'bg-gradient-to-r from-[#22070a] to-[#120305] border-rose-600/90 hover:border-rose-400 text-slate-200'
+                            : 'bg-[#121422] hover:bg-[#1a1c30] border-slate-800 text-slate-300'
                         }`}
                       >
-                        <div className="flex items-center gap-3 truncate pr-2">
-                          <div className={`w-8 h-8 rounded-xl flex items-center justify-center font-bold text-xs shrink-0 border ${
-                            isSelected
-                              ? 'bg-pink-600 text-white border-pink-400'
-                              : isWolf
-                              ? 'bg-rose-950 text-rose-300 border-rose-600'
-                              : 'bg-slate-900 text-slate-300 border-slate-800'
+                        <div className="flex items-center gap-2.5 truncate">
+                          <div className={`w-7 h-7 rounded-lg flex items-center justify-center font-bold text-xs border ${
+                            isWolf ? 'bg-rose-950 text-rose-300 border-rose-600' : 'bg-slate-900 text-slate-300 border-slate-800'
                           }`}>
                             {p.id}
                           </div>
-
                           <div className="truncate">
                             <div className="font-bold text-sm truncate flex items-center gap-1.5">
-                              <span className={isWolf ? 'text-rose-200 font-black' : isSelected ? 'text-white' : 'text-slate-100'}>
-                                {p.name}
-                              </span>
-                              {isWolf && (
-                                <span className="text-[9px] px-1.5 py-0.2 rounded font-black uppercase bg-rose-950 text-rose-300 border border-rose-600 shadow-[0_0_8px_rgba(225,29,72,0.5)]">
-                                  🐺 Phe Sói
-                                </span>
-                              )}
+                              <span>{p.name}</span>
+                              {isWolf && <span className="text-[9px] text-rose-400 font-bold">🐺</span>}
                             </div>
-                            <div className="text-[11px] text-slate-400 truncate mt-0.5">
-                              Vai: <span className="font-medium text-slate-300">{p.role?.name || 'Dân làng'}</span>
+                            <div className="text-xs text-slate-400">
+                              Vai: {p.role?.name || '❓ Chưa lộ vai'}
                             </div>
                           </div>
                         </div>
 
-                        {isSelected && (
-                          <Heart className="w-5 h-5 text-pink-400 fill-pink-500 shrink-0 animate-bounce" />
-                        )}
+                        {isSelf ? (
+                          <span className="text-[10px] text-slate-500">Bản thân</span>
+                        ) : isSelected ? (
+                          <span className="text-xs font-bold text-amber-300">★ Idol</span>
+                        ) : null}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* 8. NGƯỜI THỔI SÁO (PIED PIPER) */}
+            {currentRole.id === 'nguoi-thoi-sao' && (() => {
+              const piperChosen = nightState.piperChosenIds || [];
+              return (
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Wand2 className="w-5 h-5 text-indigo-400" />
+                      <h4 className="font-bold text-sm text-indigo-200 font-cinzel">
+                        NGƯỜI THỔI SÁO MÊ HOẶC 2 NGƯỜI CHƠI ({piperChosen.length}/2):
+                      </h4>
+                    </div>
+                  </div>
+                  <p className="text-xs text-slate-400">
+                    Người Thổi Sáo thôi miên 2 người sống đêm nay. Khi toàn bộ người sống đều bị thôi miên, Người Thổi Sáo thắng đơn độc!
+                  </p>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5">
+                    {alivePlayers.map(p => {
+                      const isSelected = piperChosen.includes(p.id);
+                      return (
+                        <button
+                          key={p.id}
+                          onClick={() => {
+                            let next = [];
+                            if (piperChosen.includes(p.id)) {
+                              next = piperChosen.filter(x => x !== p.id);
+                            } else if (piperChosen.length < 2) {
+                              next = [...piperChosen, p.id];
+                            } else {
+                              next = [piperChosen[1], p.id];
+                            }
+                            onSaveAction('piper', next);
+                          }}
+                          className={`p-3 rounded-2xl border text-left transition-all duration-200 flex items-center justify-between cursor-pointer ${
+                            isSelected
+                              ? 'bg-indigo-950 border-indigo-400 text-indigo-100 shadow-[0_0_15px_rgba(99,102,241,0.5)]'
+                              : 'bg-[#121422] hover:bg-[#1a1730] border-slate-800 text-slate-300'
+                          }`}
+                        >
+                          <div className="flex items-center gap-2.5 truncate">
+                            <div className="w-7 h-7 rounded-lg bg-slate-900 border border-slate-800 flex items-center justify-center font-bold text-xs">
+                              {p.id}
+                            </div>
+                            <div className="truncate">
+                              <div className="font-bold text-sm">{p.name}</div>
+                              <div className="text-xs text-slate-400">{p.role?.name || '❓ Chưa lộ vai'}</div>
+                            </div>
+                          </div>
+
+                          {isSelected && <span className="text-xs font-bold text-indigo-300">🎶 Thôi miên</span>}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })()}
+
+            {/* 9. CON QUẠ (RAVEN) */}
+            {currentRole.id === 'con-qua' && (
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Ghost className="w-5 h-5 text-slate-300" />
+                    <h4 className="font-bold text-sm text-slate-200 font-cinzel">
+                      CON QUẠ GIEO 2 PHIẾU PHẠT VÀO 1 NGƯỜI:
+                    </h4>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => onSaveAction('raven', null, { ravenSkipped: true })}
+                    className={`text-xs px-3 py-1 rounded-xl border transition-all font-bold cursor-pointer ${
+                      nightState.ravenSkipped
+                        ? 'bg-amber-950 border-amber-500 text-amber-200 shadow-md'
+                        : 'bg-slate-900 hover:bg-slate-800 border-slate-700 text-slate-300'
+                    }`}
+                  >
+                    🚫 Đêm Nay Bỏ Qua
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5">
+                  {alivePlayers.map(p => {
+                    const isSelected = nightState.ravenTargetId === p.id && !nightState.ravenSkipped;
+                    return (
+                      <button
+                        key={p.id}
+                        onClick={() => onSaveAction('raven', p.id, { ravenSkipped: false })}
+                        className={`p-3 rounded-2xl border text-left transition-all duration-200 flex items-center justify-between cursor-pointer ${
+                          isSelected
+                            ? 'bg-slate-800 border-slate-400 text-white shadow-lg'
+                            : 'bg-[#121422] hover:bg-[#1a1730] border-slate-800 text-slate-300'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2.5 truncate">
+                          <div className="w-7 h-7 rounded-lg bg-slate-900 border border-slate-800 flex items-center justify-center font-bold text-xs">
+                            {p.id}
+                          </div>
+                          <div className="truncate">
+                            <div className="font-bold text-sm">{p.name}</div>
+                            <div className="text-xs text-slate-400">{p.role?.name || '❓ Chưa lộ vai'}</div>
+                          </div>
+                        </div>
+
+                        {isSelected && <span className="text-xs font-bold text-slate-300">🪶 +2 Phiếu</span>}
                       </button>
                     );
                   })}
@@ -761,27 +1242,55 @@ export default function NightPhaseView({
             )}
           </div>
 
-          {/* Stepper Footer Nav */}
-          <div className="flex justify-between items-center pt-2">
-            <GothicButton
-              variant="dark"
-              size="md"
-              disabled={currentStepIdx === 0}
-              onClick={handlePrevStep}
-              icon={ChevronLeft}
-            >
-              Bước Trước
-            </GothicButton>
+          {/* STRICT VALIDATION BANNER & STEPPER FOOTER NAV */}
+          <div className="space-y-3 pt-2">
+            {/* Gatekeeper Status Bar */}
+            {!stepValidation.isValid ? (
+              <div className="p-3 rounded-2xl bg-amber-950/80 border border-amber-600/80 text-amber-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2 shadow-lg animate-fade-in">
+                <div className="flex items-center gap-2 text-xs font-semibold">
+                  <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0" />
+                  <span>{stepValidation.message}</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => handleNextStep(true)}
+                  className="text-[11px] underline text-amber-400 hover:text-amber-300 font-bold self-end sm:self-auto cursor-pointer"
+                >
+                  Bỏ qua bắt buộc (Quản trò ghi đè) ➔
+                </button>
+              </div>
+            ) : (
+              <div className="p-2.5 rounded-xl bg-emerald-950/60 border border-emerald-800/80 text-emerald-200 flex items-center gap-2 text-xs">
+                <Check className="w-4 h-4 text-emerald-400 shrink-0" />
+                <span>{stepValidation.message || 'Hành động hợp lệ. Sẵn sàng tiếp tục.'}</span>
+              </div>
+            )}
 
-            <GothicButton
-              variant={isWolfStep ? 'blood' : 'witch'}
-              size="lg"
-              onClick={handleNextStep}
-              className="shadow-2xl"
-            >
-              <span>Cho {currentRole.name} Ngủ & Tiếp Tục 💤</span>
-              <ChevronRight className="w-5 h-5 ml-1 inline" />
-            </GothicButton>
+            {/* Stepper Navigation Buttons (Desktop inline) */}
+            <div className="hidden md:flex justify-between items-center pt-2">
+              <GothicButton
+                variant="dark"
+                size="md"
+                disabled={currentStepIdx === 0}
+                onClick={handlePrevStep}
+                icon={ChevronLeft}
+              >
+                Bước Trước
+              </GothicButton>
+
+              <GothicButton
+                variant={isWolfStep ? 'blood' : 'witch'}
+                size="lg"
+                disabled={!stepValidation.isValid}
+                onClick={() => handleNextStep(false)}
+                className={`shadow-2xl transition-all ${
+                  !stepValidation.isValid ? 'opacity-50 cursor-not-allowed' : ''
+                }`}
+              >
+                <span>Cho {currentRole.name} Ngủ & Tiếp Tục 💤</span>
+                <ChevronRight className="w-5 h-5 ml-1 inline" />
+              </GothicButton>
+            </div>
           </div>
         </div>
       ) : (
@@ -842,6 +1351,53 @@ export default function NightPhaseView({
               <span>TRỜI SÁNG RỒI! (CẢ LÀNG THỨC GIẤC)</span>
             </GothicButton>
           </div>
+        </div>
+      )}
+
+      {/* STICKY BOTTOM ACTION BAR - ONE-SCREEN MOBILE VIEWPORT */}
+      {!isSummaryStep && (
+        <div className="sticky bottom-0 z-30 -mx-4 -mb-4 sm:-mx-6 sm:-mb-6 p-2.5 sm:p-3 bg-[#0a0c16]/95 backdrop-blur-md border-t border-purple-900/80 shadow-[0_-8px_25px_rgba(0,0,0,0.8)] flex items-center justify-between gap-2">
+          <GothicButton
+            variant="dark"
+            size="sm"
+            disabled={currentStepIdx === 0}
+            onClick={handlePrevStep}
+            icon={ChevronLeft}
+            className="h-10 px-2.5 sm:px-3 text-xs shrink-0"
+          >
+            <span className="hidden sm:inline">Bước Trước</span>
+          </GothicButton>
+
+          {/* Validation Feedback in Middle */}
+          <div className="flex-1 text-center truncate px-2">
+            {stepValidation.isDeadRole ? (
+              <span className="text-[11px] text-rose-300 font-semibold flex items-center justify-center gap-1 truncate">
+                <Skull className="w-3.5 h-3.5 text-rose-400 shrink-0 inline" />
+                <span className="truncate">Người giữ vai đã chết</span>
+              </span>
+            ) : !stepValidation.isValid ? (
+              <span className="text-[11px] text-amber-300 font-bold flex items-center justify-center gap-1 truncate" title={stepValidation.message}>
+                <AlertTriangle className="w-3.5 h-3.5 text-amber-400 shrink-0 inline" />
+                <span className="truncate">{stepValidation.message}</span>
+              </span>
+            ) : (
+              <span className="text-[11px] text-emerald-400 font-semibold flex items-center justify-center gap-1 truncate">
+                <Check className="w-3.5 h-3.5 text-emerald-400 shrink-0 inline" />
+                <span className="truncate">{stepValidation.message || 'Sẵn sàng tiếp tục'}</span>
+              </span>
+            )}
+          </div>
+
+          <GothicButton
+            variant={isWolfStep ? 'blood' : 'witch'}
+            size="sm"
+            disabled={!stepValidation.isValid}
+            onClick={() => handleNextStep(false)}
+            className="h-10 px-3 sm:px-4 text-xs font-black shrink-0 shadow-lg"
+          >
+            <span className="truncate">{`Cho ${currentRole.name} Ngủ 💤`}</span>
+            <ChevronRight className="w-4 h-4 ml-0.5 inline shrink-0" />
+          </GothicButton>
         </div>
       )}
     </div>

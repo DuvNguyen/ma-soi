@@ -3,6 +3,8 @@ import { fetchRosters, saveRosterApi, deleteRosterApi } from '../services/api';
 import { Users, Plus, Trash2, Check, X, ArrowRight, Clipboard, UserCheck } from 'lucide-react';
 import GothicButton from './ui/GothicButton';
 import GothicBadge from './ui/GothicBadge';
+import ClawMarks from './ui/ClawMarks';
+import { useGothicDialog } from '../context/GothicDialogContext';
 
 export default function PlayerRosterModal({
   isOpen,
@@ -10,6 +12,7 @@ export default function PlayerRosterModal({
   currentPlayers,
   onApplyRoster
 }) {
+  const { showConfirm, showAlert } = useGothicDialog();
   if (!isOpen) return null;
 
   const [rosters, setRosters] = useState([]);
@@ -39,11 +42,19 @@ export default function PlayerRosterModal({
   const handleCreateRoster = async (e) => {
     e.preventDefault();
     if (!rosterName.trim()) {
-      alert('Vui lòng nhập tên nhóm người chơi');
+      showAlert({
+        title: 'THIẾU TÊN NHÓM',
+        message: 'Vui lòng nhập tên nhóm người chơi trước khi lưu.',
+        variant: 'warning'
+      });
       return;
     }
     if (parsedNames.length === 0) {
-      alert('Vui lòng nhập ít nhất 1 tên người chơi');
+      showAlert({
+        title: 'DANH SÁCH TRỐNG',
+        message: 'Vui lòng nhập ít nhất 1 tên người chơi.',
+        variant: 'warning'
+      });
       return;
     }
 
@@ -60,19 +71,34 @@ export default function PlayerRosterModal({
       setRosterName('');
       setRawNamesText('');
     } catch (err) {
-      alert('Lỗi lưu danh sách người chơi vào Neon DB: ' + err.message);
+      showAlert({
+        title: 'LỖI LƯU NHÓM',
+        message: 'Không thể lưu danh sách người chơi: ' + err.message,
+        variant: 'blood'
+      });
     }
   };
 
   const handleDeleteRoster = async (id, e) => {
     e.stopPropagation();
-    if (!confirm('Bạn có chắc muốn xóa nhóm người chơi này?')) return;
-    try {
-      await deleteRosterApi(id);
-      setRosters(prev => prev.filter(r => r.id !== id));
-    } catch (err) {
-      alert('Lỗi xóa nhóm: ' + err.message);
-    }
+    showConfirm({
+      title: 'XÓA NHÓM NGƯỜI CHƠI?',
+      message: 'Bạn có chắc muốn xóa nhóm người chơi này khỏi cơ sở dữ liệu?',
+      variant: 'blood',
+      confirmText: 'Xóa Vĩnh Viễn 🩸',
+      onConfirm: async () => {
+        try {
+          await deleteRosterApi(id);
+          setRosters(prev => prev.filter(r => r.id !== id));
+        } catch (err) {
+          showAlert({
+            title: 'LỖI XÓA NHÓM',
+            message: 'Không thể xóa: ' + err.message,
+            variant: 'blood'
+          });
+        }
+      }
+    });
   };
 
   // Copy current names from active game
@@ -82,19 +108,27 @@ export default function PlayerRosterModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 md:p-6 bg-black/85 backdrop-blur-md animate-fade-in">
-      <div className="bg-[#12141f] border border-slate-800 rounded-3xl w-full max-w-3xl overflow-hidden shadow-2xl flex flex-col h-[85vh]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 md:p-6 bg-black/90 backdrop-blur-md animate-fade-in">
+      <div className="relative bg-gradient-to-b from-[#180407] via-[#0d0204] to-[#070102] border-2 border-rose-600/90 rounded-3xl w-full max-w-3xl overflow-hidden shadow-[0_0_60px_rgba(225,29,72,0.5)] ring-1 ring-rose-500/50 flex flex-col h-[85vh]">
+        {/* Werewolf Claw Marks on Corners */}
+        <div className="absolute -top-5 -right-5 rotate-12 opacity-80 pointer-events-none">
+          <ClawMarks size={120} color="#e11d48" />
+        </div>
+        <div className="absolute -bottom-6 -left-6 -rotate-45 opacity-50 pointer-events-none">
+          <ClawMarks size={100} color="#be123c" />
+        </div>
+
         {/* Header */}
-        <div className="p-4 md:p-5 border-b border-slate-800 flex items-center justify-between">
+        <div className="relative z-10 p-4 md:p-5 border-b border-rose-950/80 flex items-center justify-between bg-gradient-to-r from-[#200508]/90 via-[#100204]/80 to-transparent">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-purple-600 flex items-center justify-center text-white shadow-lg">
+            <div className="w-10 h-10 rounded-2xl bg-rose-950/90 border border-rose-600/80 flex items-center justify-center text-rose-200 shadow-[0_0_15px_rgba(225,29,72,0.6)]">
               <Users className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="font-cinzel font-black text-lg text-slate-100">
+              <h2 className="font-cinzel font-black text-lg md:text-xl text-rose-100 tracking-wider drop-shadow-[0_2px_10px_rgba(225,29,72,0.8)]">
                 LƯU TRỮ DANH SÁCH NGƯỜI CHƠI (NEON CLOUD)
               </h2>
-              <p className="text-xs text-slate-400">
+              <p className="text-xs text-rose-300/80">
                 Ghi nhớ tên người chơi theo nhóm để không cần nhập lại mỗi lần chơi
               </p>
             </div>

@@ -1,7 +1,6 @@
 import React from 'react';
-import { Heart, Skull, Shield, Eye, UserCheck, AlertCircle } from 'lucide-react';
+import { Heart, Skull, Shield, Eye, UserCheck, AlertCircle, Sparkles } from 'lucide-react';
 import GothicBadge from './ui/GothicBadge';
-import GothicButton from './ui/GothicButton';
 
 export default function PlayersGridView({ players, onOpenAssignRole }) {
   const aliveCount = players.filter(p => p.isAlive).length;
@@ -13,179 +12,179 @@ export default function PlayersGridView({ players, onOpenAssignRole }) {
   };
 
   return (
-    <div className="space-y-5 max-w-6xl mx-auto">
-      {/* Overview Stat Badges - Unified Gothic Theme */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <div className="p-3.5 rounded-2xl bg-[#0f111a] border border-slate-800 flex items-center gap-3 shadow-[0_4px_16px_rgba(0,0,0,0.6)]">
-          <div className="w-10 h-10 rounded-xl bg-slate-900 border border-slate-700 flex items-center justify-center text-slate-300 font-bold text-sm">
+    <div className="space-y-4 sm:space-y-6 max-w-5xl mx-auto">
+      {/* Overview Stat Badges - Compact Gothic Style */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
+        <div className="p-2.5 sm:p-3 rounded-xl bg-[#0f111a] border border-slate-800 flex items-center gap-2.5 shadow-sm">
+          <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg bg-slate-900 border border-slate-700 flex items-center justify-center text-slate-300 font-bold text-xs sm:text-sm shrink-0">
             {aliveCount}/{players.length}
           </div>
-          <div>
+          <div className="min-w-0">
             <div className="text-[10px] uppercase font-bold tracking-wider text-slate-400">Còn sống</div>
-            <div className="text-sm font-black text-slate-100">{aliveCount} người</div>
+            <div className="text-xs sm:text-sm font-black text-slate-100 truncate">{aliveCount} người</div>
           </div>
         </div>
 
-        {/* Werewolves Alive Badge - HIGH-VISIBILITY GLOWING RED BORDER */}
-        <div className="p-3.5 rounded-2xl bg-gradient-to-r from-[#240508] to-[#120204] border border-rose-600/90 shadow-[0_0_18px_rgba(225,29,72,0.45)] ring-1 ring-rose-500/40 flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-rose-950 border border-rose-500 flex items-center justify-center text-rose-300 font-black shadow-[0_0_10px_rgba(225,29,72,0.6)]">
+        {/* Werewolves Alive Badge */}
+        <div className="p-2.5 sm:p-3 rounded-xl bg-gradient-to-r from-[#240508] to-[#120204] border border-rose-600/90 shadow-[0_0_12px_rgba(225,29,72,0.35)] flex items-center gap-2.5">
+          <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg bg-rose-950 border border-rose-500 flex items-center justify-center text-rose-300 font-black shrink-0 text-xs sm:text-sm">
             🐺 {wolfCount}
           </div>
-          <div>
-            <div className="text-[10px] uppercase font-bold tracking-wider text-rose-400">Phe Ma Sói</div>
-            <div className="text-sm font-black text-rose-200">{wolfCount} con sống</div>
+          <div className="min-w-0">
+            <div className="text-[10px] uppercase font-bold tracking-wider text-rose-400">Phe Sói</div>
+            <div className="text-xs sm:text-sm font-black text-rose-200 truncate">{wolfCount} con sống</div>
           </div>
         </div>
 
-        <div className="p-3.5 rounded-2xl bg-[#0a1224] border border-blue-900/60 shadow-[0_0_12px_rgba(37,99,235,0.2)] flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-blue-950 border border-blue-800 flex items-center justify-center text-blue-300 font-black">
+        <div className="p-2.5 sm:p-3 rounded-xl bg-[#0a1224] border border-blue-900/60 flex items-center gap-2.5">
+          <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg bg-blue-950 border border-blue-800 flex items-center justify-center text-blue-300 font-black shrink-0 text-xs sm:text-sm">
             👨‍🌾 {villagerCount}
           </div>
-          <div>
-            <div className="text-[10px] uppercase font-bold tracking-wider text-blue-400">Phe Dân Làng</div>
-            <div className="text-sm font-black text-blue-200">{villagerCount} người sống</div>
+          <div className="min-w-0">
+            <div className="text-[10px] uppercase font-bold tracking-wider text-blue-400">Phe Dân</div>
+            <div className="text-xs sm:text-sm font-black text-blue-200 truncate">{villagerCount} người sống</div>
           </div>
         </div>
 
-        <div className="p-3.5 rounded-2xl bg-[#170826] border border-purple-900/60 shadow-[0_0_12px_rgba(147,51,234,0.2)] flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-purple-950 border border-purple-800 flex items-center justify-center text-purple-300 font-black">
+        <div className="p-2.5 sm:p-3 rounded-xl bg-[#170826] border border-purple-900/60 flex items-center gap-2.5">
+          <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg bg-purple-950 border border-purple-800 flex items-center justify-center text-purple-300 font-black shrink-0 text-xs sm:text-sm">
             💀 {players.length - aliveCount}
           </div>
-          <div>
-            <div className="text-[10px] uppercase font-bold tracking-wider text-purple-400">Đã hy sinh</div>
-            <div className="text-sm font-black text-purple-200">{players.length - aliveCount} người</div>
+          <div className="min-w-0">
+            <div className="text-[10px] uppercase font-bold tracking-wider text-purple-400">Hy sinh</div>
+            <div className="text-xs sm:text-sm font-black text-purple-200 truncate">{players.length - aliveCount} người</div>
           </div>
         </div>
       </div>
 
-      {/* Players Grid with HIGHLIGHT RED BORDERS FOR WEREWOLVES */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-        {players.map(p => {
-          const partner = p.loverId ? players.find(x => x.id === p.loverId) : null;
-          const isWolf = isWolfPlayer(p);
+      {/* THEATRE / CINEMA SEATS MATRIX CONTAINER */}
+      <div className="p-4 sm:p-6 rounded-2xl sm:rounded-3xl bg-[#0b0d18] border border-purple-950/80 shadow-[0_4px_30px_rgba(0,0,0,0.8)] relative overflow-hidden">
+        {/* Theatre Stage Arc Indicator */}
+        <div className="relative mb-5 text-center">
+          <div className="w-3/4 max-w-md mx-auto h-3 border-t-2 border-purple-500/50 rounded-[100%] shadow-[0_-2px_12px_rgba(168,85,247,0.4)]"></div>
+          <span className="text-[10px] sm:text-[11px] uppercase font-black tracking-widest text-purple-300 bg-[#0b0d18] px-3 py-0.5 rounded-full border border-purple-900/60">
+            ✦ SÂN KHẤU QUẢN TRÒ • VÒNG TRÒN LÀNG ✦
+          </span>
+        </div>
 
-          return (
-            <div
-              key={p.id}
-              className={`p-3.5 rounded-2xl border transition-all duration-200 flex flex-col justify-between ${
-                !p.isAlive
-                  ? 'bg-[#090a10]/60 border-slate-900/80 opacity-50 text-slate-600'
-                  : isWolf
-                  ? 'bg-gradient-to-b from-[#240609] via-[#140305] to-[#0c0203] border-rose-600/90 shadow-[0_0_20px_rgba(225,29,72,0.5)] ring-1 ring-rose-500/50'
-                  : 'bg-[#101320] border-slate-800/90 hover:border-purple-600/60 shadow-[0_4px_16px_rgba(0,0,0,0.5)]'
-              }`}
-            >
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-2">
-                    <div className={`w-7 h-7 rounded-lg flex items-center justify-center font-bold text-xs border ${
-                      isWolf
-                        ? 'bg-rose-950 text-rose-300 border-rose-600'
-                        : p.isAlive
-                        ? 'bg-slate-900 text-slate-300 border-slate-800'
-                        : 'bg-black text-slate-700 border-slate-950'
-                    }`}>
-                      {p.id}
-                    </div>
-                    <span className={`font-bold text-sm ${
-                      !p.isAlive
-                        ? 'text-slate-600 line-through'
-                        : isWolf
-                        ? 'text-rose-200 font-black'
-                        : 'text-slate-100'
-                    }`}>
-                      {p.name}
+        {/* Theatre Matrix Seats Grid */}
+        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-7 gap-2 sm:gap-3">
+          {players.map(p => {
+            const partner = p.loverId ? players.find(x => x.id === p.loverId) : null;
+            const isWolf = isWolfPlayer(p);
+            const hasRole = Boolean(p.roleId);
+
+            return (
+              <button
+                key={p.id}
+                type="button"
+                onClick={() => onOpenAssignRole(p)}
+                title={`Ghế #${p.id} - ${p.name} (${p.role?.name || 'Chưa gán vai'}) - Bấm để đổi vai trò`}
+                className={`relative p-2 sm:p-2.5 rounded-xl border text-center transition-all duration-200 cursor-pointer flex flex-col items-center justify-between min-h-[90px] sm:min-h-[105px] group ${
+                  !p.isAlive
+                    ? 'bg-[#08080c]/80 border-slate-900 opacity-40 hover:opacity-75'
+                    : isWolf
+                    ? 'bg-gradient-to-b from-[#280509] via-[#160205] to-[#0c0203] border-rose-600/90 shadow-[0_0_15px_rgba(225,29,72,0.4)] ring-1 ring-rose-500/50 hover:scale-105'
+                    : 'bg-[#101322] hover:bg-[#181c33] border-purple-900/70 hover:border-purple-400 shadow-sm hover:scale-105'
+                }`}
+              >
+                {/* Theatre Seat Top Headrest Bar */}
+                <div className={`w-8 sm:w-10 h-1 rounded-full mb-1 ${
+                  !p.isAlive
+                    ? 'bg-slate-800'
+                    : isWolf
+                    ? 'bg-rose-500 shadow-[0_0_8px_rgba(225,29,72,0.8)]'
+                    : 'bg-purple-500 shadow-[0_0_6px_rgba(168,85,247,0.5)]'
+                }`}></div>
+
+                {/* Seat Number (Prominent Like Cinema Seat) */}
+                <div className="flex items-center gap-1">
+                  <span className={`font-mono font-black text-xs sm:text-sm ${
+                    !p.isAlive
+                      ? 'text-slate-600 line-through'
+                      : isWolf
+                      ? 'text-rose-300'
+                      : 'text-purple-300'
+                  }`}>
+                    #{p.id}
+                  </span>
+                  {partner && <Heart className="w-3 h-3 text-pink-400 fill-pink-500 shrink-0" />}
+                </div>
+
+                {/* Player Name */}
+                <div className={`font-bold text-xs truncate max-w-full px-1 ${
+                  !p.isAlive
+                    ? 'text-slate-600 line-through'
+                    : isWolf
+                    ? 'text-rose-100 font-black'
+                    : 'text-slate-100'
+                }`}>
+                  {p.name}
+                </div>
+
+                {/* Role Pill or Status */}
+                <div className="w-full mt-1">
+                  {!p.isAlive ? (
+                    <span className="text-[9px] font-bold text-rose-400/90 flex items-center justify-center gap-0.5">
+                      <Skull className="w-2.5 h-2.5" /> Chết
                     </span>
-                  </div>
-
-                  {/* Status Badge */}
-                  {p.isAlive ? (
-                    isWolf ? (
-                      <GothicBadge variant="wolf">
-                        🐺 Sói sống
-                      </GothicBadge>
+                  ) : hasRole ? (
+                    p.isCursedWolf && p.originalRole ? (
+                      <div className="space-y-0.5">
+                        <span className="text-[8px] font-bold px-1 py-0.2 rounded block truncate bg-rose-950 text-rose-200 border border-rose-600 shadow-sm">
+                          🐺 Sói (Bị Nguyền)
+                        </span>
+                        <span className="text-[8px] text-amber-300 font-medium block truncate" title={`Vai ban đầu: ${p.originalRole.name}`}>
+                          Gốc: {p.originalRole.name}
+                        </span>
+                      </div>
                     ) : (
-                      <span className="text-[10px] font-bold text-emerald-400 bg-emerald-950/60 px-2 py-0.5 rounded-full border border-emerald-800/40">
-                        Còn sống
+                      <span className={`text-[9px] font-bold px-1.5 py-0.2 rounded block truncate ${
+                        isWolf
+                          ? 'bg-rose-950 text-rose-300 border border-rose-800'
+                          : 'bg-purple-950 text-purple-300 border border-purple-800'
+                      }`}>
+                        {p.role.name}
                       </span>
                     )
                   ) : (
-                    <span className="text-[10px] font-bold text-rose-400 bg-rose-950/80 px-2 py-0.5 rounded-full border border-rose-900 flex items-center gap-1">
-                      <Skull className="w-3 h-3" /> Đã chết
+                    <span className="text-[9px] text-slate-500 italic block truncate">
+                      Chưa gán
                     </span>
                   )}
                 </div>
 
-                {/* Role Details */}
-                <div className={`p-2.5 rounded-xl border mb-2 ${
-                  isWolf
-                    ? 'bg-black/60 border-rose-900/60'
-                    : 'bg-black/40 border-slate-900'
-                }`}>
-                  <div className="flex items-center justify-between">
-                    <span className="text-[11px] text-slate-400">Vai trò:</span>
-                    {p.role?.teamCode && (
-                      <span className={`text-[10px] font-black px-1.5 py-0.2 rounded border ${
-                        isWolf
-                          ? 'bg-rose-950 text-rose-300 border-rose-600'
-                          : 'bg-blue-950 text-blue-300 border-blue-800'
-                      }`}>
-                        [{p.role.teamCode}] {p.role.team}
-                      </span>
-                    )}
-                  </div>
-                  <div className={`font-black text-sm mt-0.5 ${
-                    isWolf ? 'text-rose-300 font-cinzel' : 'text-slate-200'
-                  }`}>
-                    {p.role?.name || (
-                      <span className="text-slate-500 italic font-normal text-xs">Chưa gán vai</span>
-                    )}
-                  </div>
-                </div>
+                {/* Hover Quick Prompt */}
+                <span className="absolute inset-x-0 -bottom-1 text-[8px] uppercase tracking-wider text-purple-300 font-bold opacity-0 group-hover:opacity-100 transition-opacity bg-black/90 py-0.5 rounded-b-xl border-t border-purple-600">
+                  Đổi vai ▾
+                </span>
+              </button>
+            );
+          })}
+        </div>
 
-                {/* Badges / Links (Lovers, Idiot, Elder...) */}
-                <div className="space-y-1">
-                  {partner && (
-                    <div className="text-[11px] text-pink-300 bg-purple-950/40 border border-pink-700/50 px-2 py-1 rounded-lg flex items-center gap-1.5 shadow-[0_0_10px_rgba(244,63,94,0.3)]">
-                      <Heart className="w-3.5 h-3.5 text-pink-400 fill-pink-500 shrink-0" />
-                      <span>Yêu: <strong>{partner.name}</strong> ({partner.isAlive ? 'Sống' : 'Chết'})</span>
-                    </div>
-                  )}
-
-                  {p.role?.id === 'gia-lang' && p.isAlive && (
-                    <div className="text-[11px] text-amber-300 bg-amber-950/40 border border-amber-800/40 px-2 py-1 rounded-lg flex items-center gap-1">
-                      <Shield className="w-3.5 h-3.5 text-amber-400" />
-                      <span>Mạng Già Làng: <strong>{p.elderLives || 2}/2</strong></span>
-                    </div>
-                  )}
-
-                  {p.isRevealedIdiot && (
-                    <div className="text-[11px] text-orange-300 bg-orange-950/40 border border-orange-800/40 px-2 py-1 rounded-lg flex items-center gap-1">
-                      <AlertCircle className="w-3.5 h-3.5 text-orange-400" />
-                      <span>Thằng ngốc đã lật bài (Mất quyền vote)</span>
-                    </div>
-                  )}
-
-                  {!p.isAlive && p.deathReason && (
-                    <div className="text-[11px] text-rose-400/90 italic px-1 pt-1">
-                      {p.deathReason} ({p.deathPhase})
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Action */}
-              <div className="mt-3 pt-2 border-t border-slate-800/80 flex justify-end">
-                <button
-                  onClick={() => onOpenAssignRole(p)}
-                  className="text-xs text-purple-400 hover:text-purple-300 font-bold transition-colors"
-                >
-                  Đổi vai trò ▾
-                </button>
-              </div>
-            </div>
-          );
-        })}
+        {/* Theatre Seat Legend */}
+        <div className="mt-5 pt-3 border-t border-purple-950/60 flex flex-wrap items-center justify-center gap-3 sm:gap-6 text-[10px] sm:text-xs text-slate-400">
+          <div className="flex items-center gap-1.5">
+            <span className="w-3 h-3 rounded bg-rose-600/90 border border-rose-400 shadow-[0_0_6px_rgba(225,29,72,0.6)]"></span>
+            <span>Ghế Ma Sói</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <span className="w-3 h-3 rounded bg-[#101322] border border-purple-600"></span>
+            <span>Ghế Dân Làng</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <span className="w-3 h-3 rounded bg-black/80 border border-slate-800"></span>
+            <span>Ghế Đã Hy Sinh</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <Heart className="w-3.5 h-3.5 text-pink-400 fill-pink-500" />
+            <span>Cặp Đôi Yêu Nhau</span>
+          </div>
+          <span className="text-slate-500 italic hidden sm:inline">
+            (Chạm vào bất kỳ ghế nào để đổi vai trò)
+          </span>
+        </div>
       </div>
     </div>
   );

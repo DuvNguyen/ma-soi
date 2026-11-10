@@ -115,3 +115,29 @@ export async function loadGameStateApi() {
   }
   return null;
 }
+
+export async function saveMatchRecordApi(matchData) {
+  try {
+    const res = await fetch('/api/matches', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(matchData)
+    });
+    return await res.json();
+  } catch (err) {
+    console.error('Failed to save match record to Neon:', err);
+  }
+}
+
+export async function fetchMatchRecordsApi() {
+  try {
+    const res = await fetch('/api/matches');
+    const data = await res.json();
+    if (data.ok && data.matches) {
+      return data.matches;
+    }
+  } catch (err) {
+    console.error('Failed to fetch match records from Neon:', err);
+  }
+  return [];
+}

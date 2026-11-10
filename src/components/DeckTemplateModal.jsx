@@ -1,15 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { ROLES } from '../data/roles';
+import { DEFAULT_PLAYER_NAMES } from '../data/defaultPlayers';
 import { fetchTemplates, saveTemplateApi, deleteTemplateApi } from '../services/api';
 import { Layers, Plus, Trash2, Check, X, Sparkles, Shield, Eye, Skull, ArrowRight } from 'lucide-react';
 import GothicButton from './ui/GothicButton';
 import GothicBadge from './ui/GothicBadge';
+import ClawMarks from './ui/ClawMarks';
+import { useGothicDialog } from '../context/GothicDialogContext';
 
 export default function DeckTemplateModal({
   isOpen,
   onClose,
   onApplyTemplate
 }) {
+  const { showConfirm, showAlert } = useGothicDialog();
   if (!isOpen) return null;
 
   const [templates, setTemplates] = useState([]);
@@ -19,6 +23,7 @@ export default function DeckTemplateModal({
   // New template form state
   const [newTemplateName, setNewTemplateName] = useState('');
   const [newTemplateDesc, setNewTemplateDesc] = useState('');
+  const [customNamesText, setCustomNamesText] = useState('');
   // Map of roleId -> count
   const [roleCounts, setRoleCounts] = useState({
     'dan-lang': 4,
@@ -77,21 +82,39 @@ export default function DeckTemplateModal({
   const handleSaveNewTemplate = async (e) => {
     e.preventDefault();
     if (!newTemplateName.trim()) {
-      alert('Vui lòng nhập tên cho bộ bài template');
+      showAlert({
+        title: 'THIẾU THÔNG TIN BỘ BÀI',
+        message: 'Vui lòng nhập tên cho bộ bài template trước khi lưu.',
+        variant: 'warning'
+      });
       return;
     }
     const roleIds = getFlattenedRoleIds();
     if (roleIds.length === 0) {
-      alert('Vui lòng chọn ít nhất 1 lá bài');
+      showAlert({
+        title: 'BỘ BÀI ĐANG TRỐNG',
+        message: 'Vui lòng chọn số lượng ít nhất 1 lá bài cho bộ bài.',
+        variant: 'warning'
+      });
       return;
     }
+
+    const parsedNames = customNamesText
+      .split(/[\n,;]+/)
+      .map(s => s.trim())
+      .filter(Boolean);
+
+    const playerNames = parsedNames.length > 0
+      ? parsedNames
+      : DEFAULT_PLAYER_NAMES.slice(0, totalCards);
 
     const newTemplate = {
       id: `template-${Date.now()}`,
       name: newTemplateName.trim(),
-      desc: newTemplateDesc.trim() || `${totalCards} lá bài tự chọn`,
+      desc: newTemplateDesc.trim() || `${totalCards} lá bài tự chọn (${totalCards} người chơi)`,
       playerCount: totalCards,
-      roleIds: roleIds
+      roleIds: roleIds,
+      playerNames: playerNames
     };
 
     try {
@@ -101,35 +124,61 @@ export default function DeckTemplateModal({
       setNewTemplateName('');
       setNewTemplateDesc('');
     } catch (err) {
-      alert('Lỗi lưu template vào Neon DB: ' + err.message);
+      showAlert({
+        title: 'LỖI LƯU BỘ BÀI',
+        message: 'Không thể lưu template vào Neon DB: ' + err.message,
+        variant: 'blood'
+      });
     }
   };
 
   const handleDeleteTemplate = async (id, e) => {
     e.stopPropagation();
-    if (!confirm('Bạn có chắc muốn xóa template này?')) return;
-    try {
-      await deleteTemplateApi(id);
-      setTemplates(prev => prev.filter(t => t.id !== id));
-    } catch (err) {
-      alert('Lỗi xóa template: ' + err.message);
-    }
+    showConfirm({
+      title: 'XÓA BỘ BÀI KHỎI NEON DB?',
+      message: 'Bạn có chắc muốn xóa vĩnh viễn template bộ bài này?\nHành động này không thể hoàn tác.',
+      variant: 'blood',
+      confirmText: 'Xóa Vĩnh Viễn 🩸',
+      onConfirm: async () => {
+        try {
+          await deleteTemplateApi(id);
+          setTemplates(prev => prev.filter(t => t.id !== id));
+        } catch (err) {
+          showAlert({
+            title: 'LỖI XÓA BỘ BÀI',
+            message: 'Không thể xóa template: ' + err.message,
+            variant: 'blood'
+          });
+        }
+      }
+    });
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 md:p-6 bg-black/85 backdrop-blur-md animate-fade-in">
-      <div className="bg-[#12141f] border border-slate-800 rounded-3xl w-full max-w-4xl overflow-hidden shadow-2xl flex flex-col h-[90vh]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 md:p-6 bg-black/90 backdrop-blur-md animate-fade-in">
+      <div className="relative bg-gradient-to-b from-[#180407] via-[#0d0204] to-[#070102] border-2 border-rose-600/90 rounded-3xl w-full max-w-4xl overflow-hidden shadow-[0_0_60px_rgba(225,29,72,0.5)] ring-1 ring-rose-500/50 flex flex-col h-[90vh]">
+        {/* Werewolf Claw Marks Decorations on Corners */}
+        <div className="absolute -top-6 -right-6 rotate-12 opacity-80 pointer-events-none">
+          <ClawMarks size={130} color="#e11d48" />
+        </div>
+        <div className="absolute -bottom-8 -left-8 -rotate-45 opacity-50 pointer-events-none">
+          <ClawMarks size={120} color="#be123c" />
+        </div>
+
+        {/* Ambient Glow */}
+        <div className="absolute top-0 right-1/4 w-80 h-80 bg-rose-600/10 rounded-full blur-3xl pointer-events-none"></div>
+
         {/* Header */}
-        <div className="p-4 md:p-5 border-b border-slate-800 flex items-center justify-between">
+        <div className="relative z-10 p-4 md:p-5 border-b border-rose-950/80 flex items-center justify-between bg-gradient-to-r from-[#22060a]/90 via-[#120306]/80 to-transparent">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-600 to-rose-600 flex items-center justify-center text-white shadow-lg">
+            <div className="w-10 h-10 rounded-2xl bg-rose-950/90 border border-rose-600/80 flex items-center justify-center text-rose-200 shadow-[0_0_15px_rgba(225,29,72,0.6)]">
               <Layers className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="font-cinzel font-black text-lg text-slate-100">
+              <h2 className="font-cinzel font-black text-lg md:text-xl text-rose-100 tracking-wider drop-shadow-[0_2px_10px_rgba(225,29,72,0.8)]">
                 QUẢN LÝ BỘ BÀI & TEMPLATE (NEON CLOUD)
               </h2>
-              <p className="text-xs text-slate-400">
+              <p className="text-xs text-rose-300/80">
                 Lưu trữ các mẫu bộ bài tùy chỉnh theo số lượng người chơi
               </p>
             </div>
@@ -275,6 +324,39 @@ export default function DeckTemplateModal({
                     );
                   })}
                 </div>
+              </div>
+
+              {/* Player Names Input Section */}
+              <div className="p-3.5 rounded-2xl bg-slate-900/60 border border-slate-800 space-y-2">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <div>
+                    <label className="text-xs font-bold uppercase tracking-wider text-slate-300 block">
+                      👥 Danh Sách Tên Người Chơi Tương Ứng Bộ Bài:
+                    </label>
+                    <span className="text-[11px] text-slate-400">
+                      Cần đúng <strong className="text-amber-400">{totalCards} người chơi</strong> cho {totalCards} lá bài
+                    </span>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const sample = DEFAULT_PLAYER_NAMES.slice(0, totalCards).join('\n');
+                      setCustomNamesText(sample);
+                    }}
+                    className="text-xs px-2.5 py-1 rounded-xl border border-purple-700/80 bg-purple-950/60 hover:bg-purple-900 text-purple-200 transition-all font-semibold cursor-pointer self-start sm:self-auto"
+                  >
+                    ⚡ Điền {totalCards} Tên Mẫu Tiếng Việt
+                  </button>
+                </div>
+
+                <textarea
+                  rows={3}
+                  value={customNamesText}
+                  onChange={(e) => setCustomNamesText(e.target.value)}
+                  placeholder="Nhập tên người chơi (mỗi người 1 dòng hoặc cách nhau dấu phẩy)... Nếu để trống sẽ tự động dùng danh sách tên chuẩn tiếng Việt."
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs text-slate-200 focus:outline-none focus:border-purple-500 font-mono"
+                />
               </div>
 
               {/* Submit Button */}

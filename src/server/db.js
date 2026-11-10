@@ -128,3 +128,146 @@ export async function saveGameState(state) {
   `;
   return { success: true };
 }
+
+// ================= MATCH RECORDS & GAME HISTORY =================
+
+export async function ensureTablesExist() {
+  if (!sql) return;
+  try {
+    await sql`
+      CREATE TABLE IF NOT EXISTS match_records (
+        id VARCHAR(64) PRIMARY KEY,
+        room_name VARCHAR(255) NOT NULL DEFAULT 'Ván đấu Ma Sói',
+        player_count INT NOT NULL,
+        total_rounds INT NOT NULL DEFAULT 1,
+        winner_team VARCHAR(20),
+        winner_description TEXT,
+        started_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+        finished_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+        status VARCHAR(20) NOT NULL DEFAULT 'COMPLETED',
+        initial_roles JSONB NOT NULL DEFAULT '[]',
+        players_snapshot JSONB NOT NULL DEFAULT '[]',
+        cupid_pair JSONB,
+        night_logs JSONB NOT NULL DEFAULT '[]',
+        day_logs JSONB NOT NULL DEFAULT '[]',
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+      );
+    `;
+    await sql`
+      CREATE INDEX IF NOT EXISTS idx_match_records_created ON match_records(created_at DESC);
+    `;
+  } catch (err) {
+    console.error('Error ensuring match_records table exists:', err);
+  }
+}
+
+export async function getMatchRecords(limit = 30) {
+  if (!sql) return [];
+  await ensureTablesExist();
+  const rows = await sql`
+    SELECT 
+      id, room_name, player_count, total_rounds, winner_team, 
+      winner_description, started_at, finished_at, status, 
+      cupid_pair, created_at
+    FROM match_records 
+    ORDER BY created_at DESC 
+    LIMIT ${limit}
+  `;
+  return rows.map(r => ({
+    id: r.id,
+    roomName: r.room_name,
+    playerCount: r.player_count,
+    totalRounds: r.total_rounds,
+    winnerTeam: r.winner_team,
+    winnerDescription: r.winner_description,
+    startedAt: r.started_at,
+    finishedAt: r.finished_at,
+    status: r.status,
+    cupidPair: typeof r.cupid_pair === 'string' ? JSON.parse(r.cupid_pair) : r.cupid_pair,
+    createdAt: r.created_at
+  }));
+}
+
+export async function getMatchDetail(id) {
+  if (!sql) return null;
+  await ensureTablesExist();
+  const rows = await sql`
+    SELECT * FROM match_records WHERE id = ${id}
+  `;
+  if (rows.length === 0) return null;
+  const r = rows[0];
+  return {
+    id: r.id,
+    roomName: r.room_name,
+    playerCount: r.player_count,
+    totalRounds: r.total_rounds,
+    winnerTeam: r.winner_team,
+    winnerDescription: r.winner_description,
+    startedAt: r.started_at,
+    finishedAt: r.finished_at,
+    status: r.status,
+    initialRoles: typeof r.initial_roles === 'string' ? JSON.parse(r.initial_roles) : r.initial_roles,
+    playersSnapshot: typeof r.players_snapshot === 'string' ? JSON.parse(r.players_snapshot) : r.players_snapshot,
+    cupidPair: typeof r.cupid_pair === 'string' ? JSON.parse(r.cupid_pair) : r.cupid_pair,
+    nightLogs: typeof r.night_logs === 'string' ? JSON.parse(r.night_logs) : r.night_logs,
+    dayLogs: typeof r.day_logs === 'string' ? JSON.parse(r.day_logs) : r.day_logs,
+    createdAt: r.created_at
+  };
+}
+
+export async function saveMatchRecord(data) {
+  if (!sql) throw new Error('Database not connected');
+  await ensureTablesExist();
+
+  const id = data.id || `match-${Date.now()}`;
+  const roomName = data.roomName || 'Ván đấu Ma Sói';
+  const playerCount = data.playerCount || (data.playersSnapshot ? data.playersSnapshot.length : 0);
+  const totalRounds = data.totalRounds || 1;
+  const winnerTeam = data.winnerTeam || 'NONE';
+  const winnerDescription = data.winnerDescription || '';
+  const startedAt = data.startedAt || new Date().toISOString();
+  const finishedAt = data.finishedAt || new Date().toISOString();
+  const status = data.status || 'COMPLETED';
+  
+  const initialRolesJson = JSON.stringify(data.initialRoles || []);
+  const playersSnapshotJson = JSON.stringify(data.playersSnapshot || []);
+  const cupidPairJson = data.cupidPair ? JSON.stringify(data.cupidPair) : null;
+  const nightLogsJson = JSON.stringify(data.nightLogs || []);
+  const dayLogsJson = JSON.stringify(data.dayLogs || []);
+
+  await sql`
+    INSERT INTO match_records (
+      id, room_name, player_count, total_rounds, winner_team,
+      winner_description, started_at, finished_at, status,
+      initial_roles, players_snapshot, cupid_pair, night_logs, day_logs, created_at
+    )
+    VALUES (
+      ${id}, ${roomName}, ${playerCount}, ${totalRounds}, ${winnerTeam},
+      ${winnerDescription}, ${startedAt}, ${finishedAt}, ${status},
+      ${initialRolesJson}::jsonb, ${playersSnapshotJson}::jsonb, 
+      ${cupidPairJson ? sql`${cupidPairJson}::jsonb` : null}, 
+      ${nightLogsJson}::jsonb, ${dayLogsJson}::jsonb, NOW()
+    )
+    ON CONFLICT (id) DO UPDATE SET
+      room_name = EXCLUDED.room_name,
+      player_count = EXCLUDED.player_count,
+      total_rounds = EXCLUDED.total_rounds,
+      winner_team = EXCLUDED.winner_team,
+      winner_description = EXCLUDED.winner_description,
+      finished_at = EXCLUDED.finished_at,
+      status = EXCLUDED.status,
+      players_snapshot = EXCLUDED.players_snapshot,
+      cupid_pair = EXCLUDED.cupid_pair,
+      night_logs = EXCLUDED.night_logs,
+      day_logs = EXCLUDED.day_logs
+  `;
+
+  return { id, success: true };
+}
+
+export async function deleteMatchRecord(id) {
+  if (!sql) throw new Error('Database not connected');
+  await ensureTablesExist();
+  await sql`DELETE FROM match_records WHERE id = ${id}`;
+  return { success: true };
+}

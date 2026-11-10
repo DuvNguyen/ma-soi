@@ -125,37 +125,63 @@ export function resolveNightPhase(players, nightActions, roundNumber) {
     wolfTargetId,
     protectedPlayerId,
     witchSaved,
-    witchPoisonTargetId
+    witchPoisonTargetId,
+    isCursedInfect
   } = nightActions;
 
-  // 1. Process Werewolf Kill
+  // 1. Process Werewolf Kill or Cursed Wolf Infection
   if (wolfTargetId) {
     const target = updatedPlayers.find(p => p.id === wolfTargetId);
     if (target && target.isAlive) {
-      const isProtected = protectedPlayerId === target.id;
-      const isSavedByWitch = witchSaved;
-
-      if (isProtected || isSavedByWitch) {
-        let reason = isProtected ? 'được Bảo Vệ che chở' : 'được Phù Thủy dùng bình thần dược cứu sống';
-        logs.push(`${target.name} bị Ma Sói tấn công nhưng may mắn ${reason}!`);
+      if (isCursedInfect) {
+        // SÓI NGUYỀN (NGƯỜI CHA CỦA SÓI) ĐỒNG HÓA LÂY NHIỄM
+        // Người này không chết, lưu cả vai trò cũ và nhận vai trò Ma Sói
+        const oldRole = target.role;
+        const oldRoleId = target.roleId;
+        target.originalRole = target.originalRole || oldRole;
+        target.originalRoleId = target.originalRoleId || oldRoleId;
+        target.isCursedWolf = true;
+        target.curseNight = roundNumber;
+        target.roleId = 'soi-thuong';
+        target.role = {
+          id: 'soi-thuong',
+          name: 'Ma Sói (Bị Nguyền)',
+          team: 'Phe Sói',
+          teamCode: 'W',
+          originalRole: target.originalRole
+        };
+        logs.push(`🔮 SÓI NGUYỀN ĐÃ LÂY NHIỄM: ${target.name} (vốn giữ vai ${target.originalRole?.name || 'Dân Làng'}) không bị cắn chết mà đã được Sói Nguyền lây nhiễm, trở thành Ma Sói mới của làng!`);
       } else {
-        // Check Elder (Già Làng - 2 lives against wolves)
-        if (target.role?.id === 'gia-lang' && (target.elderLives || 2) > 1) {
-          target.elderLives = (target.elderLives || 2) - 1;
-          logs.push(`Già Làng ${target.name} bị Ma Sói cắn nhưng đã kiên cường sống sót nhờ mạng sống thứ nhất (Còn 1 mạng)!`);
-        } else if (target.role?.id === 'nua-nguoi-nua-soi') {
-          // Cursed turns into werewolf
-          target.roleId = 'soi-thuong';
-          target.role = {
-            id: 'soi-thuong',
-            name: 'Ma Sói (Đã Thức Tỉnh)',
-            team: 'Phe Sói',
-            teamCode: 'W'
-          };
-          logs.push(`Nửa Người Nửa Sói ${target.name} bị Ma Sói cắn và đã chính thức thức tỉnh gen Sói, gia nhập đàn Sói!`);
+        const isProtected = protectedPlayerId === target.id;
+        const isSavedByWitch = witchSaved;
+
+        if (isProtected || isSavedByWitch) {
+          let reason = isProtected ? 'được Bảo Vệ che chở' : 'được Phù Thủy dùng bình thần dược cứu sống';
+          logs.push(`${target.name} bị Ma Sói tấn công nhưng may mắn ${reason}!`);
         } else {
-          killedPlayerIds.add(target.id);
-          deathReasons[target.id] = 'Bị Ma Sói cắn chết trong đêm';
+          // Check Elder (Già Làng - 2 lives against wolves)
+          if (target.role?.id === 'gia-lang' && (target.elderLives || 2) > 1) {
+            target.elderLives = (target.elderLives || 2) - 1;
+            logs.push(`Già Làng ${target.name} bị Ma Sói cắn nhưng đã kiên cường sống sót nhờ mạng sống thứ nhất (Còn 1 mạng)!`);
+          } else if (target.role?.id === 'nua-nguoi-nua-soi') {
+            // Nửa Người Nửa Sói turns into werewolf - also preserve original role
+            target.originalRole = target.originalRole || target.role;
+            target.originalRoleId = target.originalRoleId || target.roleId;
+            target.isCursedWolf = true;
+            target.curseNight = roundNumber;
+            target.roleId = 'soi-thuong';
+            target.role = {
+              id: 'soi-thuong',
+              name: 'Ma Sói (Đã Thức Tỉnh)',
+              team: 'Phe Sói',
+              teamCode: 'W',
+              originalRole: target.originalRole
+            };
+            logs.push(`Nửa Người Nửa Sói ${target.name} bị Ma Sói cắn và đã chính thức thức tỉnh gen Sói, gia nhập đàn Sói!`);
+          } else {
+            killedPlayerIds.add(target.id);
+            deathReasons[target.id] = 'Bị Ma Sói cắn chết trong đêm';
+          }
         }
       }
     }
@@ -205,12 +231,17 @@ export function resolveNightPhase(players, nightActions, roundNumber) {
     if (p.isAlive && p.role?.id === 'dua-tre-hoang-da' && p.idolId) {
       const idol = updatedPlayers.find(x => x.id === p.idolId);
       if (idol && !idol.isAlive) {
+        p.originalRole = p.originalRole || p.role;
+        p.originalRoleId = p.originalRoleId || p.roleId;
+        p.isCursedWolf = true;
+        p.curseNight = roundNumber;
         p.roleId = 'soi-thuong';
         p.role = {
           id: 'soi-thuong',
           name: 'Ma Sói (Đứa Trẻ Hóa Sói)',
           team: 'Phe Sói',
-          teamCode: 'W'
+          teamCode: 'W',
+          originalRole: p.originalRole
         };
         logs.push(`Thần tượng (${idol.name}) của Đứa Trẻ Hoang Dã (${p.name}) đã chết! Đứa Trẻ nổi giận biến thành Ma Sói!`);
       }

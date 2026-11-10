@@ -239,7 +239,13 @@ export default function DayPhaseView({
                           )}
                         </div>
                         <div className="text-[11px] text-slate-400">
-                          Vai: <span className="text-slate-300 font-medium">{p.role?.name || 'Dân'}</span>
+                          Vai: {p.isCursedWolf && p.originalRole ? (
+                            <span className="text-rose-300 font-bold">
+                              {p.role?.name} <span className="text-amber-300 font-medium">(Gốc: {p.originalRole.name})</span>
+                            </span>
+                          ) : (
+                            <span className="text-slate-300 font-medium">{p.role?.name || 'Dân'}</span>
+                          )}
                         </div>
                       </div>
                     </div>

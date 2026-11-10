@@ -7,7 +7,11 @@ import {
   saveRoster, 
   deleteRoster,
   getGameState,
-  saveGameState 
+  saveGameState,
+  getMatchRecords,
+  getMatchDetail,
+  saveMatchRecord,
+  deleteMatchRecord
 } from './db.js';
 
 export function neonApiPlugin() {
@@ -92,6 +96,35 @@ export function neonApiPlugin() {
               await saveGameState(body);
               return res.end(JSON.stringify({ ok: true }));
             }
+          }
+
+          // Match History / Records API
+          if (url === '/api/matches') {
+            if (req.method === 'GET') {
+              const matches = await getMatchRecords();
+              return res.end(JSON.stringify({ ok: true, matches }));
+            }
+            if (req.method === 'POST') {
+              const body = await readJsonBody();
+              const result = await saveMatchRecord(body);
+              return res.end(JSON.stringify({ ok: true, match: result }));
+            }
+          }
+
+          if (url.startsWith('/api/matches/') && req.method === 'GET') {
+            const id = url.replace('/api/matches/', '');
+            const match = await getMatchDetail(id);
+            if (!match) {
+              res.statusCode = 404;
+              return res.end(JSON.stringify({ ok: false, error: 'Match not found' }));
+            }
+            return res.end(JSON.stringify({ ok: true, match }));
+          }
+
+          if (url.startsWith('/api/matches/') && req.method === 'DELETE') {
+            const id = url.replace('/api/matches/', '');
+            await deleteMatchRecord(id);
+            return res.end(JSON.stringify({ ok: true }));
           }
 
           res.statusCode = 404;
