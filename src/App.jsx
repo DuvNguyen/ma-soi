@@ -91,6 +91,8 @@ export default function App() {
   const [nightLogs, setNightLogs] = useState(() => savedInitial?.nightLogs || []);
   const [gameEndResult, setGameEndResult] = useState(() => savedInitial?.gameEndResult || null);
   const [lynchedTodayPlayerId, setLynchedTodayPlayerId] = useState(() => savedInitial?.lynchedTodayPlayerId ?? null);
+  const [isVillageCursed, setIsVillageCursed] = useState(() => savedInitial?.isVillageCursed || false);
+  const [wolfCanKillDouble, setWolfCanKillDouble] = useState(() => savedInitial?.wolfCanKillDouble || false);
 
   // Night action state
   const [nightState, setNightState] = useState(() => {
@@ -98,6 +100,7 @@ export default function App() {
       protectedPlayerId: null,
       lastNightProtectedId: null,
       wolfTargetId: null,
+      wolfTargetId2: null,
       wolfSkipped: false,
       isCursedInfect: false,
       cursedUsed: false,
@@ -249,10 +252,13 @@ export default function App() {
         setNightLogs([]);
         setGameEndResult(null);
         setLynchedTodayPlayerId(null);
+        setIsVillageCursed(false);
+        setWolfCanKillDouble(false);
         setNightState({
           protectedPlayerId: null,
           lastNightProtectedId: null,
           wolfTargetId: null,
+          wolfTargetId2: null,
           wolfSkipped: false,
           isCursedInfect: false,
           cursedUsed: false,
@@ -478,9 +484,14 @@ export default function App() {
       } else if (type === 'wolves') {
         next.wolfTargetId = payload;
         next.wolfSkipped = !!extra.wolfSkipped;
+        if (extra.wolfTargetId2 !== undefined) {
+          next.wolfTargetId2 = extra.wolfTargetId2;
+        }
         if (extra.isCursedInfect !== undefined) {
           next.isCursedInfect = !!extra.isCursedInfect;
         }
+      } else if (type === 'wolves_second') {
+        next.wolfTargetId2 = payload;
       } else if (type === 'curse_convert') {
         // Immediately convert victim into Werewolf and clear bite target so wolves can pick again
         const victimId = payload;
@@ -734,7 +745,14 @@ export default function App() {
   };
 
   const handleAdvanceToDay = () => {
-    const { updatedPlayers, killedPlayerIds, logs } = resolveNightPhase(
+    const { 
+      updatedPlayers, 
+      killedPlayerIds, 
+      poisonedPlayerIds = [], 
+      refundWitchHeal, 
+      elderKilledByWitch, 
+      logs 
+    } = resolveNightPhase(
       players,
       nightState,
       roundNumber
@@ -745,6 +763,44 @@ export default function App() {
     setIsNight(false);
     setActiveTab('day');
     setLynchedTodayPlayerId(null);
+
+    // RULE CONFLICT FIX #3: Hoàn trả bình cứu cho Phù Thủy nếu Bảo Vệ đã đỡ đòn thành công
+    if (refundWitchHeal) {
+      setNightState(prev => ({
+        ...prev,
+        witchHasHeal: true
+      }));
+    }
+
+    // RULE CONFLICT FIX #2: Nếu Già Làng bị Phù Thủy đầu độc chết trong đêm
+    if (elderKilledByWitch) {
+      setIsVillageCursed(true);
+      showAlert({
+        title: 'LỜI NGUYỀN CỦA GIÀ LÀNG! ⚡',
+        message: 'Phù Thủy đã dùng thuốc độc giết hại GIÀ LÀNG!\n\nNỗi oán hận biến thành lời nguyền: Toàn bộ phe Dân Làng bị tước đoạt toàn bộ chức năng đặc biệt từ nay về sau!',
+        variant: 'destructive',
+        confirmText: 'Chấp Nhận Lời Nguyền ⚡'
+      });
+    }
+
+    // RULE CONFLICT FIX #4: Nếu Sói Con chết trong đêm, kích hoạt cắn 2 người cho đêm kế tiếp
+    const killedWolfPup = updatedPlayers.find(p => killedPlayerIds.includes(p.id) && getPlayerRole(p)?.id === 'soi-con');
+    if (killedWolfPup) {
+      setWolfCanKillDouble(true);
+      logs.push(`🐺 SÓI CON (${killedWolfPup.name}) ĐÃ CHẾT! Bầy Ma Sói nổi cơn cuồng sát: Đêm tiếp theo bầy Sói được cắn 2 người!`);
+      setNightLogs([...logs]);
+    }
+
+    // RULE CONFLICT FIX #8: Nếu Cảnh Sát Trưởng tử trận trong đêm
+    const deadSheriff = updatedPlayers.find(p => killedPlayerIds.includes(p.id) && p.isSheriff);
+    if (deadSheriff) {
+      showAlert({
+        title: 'CẢNH SÁT TRƯỞNG ĐÃ QUA ĐỜI! ⭐',
+        message: `${deadSheriff.name} (Cảnh Sát Trưởng) đã hy sinh trong đêm qua!\n\nTrước khi nhắm mắt, Cảnh Sát Trưởng hãy chỉ định 1 người chơi còn sống bất kỳ làm Cảnh Sát Trưởng kế nhiệm qua Sơ Đồ Bàn.`,
+        variant: 'warning',
+        confirmText: 'Đã Hiểu & Chuyển Giao Sao ⭐'
+      });
+    }
 
     // If Cursed Wolf infected someone this night, mark cursedUsed = true
     if (nightState.isCursedInfect) {
@@ -757,15 +813,26 @@ export default function App() {
 
     const end = evaluateGameEnd(updatedPlayers);
 
+    // RULE CONFLICT FIX #1: Thợ Săn chết do Thuốc Độc Phù Thủy hoặc chết theo người yêu KHÔNG ĐƯỢC BẮN
     if (!end.isEnded) {
       const deadHunter = updatedPlayers.find(p => killedPlayerIds.includes(p.id) && getPlayerRole(p)?.id === 'tho-san');
       if (deadHunter) {
-        setActionModal({
-          isOpen: true,
-          actionType: 'hunter',
-          role: getPlayerRole(deadHunter),
-          player: deadHunter
-        });
+        const isPoisoned = poisonedPlayerIds.includes(deadHunter.id);
+        const isLoverSuicide = deadHunter.deathReason?.includes('đau buồn');
+        if (isPoisoned) {
+          logs.push(`☠️ Thợ Săn ${deadHunter.name} bị Phù Thủy đầu độc trong lúc ngủ nên bị tê liệt, không thể rút súng bắn!`);
+          setNightLogs([...logs]);
+        } else if (isLoverSuicide) {
+          logs.push(`🥀 Thợ Săn ${deadHunter.name} quẫn trí chết theo người tình, không thể nổ súng!`);
+          setNightLogs([...logs]);
+        } else {
+          setActionModal({
+            isOpen: true,
+            actionType: 'hunter',
+            role: getPlayerRole(deadHunter),
+            player: deadHunter
+          });
+        }
       }
     }
   };
@@ -774,6 +841,58 @@ export default function App() {
     const target = players.find(p => p.id === playerId);
     if (!target) return;
     const targetRole = getPlayerRole(target);
+
+    // RULE CONFLICT FIX #7: Thiên Sứ (Angel) bị treo cổ Ngày 1 thắng ngay lập tức
+    if (targetRole?.id === 'thien-su' && roundNumber === 1) {
+      const updated = players.map(p => p.id === playerId ? {
+        ...p,
+        isAlive: false,
+        deathReason: 'Được dân làng biểu quyết đưa lên giàn treo cổ Ngày 1 đúng như tâm nguyện',
+        deathPhase: `Ngày ${roundNumber}`
+      } : p);
+      setPlayers(updated);
+      setLynchedTodayPlayerId(playerId);
+      setGameEndResult({
+        isEnded: true,
+        winner: 'Angel',
+        winnerTitle: 'Thiên Sứ Chiến Thắng! 🪽',
+        teamCode: '3',
+        description: `${target.name} (Thiên Sứ) đã bị dân làng treo cổ vào ngày đầu tiên đúng như tâm nguyện, đắc đạo thăng thiên và giành chiến thắng trò chơi!`
+      });
+      return;
+    }
+
+    // RULE CONFLICT FIX #2: Già Làng (Elder) bị Dân Làng treo cổ -> Lời Nguyền Già Làng giáng xuống
+    if (targetRole?.id === 'gia-lang') {
+      setIsVillageCursed(true);
+      showAlert({
+        title: 'LỜI NGUYỀN CỦA GIÀ LÀNG! ⚡',
+        message: `Dân làng đã xử tử nhầm GIÀ LÀNG ${target.name}!\n\nLời nguyền giáng xuống: Toàn bộ phe Dân Làng bị tước đoạt toàn bộ năng lực đặc biệt (Bảo Vệ, Tiên Tri, Phù Thủy mất bình phép)!`,
+        variant: 'destructive',
+        confirmText: 'Chấp Nhận Lời Nguyền ⚡'
+      });
+    }
+
+    // RULE CONFLICT FIX #4: Sói Con (Wolf Pup) bị treo cổ -> Đêm tới bầy Sói cắn 2 người
+    if (targetRole?.id === 'soi-con') {
+      setWolfCanKillDouble(true);
+      showAlert({
+        title: 'SÓI CON BỊ TREO CỔ! 🐺',
+        message: `Sói Con (${target.name}) đã bị dân làng xử tử!\n\nBầy Ma Sói nổi cơn cuồng nộ: Đêm tiếp theo bầy Sói được quyền cắn 2 người chơi!`,
+        variant: 'warning',
+        confirmText: 'Ghi Nhận Cuồng Nộ 🔥'
+      });
+    }
+
+    // RULE CONFLICT FIX #8: Cảnh Sát Trưởng bị treo cổ
+    if (target.isSheriff) {
+      showAlert({
+        title: 'CẢNH SÁT TRƯỞNG BỊ XỬ TỬ! ⭐',
+        message: `${target.name} (Cảnh Sát Trưởng) đã qua đời!\n\nTrước khi trút hơi thở cuối cùng, Cảnh Sát Trưởng hãy chỉ định 1 người chơi còn sống bất kỳ để di chúc trao lại huy hiệu.`,
+        variant: 'warning',
+        confirmText: 'Chỉ Định Kế Nhiệm ⭐'
+      });
+    }
 
     if (targetRole?.id === 'thang-ngoc' && !target.isRevealedIdiot) {
       showAlert({
@@ -844,10 +963,16 @@ export default function App() {
     setActiveTab('night');
     setLynchedTodayPlayerId(null);
 
+    // Nếu đêm trước đã kích hoạt quyền cắn 2 người thì tắt cờ cuồng sát cho đêm tiếp sau
+    if (wolfCanKillDouble) {
+      setWolfCanKillDouble(false);
+    }
+
     setNightState(prev => ({
       protectedPlayerId: null,
       lastNightProtectedId: prev.protectedPlayerId,
       wolfTargetId: null,
+      wolfTargetId2: null,
       wolfSkipped: false,
       isCursedInfect: false,
       cursedUsed: prev.cursedUsed || false,
@@ -1041,6 +1166,8 @@ export default function App() {
             players={players}
             deckRoleIds={deckRoleIds}
             nightState={nightState}
+            isVillageCursed={isVillageCursed}
+            wolfCanKillDouble={wolfCanKillDouble}
             onSaveAction={handleSaveAction}
             onAssignRole={handleAssignRole}
             onAssignRoleToMultiple={handleAssignRoleToMultiple}

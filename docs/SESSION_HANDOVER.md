@@ -1,9 +1,49 @@
 # Session Handover - Werewolf Moderator Web App
 
 ## 1. Tổng Quan Tiến Độ & Tính Năng Đã Triển Khai
+- **Áp Dụng Bộ Typography Mới Chuẩn Gothic Occult ([index.html](file:///home/levi/Desktop/Projects/werewolf/index.html), [index.css](file:///home/levi/Desktop/Projects/werewolf/src/index.css))**:
+  - **Bộ Font 3 Tầng Đẳng Cấp**:
+    - **Tiêu đề, Nhãn Cổ Kính**: `Cinzel` (`wght@600;700;800;900`).
+    - **Nội dung, Giao diện chính**: `Inter` (`wght@400;500;600;700`) - sắc nét, tương phản cao, tối ưu hiển thị trên màn hình OLED/Retina.
+    - **Mã Code, Nhãn Thẻ, Ghế Ngồi, Counters**: `JetBrains Mono` (`wght@400;500;600;700`).
+
+- **Thực Thi Sửa Đổi Toàn Bộ Các Xung Đột Vai Trò & Lỗ Hổng Logic ([gameLogic.js](file:///home/levi/Desktop/Projects/werewolf/src/utils/gameLogic.js), [App.jsx](file:///home/levi/Desktop/Projects/werewolf/src/App.jsx), [NightPhaseView.jsx](file:///home/levi/Desktop/Projects/werewolf/src/components/NightPhaseView.jsx))**:
+  - **Fix Xung Đột #1 (Thợ Săn chết do Thuốc Độc Phù Thủy)**: Thợ Săn chết do độc Phù Thủy trong đêm hoặc quẫn trí chết theo người yêu sẽ bị tê liệt, **KHÔNG kích hoạt popup nổ súng**. Chỉ nổ súng khi chết do Sói cắn hoặc bị treo cổ.
+  - **Fix Xung Đột #2 (Lời Nguyền Già Làng)**: Khi Già Làng bị Dân Làng treo cổ hoặc bị Phù Thủy đầu độc, cờ `isVillageCursed = true` được kích hoạt. Toàn bộ phe Dân Làng mất năng lực đặc biệt (Bảo Vệ, Tiên Tri, Phù Thủy bị phong ấn năng lực, hiển thị cảnh báo đỏ trên kịch bản đêm).
+  - **Fix Xung Đột #3 (Hoàn Trả Bình Cứu Phù Thủy)**: Khi cả Bảo Vệ và Phù Thủy cùng cứu 1 mục tiêu, Bảo Vệ đỡ đòn thành công thì hệ thống **tự động hoàn trả lại bình cứu (`witchHasHeal = true`)** cho Phù Thủy, không bị lãng phí bình.
+  - **Fix Xung Đột #4 (Sói Con chết kích hoạt cắn 2 người)**: Khi Sói Con (`soi-con`) chết (treo cổ hoặc ban đêm), cờ `wolfCanKillDouble = true` kích hoạt. Đêm kế tiếp bầy Sói được chọn 2 con mồi (`wolfTargetId` và `wolfTargetId2`) với badge Cuồng Nộ rực lửa.
+  - **Fix Xung Đột #7 (Thiên Sứ bị treo cổ Ngày 1)**: Nếu Thiên Sứ bị treo cổ vào Ngày 1 (`roundNumber === 1`), hệ thống tuyên bố **Thiên Sứ Chiến Thắng Ngay Lập Tức**!
+  - **Fix Xung Đột #8 (Di Chúc Cảnh Sát Trưởng)**: Khi người giữ huy hiệu Cảnh Sát Trưởng chết (ban ngày hoặc ban đêm), hệ thống tự động hiển thị hộp thoại yêu cầu di chúc chuyển giao huy hiệu cho người sống kế nhiệm.
+  - **Fix Xung Đột #9 (Chuẩn Hóa 15 Vai Trò Mở Rộng Vào Kịch Bản Đêm)**: Đăng ký đầy đủ `cho-soi-soi-lai` (0.8), `hai-chi-em` (2.1), `ba-anh-em` (2.2), `ba-dong` (3.6), `nguoi-mua-roi` (4.8), `sat-thu` (7.6), `ke-dot-nha` (8.1), `con-qua-plus` (9.1) vào `orderPriority` và lọc các vai thụ động ban ngày (`co-be`, `canh-sat-characters`, `ki-si`, `thanh-vien-giao-phai`).
+  - **Gộp Sói Quỷ Vào Bước Bầy Ma Sói**: `soi-quy` được gộp chuẩn vào bước Bầy Sói săn mồi (có nút "Nguyền thành Sói"), không còn bị tách thành bước riêng lệch thứ tự.
+
+- **Báo Cáo Toàn Diện Kiểm Toán E2E, Logic & Xung Đột Vai Trò ([docs/werewolf-e2e-audit-and-role-conflicts.html](file:///home/levi/Desktop/Projects/werewolf/docs/werewolf-e2e-audit-and-role-conflicts.html))**:
+  - Đã xuất bản báo cáo HTML standalone tại thư mục `docs/`.
+  - **Kiểm Toán 48 Vai Trò Toàn Diện**: Phân loại chi tiết 48 vai trò thành các nhóm trạng thái thực thi: 5 vai trò Full Flow Production Ready, 16 vai trò có kịch bản đêm nhưng thiếu action engine, 15 vai trò bị lệch thứ tự (rơi vào fallback priority #99), và 10 vai trò thụ động/passive.
+  - **Phát Hiện & Phân Tích Sâu 10 Xung Đột Vai Trò & Lỗ Hổng Logic**:
+    1. *Thợ Săn chết do Thuốc Độc Phù Thủy*: Hiện tại vẫn kích hoạt popup nổ súng (vi phạm luật quốc tế: trúng độc trong đêm không được bắn).
+    2. *Già Làng bị Dân Làng treo cổ / Phù Thủy ném độc*: Chưa kích hoạt cơ chế tước đoạt toàn bộ chức năng đặc biệt của phe Dân.
+    3. *Bảo Vệ và Phù Thủy cùng cứu 1 người*: Cả 2 cùng cứu khiến Phù Thủy mất oan 1 bình cứu quý giá dù Bảo Vệ đã đỡ đòn thành công.
+    4. *Sói Con chết*: Chưa có cơ chế cho phép bầy Sói cắn 2 nạn nhân vào đêm kế tiếp.
+    5. *Sói Trắng thức dậy solo giết Sói*: Thiếu UI chọn con Sói bị giết riêng.
+    6. *Người Thổi Sáo thôi miên*: Đã có logic thắng trong engine nhưng thiếu UI chọn 2 ghế người chơi để bật cờ `isHypnotized`.
+    7. *Thiên Sứ bị treo cổ Ngày 1*: Chưa có cơ chế thắng tức thì trong `handleLynchPlayer`.
+    8. *Cảnh Sát Trưởng qua đời*: Thiếu popup tự động yêu cầu di chúc chuyển giao huy hiệu.
+    9. *15 vai trò mở rộng bị đẩy xuống priority 99*: Lệch kịch bản đêm so với luật chuẩn.
+    10. *Thằng Ngốc 1v1 Ma Sói*: Logic engine xác minh đã hoạt động chuẩn xác (Sói thắng ngay khi áp đảo).
+  - **Báo Cáo Độc Lập HTML Đẳng Cấp**: Định dạng Obsidian Occult Dashboard, dark theme, interactive filter theo phe và trạng thái, timeline đêm trực quan, code diff sửa lỗi cụ thể.
+
+- **Khắc Phục Nền Giấy Da Cổ & Viết Lại Cẩm Nang Quản Trò Dark Theme ([parchment-bg.png](file:///home/levi/Desktop/Projects/werewolf/public/parchment-bg.png), [GameGuideModal.jsx](file:///home/levi/Desktop/Projects/werewolf/src/components/GameGuideModal.jsx))**:
+  - **Khử 100% Viền Trắng Ngoài Mép Giấy Rách**: Dùng thuật toán flood-fill bóc tách toàn bộ 4,982 pixel nền trắng ngoài vết cháy của ảnh giấy da sang alpha = 0 (trong suốt tuyệt đối). Tờ giấy da rách giờ hòa quyện tự nhiên trên màn đêm mà không có bất kỳ đốm trắng hay viền khung hình chữ nhật.
+  - **Sổ Tay Quản Trò Thuần Chữ Dark/Gothic Occult**: Loại bỏ toàn bộ các khối card màu trắng kem sữa (`bg-[#f5e6cc]`) và emoji màu mè hoạt hình (📜, 🐺, 💡, 🎴, 👥...). Thay thế bằng typography Cinzel mực đen cổ điển (`text-[#260e05]`) in trực tiếp trên giấy da, icon tối màu (`FileText`, `Sliders`, `Moon`, `Sun`, `Database`).
+  - **Nội Dung 100% Hướng Dẫn Sử Dụng Ứng Dụng (GM Tool Manual)**:
+    - *Thiết Lập Bàn*: Thao tác nút Bộ Bài, nút Tên nạp từ Cloud, Sơ đồ bàn đổi vai tức thì, Nút Reset về 0.
+    - *Điều Khiển Đêm*: Bấm nút "Đi Ngủ" chuyển lượt, chạm ghế gán mục tiêu, Tiên Tri soi bài kèm hướng dẫn ra dấu tay, Sói Quỷ bấm nút "Nguyền thành Sói".
+    - *Điều Khiển Ngày*: Bản tin tử vong tự động, Biểu quyết treo cổ (xử lý Thằng Ngốc/Thợ Săn), Huy hiệu Cảnh Sát Trưởng x2 phiếu.
+    - *Dữ Liệu & Lưu Trữ*: Tự động lưu LocalStorage chống mất dữ liệu khi F5, Đồng bộ Neon Cloud khi kết thúc ván.
+
 - **Bổ Sung Nhân Vật Sói Quỷ (Cursed Wolf-Father) Vào Toàn Hệ Thống ([roles.js](file:///home/levi/Desktop/Projects/werewolf/src/data/roles.js), [roleUtils.js](file:///home/levi/Desktop/Projects/werewolf/src/utils/roleUtils.js), [NightPhaseView.jsx](file:///home/levi/Desktop/Projects/werewolf/src/components/NightPhaseView.jsx))**:
-  - **Tên Gọi Chuẩn & Artwork Chính Hãng**: Cập nhật vai `soi-quy` ("Sói Quỷ / Sói Nguyền / Người Cha Của Sói - Cursed Wolf-Father"), sử dụng đúng lá bài chính hãng người dùng gửi (`public/cards/soi-quy.png`), thêm các alias tra cứu `nguoi-cha-cua-soi`, `soi-nguyen`.
-  - **Tích Hợp Kịch Bản Đêm & Thư Viện**: Đưa Sói Quỷ vào `WOLF_ROLE_IDS`, kịch bản gọi đêm thứ tự `#5.2`, mở khóa quyền năng nguyền lây nhiễm 1 lần/ván (nạn nhân giữ kỹ năng cũ, biến thành Sói mới và Sói tiếp tục cắn người khác).
+  - Cập nhật vai `soi-quy` ("Sói Quỷ / Sói Nguyền / Người Cha Của Sói - Cursed Wolf-Father"), sử dụng ảnh chính hãng `public/cards/soi-quy.png`, thêm vào `WOLF_ROLE_IDS` và kịch bản gọi đêm.
 
 - **Tích Hợp Cẩm Nang Quản Trò Nền Giấy Da Cổ (Parchment Guide) & Tối Ưu Header 1 Dòng ([GameGuideModal.jsx](file:///home/levi/Desktop/Projects/werewolf/src/components/GameGuideModal.jsx), [App.jsx](file:///home/levi/Desktop/Projects/werewolf/src/App.jsx))**:
   - **Cẩm Nang Nền Giấy Da Cổ Điển (`public/parchment-bg.png`)**: Sử dụng hình ảnh giấy da cổ với viền cháy rách làm phông nền toàn diện cho cửa sổ Hướng Dẫn Sử Dụng. Chữ viết màu mực đen/nâu sepia cổ điển kết hợp font Cinzel sang trọng, bố cục 3 tab: *📜 Quy Trình Ván Đấu*, *🐺 Quyền Năng & Thao Tác*, *💡 Mẹo & Lưu Ý Quản Trò*.

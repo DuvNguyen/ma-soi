@@ -21,6 +21,8 @@ export default function NightPhaseView({
   players,
   deckRoleIds = [],
   nightState,
+  isVillageCursed = false,
+  wolfCanKillDouble = false,
   onSaveAction,
   onAssignRole,
   onAssignRoleToMultiple,
@@ -37,13 +39,18 @@ export default function NightPhaseView({
     // Standard night order priorities matching official rulebook
     const orderPriority = {
       'nguyet-nu': 0.5,
+      'cho-soi-soi-lai': 0.8,
       'an-trom': 1,
       'cupid': 2,
+      'hai-chi-em': 2.1,
+      'ba-anh-em': 2.2,
       'anh-tu': 2.5,
       'dua-tre-hoang-da': 3,
       'nua-nguoi-nua-soi': 3.1,
       'dien-vien': 3.5,
+      'ba-dong': 3.6,
       'bao-ve': 4,
+      'nguoi-mua-roi': 4.8,
       'nguoi-cha-cua-soi': 4.9,
       'soi-quy': 4.9,
       'soi-thuong': 5,
@@ -56,22 +63,26 @@ export default function NightPhaseView({
       'thay-thoi-mien': 6.5,
       'phu-thuy': 7,
       'duoc-si': 7.5,
+      'sat-thu': 7.6,
       'nguoi-thoi-sao': 8,
+      'ke-dot-nha': 8.1,
       'con-qua': 9,
+      'con-qua-plus': 9.1,
       'nguoi-goi-hon': 10
     };
 
     // Filter roles that actually wake up during this night
     const activeRoles = rolesInGame.filter(r => {
       // Night 1 only roles
-      if (['cupid', 'dua-tre-hoang-da', 'anh-tu', 'an-trom', 'ke-bao-thu', 'soi-lai'].includes(r.id) && roundNumber > 1) {
+      if (['cupid', 'dua-tre-hoang-da', 'anh-tu', 'an-trom', 'ke-bao-thu', 'soi-lai', 'cho-soi-soi-lai', 'ba-anh-em'].includes(r.id) && roundNumber > 1) {
         return false;
       }
       // Roles that do not wake up at night (Day only, passive, or event-driven)
       if ([
         'dan-lang', 'dan-thuong', 'tho-san', 'gia-lang', 'thang-ngoc', 'canh-sat-truong', 
         'nguoi-the-than', 'oan-nhan', 'nguoi-day-to-tan-tuy', 'hiep-si-gia', 'ky-si', 
-        'thien-su', 'thien-than', 'bo-lao', 'thang-mo', 'nguoi-thuan-phuc-gau', 'than-gau'
+        'thien-su', 'thien-than', 'bo-lao', 'thang-mo', 'nguoi-thuan-phuc-gau', 'than-gau',
+        'co-be', 'canh-sat-characters', 'ki-si', 'thanh-vien-giao-phai'
       ].includes(r.id)) {
         return false;
       }
@@ -79,8 +90,9 @@ export default function NightPhaseView({
     });
 
     // Group all werewolf variants into a single unified step if multiple wolf cards exist
-    const nonWolfRoles = activeRoles.filter(r => !['soi-thuong', 'soi-con', 'soi-lon-xau-xa'].includes(r.id));
-    const hasAnyWolves = activeRoles.some(r => ['soi-thuong', 'soi-con', 'soi-lon-xau-xa'].includes(r.id));
+    const wolfVariants = ['soi-thuong', 'soi-con', 'soi-lon-xau-xa', 'nguoi-cha-cua-soi', 'soi-quy'];
+    const nonWolfRoles = activeRoles.filter(r => !wolfVariants.includes(r.id));
+    const hasAnyWolves = activeRoles.some(r => wolfVariants.includes(r.id));
 
     let finalRoles = [...nonWolfRoles];
     if (hasAnyWolves) {
@@ -90,7 +102,7 @@ export default function NightPhaseView({
         enName: 'Werewolf Pack',
         teamCode: 'W',
         team: 'Phe Sói',
-        shortDesc: 'Toàn bộ bầy Sói mở mắt nhận diện nhau và thống nhất cắn 1 người.',
+        shortDesc: 'Toàn bộ bầy Sói mở mắt nhận diện nhau và thống nhất cắn người.',
         gmCall: 'Ma Sói thức dậy. Hãy nhận diện đồng bọn và chọn con mồi đêm nay.',
         image: '/cards/la-bai-ma-soi.jpg'
       });
@@ -588,6 +600,19 @@ export default function NightPhaseView({
 
           {/* STEP SPECIFIC ACTION INTERFACE */}
           <div className="p-5 rounded-3xl bg-[#0f111c] border border-purple-950/80 shadow-[0_4px_25px_rgba(0,0,0,0.6)] space-y-4">
+            
+            {/* LỜI NGUYỀN GIÀ LÀNG BANNER NẾU BỊ PHE DÂN HẠI */}
+            {isVillageCursed && ['bao-ve', 'tien-tri', 'phu-thuy'].includes(currentRole.id) && (
+              <div className="p-3.5 rounded-2xl bg-gradient-to-r from-rose-950 via-red-950 to-rose-950 border-2 border-red-500 text-white shadow-xl space-y-1 mb-2 animate-pulse">
+                <div className="font-cinzel font-black text-xs sm:text-sm flex items-center gap-2 text-rose-200">
+                  <span>⚡ LỜI NGUYỀN CỦA GIÀ LÀNG ĐANG GIÁNG XUỐNG!</span>
+                </div>
+                <p className="text-[11px] sm:text-xs text-rose-200/90 leading-relaxed">
+                  Già Làng đã bị chính phe Dân sát hại! Toàn bộ năng lực đặc biệt của vai này đã bị phong ấn vĩnh viễn. Quản trò không thực hiện hành động đêm và bấm <strong>Đi Ngủ 💤</strong> để chuyển tiếp.
+                </p>
+              </div>
+            )}
+
             {/* 1. BẢO VỆ ACTION */}
             {currentRole.id === 'bao-ve' && (
               <div className="space-y-3">
@@ -774,16 +799,54 @@ export default function NightPhaseView({
                   );
                 })()}
 
+                {/* SÓI CUỒNG NỘ (SÓI CON CHẾT) BANNER */}
+                {wolfCanKillDouble && (
+                  <div className="p-3 rounded-2xl bg-gradient-to-r from-rose-950 via-red-900/60 to-rose-950 border border-rose-500 text-rose-200 shadow-md flex items-center gap-2.5 mb-3 animate-pulse">
+                    <span className="text-xl">🐺🔥</span>
+                    <div>
+                      <div className="font-bold text-xs uppercase tracking-wider text-rose-100 font-cinzel">BẦY SÓI CUỒNG NỘ: ĐƯỢC CẮN 2 NẠN NHÂN</div>
+                      <div className="text-[11px] text-rose-300">Do Sói Con đã tử trận, bầy Sói được chọn 2 con mồi khác nhau đêm nay.</div>
+                    </div>
+                  </div>
+                )}
+
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5">
                   {alivePlayers.map(p => {
-                    const isSelected = nightState.wolfTargetId === p.id && !nightState.wolfSkipped;
+                    const isTarget1 = nightState.wolfTargetId === p.id && !nightState.wolfSkipped;
+                    const isTarget2 = nightState.wolfTargetId2 === p.id && !nightState.wolfSkipped;
+                    const isSelected = isTarget1 || isTarget2;
                     const isWolf = isWolfPlayer(p);
+
+                    const handleWolfPick = () => {
+                      if (isWolf) return;
+                      if (!wolfCanKillDouble) {
+                        onSaveAction('wolves', p.id, { wolfSkipped: false });
+                        return;
+                      }
+
+                      // Nếu đang là Target 1: Bỏ chọn target 1
+                      if (isTarget1) {
+                        onSaveAction('wolves', null, { wolfTargetId2: nightState.wolfTargetId2, wolfSkipped: false });
+                      } else if (isTarget2) {
+                        // Nếu đang là Target 2: Bỏ chọn target 2
+                        onSaveAction('wolves_second', null);
+                      } else if (!nightState.wolfTargetId) {
+                        // Chưa có target 1: gán target 1
+                        onSaveAction('wolves', p.id, { wolfTargetId2: nightState.wolfTargetId2, wolfSkipped: false });
+                      } else if (!nightState.wolfTargetId2) {
+                        // Đã có target 1, chưa có target 2: gán target 2
+                        onSaveAction('wolves_second', p.id);
+                      } else {
+                        // Đã có cả 2: thay thế target 1
+                        onSaveAction('wolves', p.id, { wolfTargetId2: nightState.wolfTargetId2, wolfSkipped: false });
+                      }
+                    };
 
                     return (
                       <button
                         key={p.id}
                         disabled={isWolf}
-                        onClick={() => onSaveAction('wolves', p.id, { wolfSkipped: false })}
+                        onClick={handleWolfPick}
                         className={`p-3 rounded-2xl border text-left transition-all duration-200 flex items-center justify-between cursor-pointer ${
                           isWolf
                             ? 'opacity-40 cursor-not-allowed bg-[#180407] border-rose-950 text-slate-500'
@@ -817,9 +880,13 @@ export default function NightPhaseView({
                           <span className="text-[10px] text-rose-400/80 bg-rose-950/40 px-2 py-0.5 rounded border border-rose-950">
                             Không thể cắn
                           </span>
-                        ) : isSelected ? (
+                        ) : isTarget1 ? (
                           <span className="text-xs font-black text-rose-400 flex items-center gap-1 animate-pulse">
-                            <Skull className="w-4 h-4 fill-rose-500 text-rose-500" /> Bị cắn
+                            <Skull className="w-4 h-4 fill-rose-500 text-rose-500" /> {wolfCanKillDouble ? 'Mồi 1' : 'Bị cắn'}
+                          </span>
+                        ) : isTarget2 ? (
+                          <span className="text-xs font-black text-rose-400 flex items-center gap-1 animate-pulse">
+                            <Skull className="w-4 h-4 fill-rose-500 text-rose-500" /> Mồi 2
                           </span>
                         ) : null}
                       </button>

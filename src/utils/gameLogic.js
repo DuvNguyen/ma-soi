@@ -125,9 +125,12 @@ export function resolveNightPhase(players, nightActions, roundNumber) {
   let killedPlayerIds = new Set();
   let deathReasons = {};
   let logs = [];
+  let refundWitchHeal = false;
+  let elderKilledByWitch = false;
 
   const {
     wolfTargetId,
+    wolfTargetId2,
     protectedPlayerId,
     witchSaved,
     witchPoisonTargetId,
@@ -144,54 +147,74 @@ export function resolveNightPhase(players, nightActions, roundNumber) {
     }
   }
 
-  // 1. Process Werewolf Kill or Cursed Wolf Infection
-  if (wolfTargetId) {
-    const target = updatedPlayers.find(p => p.id === wolfTargetId);
-    if (target && target.isAlive) {
-      if (isCursedInfect) {
-        // SÓI NGUYỀN (NGƯỜI CHA CỦA SÓI) ĐỒNG HÓA LÂY NHIỄM
-        // Người này không chết, lưu ID vai trò cũ và nhận vai trò Ma Sói
-        const oldRoleId = target.currentRoleId || target.roleId;
-        target.originalRoleId = target.originalRoleId || oldRoleId;
-        target.isCursedWolf = true;
-        target.curseNight = roundNumber;
-        target.currentRoleId = 'soi-thuong';
-        target.roleId = 'soi-thuong';
-        delete target.role;
-        delete target.originalRole;
-        const origRole = getPlayerOriginalRole(target);
-        logs.push(`🔮 SÓI NGUYỀN ĐÃ LÂY NHIỄM: ${target.name} (vốn giữ vai ${origRole?.name || 'Chưa lộ vai'}) không bị cắn chết mà đã được Sói Nguyền lây nhiễm, trở thành Ma Sói mới của làng!`);
-      } else {
-        const isProtected = protectedPlayerId === target.id;
-        const isSavedByWitch = witchSaved;
+  // Helper to process wolf bite on a target
+  const processWolfBite = (targetId, isSecondTarget = false) => {
+    const target = updatedPlayers.find(p => p.id === targetId);
+    if (!target || !target.isAlive) return;
 
-        if (isProtected || isSavedByWitch) {
-          let reason = isProtected ? 'được Bảo Vệ che chở' : 'được Phù Thủy dùng bình thần dược cứu sống';
-          logs.push(`${target.name} bị Ma Sói tấn công nhưng may mắn ${reason}!`);
-        } else {
-          const targetRole = getPlayerRole(target);
-          // Check Elder (Già Làng - 2 lives against wolves)
-          if (targetRole?.id === 'gia-lang' && (target.elderLives || 2) > 1) {
-            target.elderLives = (target.elderLives || 2) - 1;
-            logs.push(`Già Làng ${target.name} bị Ma Sói cắn nhưng đã kiên cường sống sót nhờ mạng sống thứ nhất (Còn 1 mạng)!`);
-          } else if (targetRole?.id === 'nua-nguoi-nua-soi') {
-            // Nửa Người Nửa Sói turns into werewolf - preserve original role
-            const oldRoleId = target.currentRoleId || target.roleId;
-            target.originalRoleId = target.originalRoleId || oldRoleId;
-            target.isCursedWolf = true;
-            target.curseNight = roundNumber;
-            target.currentRoleId = 'soi-thuong';
-            target.roleId = 'soi-thuong';
-            delete target.role;
-            delete target.originalRole;
-            logs.push(`Nửa Người Nửa Sói ${target.name} bị Ma Sói cắn và đã chính thức thức tỉnh gen Sói, gia nhập đàn Sói!`);
-          } else {
-            killedPlayerIds.add(target.id);
-            deathReasons[target.id] = 'Bị Ma Sói cắn chết trong đêm';
-          }
-        }
-      }
+    if (isCursedInfect && !isSecondTarget) {
+      // SÓI NGUYỀN (NGƯỜI CHA CỦA SÓI) ĐỒNG HÓA LÂY NHIỄM
+      const oldRoleId = target.currentRoleId || target.roleId;
+      target.originalRoleId = target.originalRoleId || oldRoleId;
+      target.isCursedWolf = true;
+      target.curseNight = roundNumber;
+      target.currentRoleId = 'soi-thuong';
+      target.roleId = 'soi-thuong';
+      delete target.role;
+      delete target.originalRole;
+      const origRole = getPlayerOriginalRole(target);
+      logs.push(`🔮 SÓI NGUYỀN ĐÃ LÂY NHIỄM: ${target.name} (vốn giữ vai ${origRole?.name || 'Chưa lộ vai'}) không bị cắn chết mà đã được Sói Nguyền lây nhiễm, trở thành Ma Sói mới của làng!`);
+      return;
     }
+
+    const isProtected = protectedPlayerId === target.id;
+    const isSavedByWitch = !isSecondTarget && witchSaved;
+
+    // RULE CONFLICT FIX #3: Nếu cả Bảo Vệ và Phù Thủy cùng cứu 1 người, Bảo Vệ đỡ đòn thành công -> hoàn trả bình cứu cho Phù Thủy
+    if (isProtected && isSavedByWitch) {
+      refundWitchHeal = true;
+      logs.push(`🛡️ ${target.name} bị Ma Sói tấn công nhưng đã được BẢO VỆ che chở an toàn! Phù Thủy không bị tiêu hao bình cứu (đã hoàn trả lại bình thần dược)!`);
+      return;
+    }
+
+    if (isProtected || isSavedByWitch) {
+      let reason = isProtected ? 'được Bảo Vệ che chở' : 'được Phù Thủy dùng bình thần dược cứu sống';
+      logs.push(`${target.name} bị Ma Sói tấn công nhưng may mắn ${reason}!`);
+      return;
+    }
+
+    const targetRole = getPlayerRole(target);
+    // Check Elder (Già Làng - 2 lives against wolves)
+    if (targetRole?.id === 'gia-lang' && (target.elderLives || 2) > 1) {
+      target.elderLives = (target.elderLives || 2) - 1;
+      logs.push(`Già Làng ${target.name} bị Ma Sói cắn nhưng đã kiên cường sống sót nhờ mạng sống thứ nhất (Còn 1 mạng)!`);
+    } else if (targetRole?.id === 'nua-nguoi-nua-soi') {
+      // Nửa Người Nửa Sói turns into werewolf - preserve original role
+      const oldRoleId = target.currentRoleId || target.roleId;
+      target.originalRoleId = target.originalRoleId || oldRoleId;
+      target.isCursedWolf = true;
+      target.curseNight = roundNumber;
+      target.currentRoleId = 'soi-thuong';
+      target.roleId = 'soi-thuong';
+      delete target.role;
+      delete target.originalRole;
+      logs.push(`Nửa Người Nửa Sói ${target.name} bị Ma Sói cắn và đã chính thức thức tỉnh gen Sói, gia nhập đàn Sói!`);
+    } else {
+      killedPlayerIds.add(target.id);
+      deathReasons[target.id] = isSecondTarget 
+        ? 'Bị Ma Sói cuồng nộ (Sói Con chết) cắn chết trong đêm'
+        : 'Bị Ma Sói cắn chết trong đêm';
+    }
+  };
+
+  // 1. Process Primary Werewolf Kill
+  if (wolfTargetId) {
+    processWolfBite(wolfTargetId, false);
+  }
+
+  // 1.1 Process Secondary Werewolf Kill (RULE CONFLICT FIX #4: Khi Sói Con chết đêm trước)
+  if (wolfTargetId2 && wolfTargetId2 !== wolfTargetId) {
+    processWolfBite(wolfTargetId2, true);
   }
 
   // 2. Process Witch Poison
@@ -201,6 +224,12 @@ export function resolveNightPhase(players, nightActions, roundNumber) {
       killedPlayerIds.add(poisonTarget.id);
       deathReasons[poisonTarget.id] = 'Bị Phù Thủy đầu độc chết trong đêm';
       logs.push(`${poisonTarget.name} đã bị Phù Thủy sử dụng bình thuốc độc tiêu diệt!`);
+      
+      // RULE CONFLICT FIX #2: Nếu Già Làng chết do độc Phù Thủy (phe Dân)
+      const poisonRole = getPlayerRole(poisonTarget);
+      if (poisonRole?.id === 'gia-lang') {
+        elderKilledByWitch = true;
+      }
     }
   }
 
@@ -254,6 +283,9 @@ export function resolveNightPhase(players, nightActions, roundNumber) {
   return {
     updatedPlayers,
     killedPlayerIds: Array.from(killedPlayerIds),
+    poisonedPlayerIds: witchPoisonTargetId ? [witchPoisonTargetId] : [],
+    refundWitchHeal,
+    elderKilledByWitch,
     logs
   };
 }

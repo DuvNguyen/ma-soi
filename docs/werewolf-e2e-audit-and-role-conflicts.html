@@ -1,0 +1,2036 @@
+<!DOCTYPE html>
+<html lang="vi" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Báo Cáo Kiểm Toán End-to-End, Logic, Quy Tắc & Xung Đột Vai Trò — Werewolf GM Tool</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800;900&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            cinzel: ['Cinzel', 'serif'],
+            sans: ['Inter', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          },
+          colors: {
+            occult: {
+              950: '#07030a',
+              900: '#0d0714',
+              850: '#140b1e',
+              800: '#1e112c',
+              700: '#2f1a45',
+              600: '#48276a',
+              gold: '#c5a059',
+              blood: '#8b1e1e',
+              crimson: '#b91c1c'
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    ::-webkit-scrollbar { width: 8px; height: 8px; }
+    ::-webkit-scrollbar-track { background: #0d0714; }
+    ::-webkit-scrollbar-thumb { background: #2f1a45; border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: #48276a; }
+    .code-diff-del { background: rgba(185, 28, 28, 0.2); color: #fca5a5; border-left: 3px solid #ef4444; }
+    .code-diff-add { background: rgba(16, 185, 129, 0.2); color: #86efac; border-left: 3px solid #10b981; }
+  </style>
+</head>
+<body class="bg-occult-950 text-slate-200 font-sans antialiased min-h-screen selection:bg-occult-gold/30 selection:text-white">
+
+  <!-- Background Decorative Grid -->
+  <div class="fixed inset-0 pointer-events-none opacity-20 bg-[linear-gradient(to_right,#2a133d_1px,transparent_1px),linear-gradient(to_bottom,#2a133d_1px,transparent_1px)] bg-[size:32px_32px]"></div>
+
+  <!-- Header Banner -->
+  <header class="relative border-b border-occult-700/60 bg-occult-900/90 backdrop-blur-md sticky top-0 z-40">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+      <div class="flex items-center gap-3.5">
+        <div class="w-11 h-11 rounded-xl bg-gradient-to-br from-occult-gold/30 via-occult-700 to-occult-950 border border-occult-gold/40 flex items-center justify-center shadow-lg shadow-black/50 shrink-0">
+          <svg class="w-6 h-6 text-occult-gold" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 2L4 7v6c0 5.55 3.84 10.74 8 12 4.16-1.26 8-6.45 8-12V7l-8-5zm0 4a3 3 0 110 6 3 3 0 010-6zm5 11.5c-1.33-1.87-3.5-3-5-3s-3.67 1.13-5 3C8.16 16.5 10 15 12 15s3.84 1.5 5 2.5z"/>
+          </svg>
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <span class="px-2 py-0.5 rounded text-[10px] font-mono uppercase tracking-widest bg-occult-blood/40 text-rose-300 border border-rose-800/60 font-semibold">E2E Audit Report</span>
+            <span class="px-2 py-0.5 rounded text-[10px] font-mono bg-occult-gold/20 text-amber-300 border border-amber-600/40">Production Verification</span>
+          </div>
+          <h1 class="font-cinzel font-black text-lg sm:text-xl text-slate-100 tracking-wider flex items-center gap-2 mt-0.5">
+            BÁO CÁO KIỂM TOÁN HỆ THỐNG QUẢN TRÒ MA SÓI
+          </h1>
+          <p class="text-xs text-slate-400">Toàn bộ lỗi logic, xung đột vai trò (Role Conflicts), kịch bản đêm/ngày và điều kiện thắng</p>
+        </div>
+      </div>
+
+      <!-- Quick Nav Buttons -->
+      <nav class="flex items-center gap-1.5 overflow-x-auto w-full md:w-auto scrollbar-none py-1">
+        <a href="#summary" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-occult-800 hover:bg-occult-700 text-slate-300 border border-occult-700/80 transition-all whitespace-nowrap">Tổng Quan</a>
+        <a href="#roles-matrix" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-occult-800 hover:bg-occult-700 text-slate-300 border border-occult-700/80 transition-all whitespace-nowrap">Ma Trận 48 Vai</a>
+        <a href="#conflicts" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-occult-blood/30 hover:bg-occult-blood/50 text-rose-200 border border-rose-900/70 transition-all whitespace-nowrap">10 Xung Đột Vai</a>
+        <a href="#night-audit" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-occult-800 hover:bg-occult-700 text-slate-300 border border-occult-700/80 transition-all whitespace-nowrap">Luồng Đêm</a>
+        <a href="#day-audit" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-occult-800 hover:bg-occult-700 text-slate-300 border border-occult-700/80 transition-all whitespace-nowrap">Luồng Ngày</a>
+        <a href="#win-conditions" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-occult-800 hover:bg-occult-700 text-slate-300 border border-occult-700/80 transition-all whitespace-nowrap">Điều Kiện Thắng</a>
+        <a href="#roadmap" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-occult-gold/20 hover:bg-occult-gold/30 text-amber-300 border border-amber-600/50 transition-all whitespace-nowrap">Lộ Trình Fix</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-12 relative z-10">
+
+    <!-- ================= 1. EXECUTIVE SUMMARY & STATS ================= -->
+    <section id="summary" class="space-y-6">
+      <div class="flex items-center justify-between">
+        <div>
+          <h2 class="font-cinzel font-black text-xl sm:text-2xl text-occult-gold tracking-wide">1. TỔNG QUAN KIỂM TOÁN TOÀN DIỆN</h2>
+          <p class="text-xs sm:text-sm text-slate-400">Đánh giá độ sẵn sàng thực thi (Execution Readiness) trên 48 vai trò và 100+ kịch bản đối đầu</p>
+        </div>
+        <span class="text-xs font-mono text-slate-500">Phạm vi: Codebase Werewolf GM Tool</span>
+      </div>
+
+      <!-- KPI Grid -->
+      <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
+        
+        <div class="p-4 rounded-xl bg-occult-900/90 border border-occult-700/70 shadow-lg space-y-1">
+          <span class="text-[11px] font-mono text-slate-400 uppercase tracking-wider block">Tổng Vai Trò</span>
+          <div class="font-cinzel font-black text-3xl text-slate-100">48</div>
+          <span class="text-[10px] text-slate-400">100% catalog thẻ bài</span>
+        </div>
+
+        <div class="p-4 rounded-xl bg-emerald-950/40 border border-emerald-800/60 shadow-lg space-y-1">
+          <span class="text-[11px] font-mono text-emerald-400 uppercase tracking-wider block">Full Flow Ready</span>
+          <div class="font-cinzel font-black text-3xl text-emerald-300">5</div>
+          <span class="text-[10px] text-emerald-400/80">Bảo Vệ, Sói, Tri, Phù Thủy, Cupid</span>
+        </div>
+
+        <div class="p-4 rounded-xl bg-amber-950/40 border border-amber-800/60 shadow-lg space-y-1">
+          <span class="text-[11px] font-mono text-amber-400 uppercase tracking-wider block">UI Only (Thiếu Engine)</span>
+          <div class="font-cinzel font-black text-3xl text-amber-300">16</div>
+          <span class="text-[10px] text-amber-400/80">Có kịch bản đêm, thiếu action</span>
+        </div>
+
+        <div class="p-4 rounded-xl bg-rose-950/40 border border-rose-800/60 shadow-lg space-y-1">
+          <span class="text-[11px] font-mono text-rose-400 uppercase tracking-wider block">Lệch Thứ Tự (Order 99)</span>
+          <div class="font-cinzel font-black text-3xl text-rose-300">15</div>
+          <span class="text-[10px] text-rose-400/80">Rơi vào fallback cuối đêm</span>
+        </div>
+
+        <div class="p-4 rounded-xl bg-blue-950/40 border border-blue-800/60 shadow-lg space-y-1">
+          <span class="text-[11px] font-mono text-blue-400 uppercase tracking-wider block">Vai Thụ Động (Passive)</span>
+          <div class="font-cinzel font-black text-3xl text-blue-300">10</div>
+          <span class="text-[10px] text-blue-400/80">Thợ Săn, Già Làng, Thằng Ngốc...</span>
+        </div>
+
+        <div class="p-4 rounded-xl bg-occult-blood/30 border border-rose-800/80 shadow-lg space-y-1">
+          <span class="text-[11px] font-mono text-rose-300 uppercase tracking-wider block">Xung Đột Luật Lớn</span>
+          <div class="font-cinzel font-black text-3xl text-rose-200">10</div>
+          <span class="text-[10px] text-rose-300/80">Cần khắc phục khẩn cấp</span>
+        </div>
+
+      </div>
+
+      <!-- Verdict Banner -->
+      <div class="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-occult-850 via-occult-900 to-occult-850 border border-occult-700/80 shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+        <div class="space-y-1">
+          <div class="flex items-center gap-2">
+            <span class="w-2.5 h-2.5 rounded-full bg-amber-400 animate-pulse"></span>
+            <span class="font-cinzel font-bold text-sm sm:text-base text-occult-gold uppercase tracking-wider">KẾT LUẬN KIỂM TOÁN CHUNG: BỘ CORE CHẠY TỐT, CẦN BẢO VỆ CHẶT CHẼ CÁC NGOẠI LỆ</span>
+          </div>
+          <p class="text-xs text-slate-300 max-w-3xl leading-relaxed">
+            Hệ thống vận hành trơn tru và hoàn hảo với <strong>Bộ Thẻ Ma Sói Cổ Điển &amp; Nhóm Sói Quỷ</strong> (Dân Làng, Ma Sói, Bảo Vệ, Tiên Tri, Phù Thủy, Cupid, Sói Quỷ, Thợ Săn, Thằng Ngốc). Tuy nhiên, khi kết hợp các vai trò mở rộng phức tạp (Sói Trắng, Sói Con, Người Thổi Sáo, Kẻ Đốt Nhà, Già Làng mất chức năng), hệ thống còn tồn tại <strong>10 xung đột quy tắc và lỗ hổng logic</strong> cần được bổ sung guard clause.
+          </p>
+        </div>
+        <div class="shrink-0 flex items-center gap-2">
+          <span class="px-3 py-1.5 rounded-lg bg-emerald-950 border border-emerald-700 text-emerald-300 text-xs font-mono font-bold">Core Ván Đấu: 98% Ổn Định</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= 2. 48 ROLES AUDIT MATRIX ================= -->
+    <section id="roles-matrix" class="space-y-4">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div>
+          <h2 class="font-cinzel font-black text-xl sm:text-2xl text-occult-gold tracking-wide">2. MA TRẬN KIỂM TOÁN 48 VAI TRÒ (ROLE AUDIT MATRIX)</h2>
+          <p class="text-xs text-slate-400">Đối chiếu chi tiết giữa Thư viện Catalog, Thứ tự gọi đêm (Night Order), và Trạng thái Engine</p>
+        </div>
+
+        <!-- Filter Controls -->
+        <div class="flex flex-wrap items-center gap-2">
+          <input 
+            type="text" 
+            id="roleSearchInput" 
+            placeholder="Tìm theo tên vai trò hoặc ID..." 
+            class="px-3 py-1.5 rounded-lg text-xs bg-occult-900 border border-occult-700 text-slate-200 placeholder-slate-500 focus:outline-none focus:border-occult-gold w-48 sm:w-60 font-mono"
+            oninput="filterRoleTable()"
+          />
+          <select 
+            id="teamFilterSelect" 
+            class="px-2.5 py-1.5 rounded-lg text-xs bg-occult-900 border border-occult-700 text-slate-200 focus:outline-none focus:border-occult-gold"
+            onchange="filterRoleTable()"
+          >
+            <option value="ALL">Tất Cả Phe</option>
+            <option value="V">Phe Dân Làng</option>
+            <option value="W">Phe Ma Sói</option>
+            <option value="3">Phe Thứ 3 / Độc Lập</option>
+          </select>
+          <select 
+            id="statusFilterSelect" 
+            class="px-2.5 py-1.5 rounded-lg text-xs bg-occult-900 border border-occult-700 text-slate-200 focus:outline-none focus:border-occult-gold"
+            onchange="filterRoleTable()"
+          >
+            <option value="ALL">Tất Cả Trạng Thái</option>
+            <option value="PROD_READY">Sẵn Sàng 100%</option>
+            <option value="UI_ONLY">Chỉ Có Kịch Bản Đêm</option>
+            <option value="FALLBACK_UNHANDLED">Lệch Thứ Tự (Priority 99)</option>
+            <option value="PASSIVE">Thụ Động (Không Gọi Đêm)</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Interactive Table -->
+      <div class="rounded-2xl border border-occult-700/80 bg-occult-900/90 overflow-hidden shadow-2xl overflow-x-auto">
+        <table class="w-full text-left text-xs text-slate-300 border-collapse" id="rolesTable">
+          <thead>
+            <tr class="border-b border-occult-700 bg-occult-850/80 text-[11px] font-cinzel font-bold text-occult-gold tracking-wider uppercase">
+              <th class="p-3 sm:p-3.5 w-12 text-center">STT</th>
+              <th class="p-3 sm:p-3.5">Vai Trò (Tên &amp; ID)</th>
+              <th class="p-3 sm:p-3.5">Phe Phái</th>
+              <th class="p-3 sm:p-3.5 text-center">Thứ Tự Catalog</th>
+              <th class="p-3 sm:p-3.5 text-center">Thứ Tự Đêm Thực Tế</th>
+              <th class="p-3 sm:p-3.5">Tần Suất Thức</th>
+              <th class="p-3 sm:p-3.5">Trạng Thái Engine</th>
+              <th class="p-3 sm:p-3.5 w-64">Mô Tả Năng Lực &amp; Rủi Ro</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-occult-800/80 font-sans">
+
+    <tr class="hover:bg-occult-800/40 transition-colors role-row" data-name="dân làng simple villager dan-lang" data-team="V" data-status="PASSIVE">
+      <td class="p-3 text-center font-mono text-slate-500">01</td>
+      <td class="p-3">
+        <div class="font-bold text-slate-100 flex items-center gap-1.5">
+          <span>Dân Làng</span>
+        </div>
+        <div class="text-[10px] font-mono text-slate-400">Simple Villager &bull; <span class="text-occult-gold/70">dan-lang</span></div>
+      </td>
+      <td class="p-3">
+        <span class="px-2 py-0.5 rounded text-[10px] font-semibold border bg-blue-950 text-blue-300 border-blue-800">
+          Phe Dân Làng
+        </span>
+      </td>
+      <td class="p-3 text-center font-mono text-slate-300 font-bold">#99</td>
+      <td class="p-3 text-center font-mono text-slate-500">
+        Thụ Động (—)
+      </td>
+      <td class="p-3 text-[11px] text-slate-300">Không thức dậy</td>
+      <td class="p-3">
+        <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold border bg-slate-900 text-slate-400 border-slate-700">
+          Thụ Động (Không Thức Đêm)
+        </span>
+      </td>
+      <td class="p-3 text-[11px] text-slate-400 leading-snug">Không có năng lực đặc biệt trong đêm. Cùng dân làng suy luận, thảo luận và bỏ phiếu tìm Ma Sói vào ban ngày....</td>
+    </tr>
+    
+
+    <tr class="hover:bg-occult-800/40 transition-colors role-row" data-name="tiên tri seer tien-tri" data-team="V" data-status="PROD_READY">
+      <td class="p-3 text-center font-mono text-slate-500">02</td>
+      <td class="p-3">
+        <div class="font-bold text-slate-100 flex items-center gap-1.5">
+          <span>Tiên Tri</span>
+        </div>
+        <div class="text-[10px] font-mono text-slate-400">Seer &bull; <span class="text-occult-gold/70">tien-tri</span></div>
+      </td>
+      <td class="p-3">
+        <span class="px-2 py-0.5 rounded text-[10px] font-semibold border bg-blue-950 text-blue-300 border-blue-800">
+          Phe Dân Làng
+        </span>
+      </td>
+      <td class="p-3 text-center font-mono text-slate-300 font-bold">#4</td>
+      <td class="p-3 text-center font-mono text-emerald-400 font-bold">
+        Priority #6
+      </td>
+      <td class="p-3 text-[11px] text-slate-300">Mỗi đêm</td>
+      <td class="p-3">
+        <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold border bg-emerald-950 text-emerald-400 border-emerald-800">
+          Sẵn Sàng (Full Flow)
+        </span>
+      </td>
+      <td class="p-3 text-[11px] text-slate-400 leading-snug">Mỗi đêm thức dậy soi danh tính 1 người chơi. Quản trò báo cho biết người đó có phải là Sói hay không....</td>
+    </tr>
+    
+
+    <tr class="hover:bg-occult-800/40 transition-colors role-row" data-name="bảo vệ bodyguard / defender bao-ve" data-team="V" data-status="PROD_READY">
+      <td class="p-3 text-center font-mono text-slate-500">03</td>
+      <td class="p-3">
+        <div class="font-bold text-slate-100 flex items-center gap-1.5">
+          <span>Bảo Vệ</span>
+        </div>
+        <div class="text-[10px] font-mono text-slate-400">Bodyguard / Defender &bull; <span class="text-occult-gold/70">bao-ve</span></div>
+      </td>
+      <td class="p-3">
+        <span class="px-2 py-0.5 rounded text-[10px] font-semibold border bg-blue-950 text-blue-300 border-blue-800">
+          Phe Dân Làng
+        </span>
+      </td>
+      <td class="p-3 text-center font-mono text-slate-300 font-bold">#3</td>
+      <td class="p-3 text-center font-mono text-emerald-400 font-bold">
+        Priority #4
+      </td>
+      <td class="p-3 text-[11px] text-slate-300">Mỗi đêm</td>
+      <td class="p-3">
+        <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold border bg-emerald-950 text-emerald-400 border-emerald-800">
+          Sẵn Sàng (Full Flow)
+        </span>
+      </td>
+      <td class="p-3 text-[11px] text-slate-400 leading-snug">Mỗi đêm bảo vệ 1 người không bị Sói cắn chết (có thể tự bảo vệ mình, không chọn 1 người 2 đêm liên tiếp)....</td>
+    </tr>
+    
+
+    <tr class="hover:bg-occult-800/40 transition-colors role-row" data-name="thợ săn hunter tho-san" data-team="V" data-status="PASSIVE">
+      <td class="p-3 text-center font-mono text-slate-500">04</td>
+      <td class="p-3">
+        <div class="font-bold text-slate-100 flex items-center gap-1.5">
+          <span>Thợ Săn</span>
+        </div>
+        <div class="text-[10px] font-mono text-slate-400">Hunter &bull; <span class="text-occult-gold/70">tho-san</span></div>
+      </td>
+      <td class="p-3">
+        <span class="px-2 py-0.5 rounded text-[10px] font-semibold border bg-blue-950 text-blue-300 border-blue-800">
+          Phe Dân Làng
+        </span>
+      </td>
+      <td class="p-3 text-center font-mono text-slate-300 font-bold">#98</td>
+      <td class="p-3 text-center font-mono text-slate-500">
+        Thụ Động (—)
+      </td>
+      <td class="p-3 text-[11px] text-slate-300">Khi chết</td>
+      <td class="p-3">
+        <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold border bg-slate-900 text-slate-400 border-slate-700">
+          Thụ Động (Không Thức Đêm)
+        </span>
+      </td>
+      <td class="p-3 text-[11px] text-slate-400 leading-snug">Khi bị loại (bị Sói cắn hoặc bị treo cổ), lập tức nổ súng bắn chết thêm 1 người chơi khác theo ý mình....</td>
+    </tr>
+    
+
+    <tr class="hover:bg-occult-800/40 transition-colors role-row" data-name="phù thủy witch phu-thuy" data-team="V" data-status="PROD_READY">
+      <td class="p-3 text-center font-mono text-slate-500">05</td>
+      <td class="p-3">
+        <div class="font-bold text-slate-100 flex items-center gap-1.5">
+          <span>Phù Thủy</span>
+        </div>
+        <div class="text-[10px] font-mono text-slate-400">Witch &bull; <span class="text-occult-gold/70">phu-thuy</span></div>
+      </td>
+      <td class="p-3">
+        <span class="px-2 py-0.5 rounded text-[10px] font-semibold border bg-blue-950 text-blue-300 border-blue-800">
+          Phe Dân Làng
+        </span>
+      </td>
+      <td class="p-3 text-center font-mono text-slate-300 font-bold">#6</td>
+      <td class="p-3 text-center font-mono text-emerald-400 font-bold">
+        Priority #7
+      </td>
+      <td class="p-3 text-[11px] text-slate-300">Mỗi đêm</td>
+      <td class="p-3">
+        <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold border bg-emerald-950 text-emerald-400 border-emerald-800">
+          Sẵn Sàng (Full Flow)
+        </span>
+      </td>
+      <td class="p-3 text-[11px] text-slate-400 leading-snug">Sở hữu 2 bình thuốc: 1 bình cứu sống người bị Sói cắn, 1 bình độc giết chết 1 người. Mỗi bình chỉ dùng 1 lần cả ván....</td>
+    </tr>
+    
+
+    <tr class="hover:bg-occult-800/40 transition-colors role-row" data-name="cupid (thần tình yêu) cupid cupid" data-team="V" data-status="PROD_READY">
+      <td class="p-3 text-center font-mono text-slate-500">06</td>
+      <td class="p-3">
+        <div class="font-bold text-slate-100 flex items-center gap-1.5">
+          <span>Cupid (Thần Tình Yêu)</span>
+        </div>
+        <div class="text-[10px] font-mono text-slate-400">Cupid &bull; <span class="text-occult-gold/70">cupid</span></div>
+      </td>
+      <td class="p-3">
+        <span class="px-2 py-0.5 rounded text-[10px] font-semibold border bg-blue-950 text-blue-300 border-blue-800">
+          Phe Dân Làng (Có thể tạo Phe Thứ 3)
+        </span>
+      </td>
+      <td class="p-3 text-center font-mono text-slate-300 font-bold">#1</td>
+      <td class="p-3 text-center font-mono text-emerald-400 font-bold">
+        Priority #2
+      </td>
+      <td class="p-3 text-[11px] text-slate-300">Chỉ đêm đầu tiên</td>
+      <td class="p-3">
+        <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold border bg-emerald-950 text-emerald-400 border-emerald-800">
+          Sẵn Sàng (Full Flow)
+        </span>
+      </td>
+      <td class="p-3 text-[11px] text-slate-400 leading-snug">Đêm đầu tiên ghép đôi 2 người bất kỳ yêu nhau. Nếu 1 người chết, người kia chết theo. Khác phe sẽ thành Phe Thứ 3....</td>
+    </tr>
+    
+
+    <tr class="hover:bg-occult-800/40 transition-colors role-row" data-name="cảnh sát trưởng / trưởng làng sheriff / mayor canh-sat-truong" data-team="V" data-status="PASSIVE">
+      <td class="p-3 text-center font-mono text-slate-500">07</td>
+      <td class="p-3">
+        <div class="font-bold text-slate-100 flex items-center gap-1.5">
+          <span>Cảnh Sát Trưởng / Trưởng Làng</span>
+        </div>
+        <div class="text-[10px] font-mono text-slate-400">Sheriff / Mayor &bull; <span class="text-occult-gold/70">canh-sat-truong</span></div>
+      </td>
+      <td class="p-3">
+        <span class="px-2 py-0.5 rounded text-[10px] font-semibold border bg-blue-950 text-blue-300 border-blue-800">
+          Tất Cả Phe (Chức vị phong thêm)
+        </span>
+      </td>
+      <td class="p-3 text-center font-mono text-slate-300 font-bold">#97</td>
+      <td class="p-3 text-center font-mono text-slate-500">
+        Thụ Động (—)
+      </td>
+      <td class="p-3 text-[11px] text-slate-300">Bầu chọn ban ngày</td>
+      <td class="p-3">
+        <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold border bg-slate-900 text-slate-400 border-slate-700">
+          Thụ Động (Không Thức Đêm)
+        </span>
+      </td>
+      <td class="p-3 text-[11px] text-slate-400 leading-snug">Chức vị do làng bầu chọn vào ban ngày. Phiếu bầu treo cổ của Cảnh Sát Trưởng tính bằng 2 phiếu. Khi chết được di chúc lạ...</td>
+    </tr>
+    
+
+    <tr class="hover:bg-occult-800/40 transition-colors role-row" data-name="cô bé little girl co-be" data-team="V" data-status="FALLBACK_UNHANDLED">
+      <td class="p-3 text-center font-mono text-slate-500">08</td>
+      <td class="p-3">
+        <div class="font-bold text-slate-100 flex items-center gap-1.5">
+          <span>Cô Bé</span>
+        </div>
+        <div class="text-[10px] font-mono text-slate-400">Little Girl &bull; <span class="text-occult-gold/70">co-be</span></div>
+      </td>
+      <td class="p-3">
+        <span class="px-2 py-0.5 rounded text-[10px] font-semibold border bg-blue-950 text-blue-300 border-blue-800">
+          Phe Dân Làng
+        </span>
+      </td>
+      <td class="p-3 text-center font-mono text-slate-300 font-bold">#5</td>
+      <td class="p-3 text-center font-mono text-rose-400 font-bold">
+        Priority #99
+      </td>
+      <td class="p-3 text-[11px] text-slate-300">Trong lúc Sói thức</td>
+      <td class="p-3">
+        <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold border bg-rose-950 text-rose-400 border-rose-800">
+          Lệch Thứ Tự (Rơi vào Fallback 99)
+        </span>
+      </td>
+      <td class="p-3 text-[11px] text-slate-400 leading-snug">Có quyền hé mắt lén nhìn khi bầy Sói thức dậy để tìm ra Sói. Nếu bị Sói bắt gặp sẽ chết ngay....</td>
+    </tr>
+    
+
+    <tr class="hover:bg-occult-800/40 transition-colors role-row" data-name="sói thường (ma sói) werewolf soi-thuong" data-team="W" data-status="PROD_READY">
+      <td class="p-3 text-center font-mono text-slate-500">09</td>
+      <td class="p-3">
+        <div class="font-bold text-slate-100 flex items-center gap-1.5">
+          <span>Sói Thường (Ma Sói)</span>
+        </div>
+        <div class="text-[10px] font-mono text-slate-400">Werewolf &bull; <span class="text-occult-gold/70">soi-thuong</span></div>
+      </td>
+      <td class="p-3">
+        <span class="px-2 py-0.5 rounded text-[10px] font-semibold border bg-rose-950 text-rose-300 border-rose-800">
+          Phe Sói
+        </span>
+      </td>
+      <td class="p-3 text-center font-mono text-slate-300 font-bold">#5</td>
+      <td class="p-3 text-center font-mono text-emerald-400 font-bold">
+        Priority #5
+      </td>
+      <td class="p-3 text-[11px] text-slate-300">Mỗi đêm</td>
+      <td class="p-3">
+        <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold border bg-emerald-950 text-emerald-400 border-emerald-800">
+          Sẵn Sàng (Full Flow)
+        </span>
+      </td>
+      <td class="p-3 text-[11px] text-slate-400 leading-snug">Mỗi đêm cùng bầy Sói thức dậy, thống nhất chọn cắn chết 1 người dân. Ban ngày giả dạng dân làng để trà trộn....</td>
+    </tr>
+    
+
+    <tr class="hover:bg-occult-800/40 transition-colors role-row" data-name="sói con wolf pup soi-con" data-team="W" data-status="UI_ONLY">
+      <td class="p-3 text-center font-mono text-slate-500">10</td>
+      <td class="p-3">
+        <div class="font-bold text-slate-100 flex items-center gap-1.5">
+          <span>Sói Con</span>
+        </div>
+        <div class="text-[10px] font-mono text-slate-400">Wolf Pup &bull; <span class="text-occult-gold/70">soi-con</span></div>
+      </td>
+      <td class="p-3">
+        <span class="px-2 py-0.5 rounded text-[10px] font-semibold border bg-rose-950 text-rose-300 border-rose-800">
+          Phe Sói
+        </span>
+      </td>
+      <td class="p-3 text-center font-mono text-slate-300 font-bold">#5</td>
+      <td class="p-3 text-center font-mono text-emerald-400 font-bold">
+        Priority #5.1
+      </td>
+      <td class="p-3 text-[11px] text-slate-300">Mỗi đêm</td>
+      <td class="p-3">
+        <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold border bg-amber-950 text-amber-400 border-amber-800">
+          Chỉ Có Kịch Bản Đêm (Thiếu Logic Event)
+        </span>
+      </td>
+      <td class="p-3 text-[11px] text-slate-400 leading-snug">Thức dậy chung với bầy Sói. Khi Sói Con bị chết, vào đêm tiếp theo bầy Sói phẫn nộ được cắn 2 người liên tục....</td>
+    </tr>
+    
+
+    <tr class="hover:bg-occult-800/40 transition-colors role-row" data-name="nửa người nửa sói wild-card / cursed nua-nguoi-nua-soi" data-team="?" data-status="CATALOG">
+      <td class="p-3 text-center font-mono text-slate-500">11</td>
+      <td class="p-3">
+        <div class="font-bold text-slate-100 flex items-center gap-1.5">
+          <span>Nửa Người Nửa Sói</span>
+        </div>
+        <div class="text-[10px] font-mono text-slate-400">Wild-card / Cursed &bull; <span class="text-occult-gold/70">nua-nguoi-nua-soi</span></div>
+      </td>
+      <td class="p-3">
+        <span class="px-2 py-0.5 rounded text-[10px] font-semibold border bg-purple-950 text-purple-300 border-purple-800">
+          Biến Đổi (Phe Dân -> Phe Sói)
+        </span>
+      </td>
+      <td class="p-3 text-center font-mono text-slate-300 font-bold">#96</td>
+      <td class="p-3 text-center font-mono text-emerald-400 font-bold">
+        Priority #3.1
+      </td>
+      <td class="p-3 text-[11px] text-slate-300">Bị cắn thì biến đổi</td>
+      <td class="p-3">
+        <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold border bg-purple-950 text-purple-400 border-purple-800">
+          Chỉ Danh Mục Thẻ Bài
+        </span>
+      </td>
+      <td class="p-3 text-[11px] text-slate-400 leading-snug">Ban đầu theo phe Dân Làng. Nếu bị Ma Sói cắn trúng sẽ không chết mà lập tức biến thành Ma Sói....</td>
+    </tr>
+    
+
+    <tr class="hover:bg-occult-800/40 transition-colors role-row" data-name="sói trắng white werewolf soi-trang" data-team="3" data-status="CATALOG">
+      <td class="p-3 text-center font-mono text-slate-500">12</td>
+      <td class="p-3">
+        <div class="font-bold text-slate-100 flex items-center gap-1.5">
+          <span>Sói Trắng</span>
+        </div>
+        <div class="text-[10px] font-mono text-slate-400">White Werewolf &bull; <span class="text-occult-gold/70">soi-trang</span></div>
+      </td>
+      <td class="p-3">
+        <span class="px-2 py-0.5 rounded text-[10px] font-semibold border bg-purple-950 text-purple-300 border-purple-800">
+          Phe Thứ 3 (Độc Lập)
+        </span>
+      </td>
+      <td class="p-3 text-center font-mono text-slate-300 font-bold">#5.5</td>
+      <td class="p-3 text-center font-mono text-emerald-400 font-bold">
+        Priority #5.3
+      </td>
+      <td class="p-3 text-[11px] text-slate-300">Cứ 2 đêm 1 lần</td>
+      <td class="p-3">
+        <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold border bg-purple-950 text-purple-400 border-purple-800">
+          Chỉ Danh Mục Thẻ Bài
+        </span>
+      </td>
+      <td class="p-3 text-[11px] text-slate-400 leading-snug">Thức dậy chung với Sói thường. Cứ 2 đêm 1 lần, thức dậy riêng để giết chết 1 con Sói khác. Thắng khi là người duy nhất s...</td>
+    </tr>
+    
+
+    <tr class="hover:bg-occult-800/40 transition-colors role-row" data-name="ăn trộm thief an-trom" data-team="?" data-status="UI_ONLY">
+      <td class="p-3 text-center font-mono text-slate-500">13</td>
+      <td class="p-3">
+        <div class="font-bold text-slate-100 flex items-center gap-1.5">
+          <span>Ăn Trộm</span>
+        </div>
+        <div class="text-[10px] font-mono text-slate-400">Thief &bull; <span class="text-occult-gold/70">an-trom</span></div>
+      </td>
+      <td class="p-3">
+        <span class="px-2 py-0.5 rounded text-[10px] font-semibold border bg-purple-950 text-purple-300 border-purple-800">
+          Tùy Chọn / Biến Đổi
+        </span>
+      </td>
+      <td class="p-3 text-center font-mono text-slate-300 font-bold">#0</td>
+      <td class="p-3 text-center font-mono text-emerald-400 font-bold">
+        Priority #1
+      </td>
+      <td class="p-3 text-[11px] text-slate-300">Đêm đầu tiên</td>
+      <td class="p-3">
+        <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold border bg-amber-950 text-amber-400 border-amber-800">
+          Chỉ Có Kịch Bản Đêm (Thiếu Logic Event)
+        </span>
+      </td>
+      <td class="p-3 text-[11px] text-slate-400 leading-snug">Đêm đầu tiên thức dậy xem 2 lá bài thừa ngoài bàn cờ và chọn 1 lá để nhận chức năng đó. Nếu có Sói bắt buộc phải chọn Só...</td>
+    </tr>
+    
+
+    <tr class="hover:bg-occult-800/40 transition-colors role-row" data-name="thằng ngốc idiot thang-ngoc" data-team="V" data-status="PASSIVE">
+      <td class="p-3 text-center font-mono text-slate-500">14</td>
+      <td class="p-3">
+        <div class="font-bold text-slate-100 flex items-center gap-1.5">
+          <span>Thằng Ngốc</span>
+        </div>
+        <div class="text-[10px] font-mono text-slate-400">Idiot &bull; <span class="text-occult-gold/70">thang-ngoc</span></div>
+      </td>
+      <td class="p-3">
+        <span class="px-2 py-0.5 rounded text-[10px] font-semibold border bg-blue-950 text-blue-300 border-blue-800">
+          Phe Dân Làng
+        </span>
+      </td>
+      <td class="p-3 text-center font-mono text-slate-300 font-bold">#95</td>
+      <td class="p-3 text-center font-mono text-slate-500">
+        Thụ Động (—)
+      </td>
+      <td class="p-3 text-[11px] text-slate-300">Khi bị biểu quyết treo cổ</td>
+      <td class="p-3">
+        <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold border bg-slate-900 text-slate-400 border-slate-700">
+          Thụ Động (Không Thức Đêm)
+        </span>
+      </td>
+      <td class="p-3 text-[11px] text-slate-400 leading-snug">Nếu bị làng biểu quyết treo cổ, lật bài lên được tha mạng và tiếp tục sống, nhưng mất quyền bỏ phiếu từ đó về sau....</td>
+    </tr>
+    
+
+    <tr class="hover:bg-occult-800/40 transition-colors role-row" data-name="già làng elder gia-lang" data-team="V" data-status="PASSIVE_LOGIC">
+      <td class="p-3 text-center font-mono text-slate-500">15</td>
+      <td class="p-3">
+        <div class="font-bold text-slate-100 flex items-center gap-1.5">
+          <span>Già Làng</span>
+        </div>
+        <div class="text-[10px] font-mono text-slate-400">Elder &bull; <span class="text-occult-gold/70">gia-lang</span></div>
+      </td>
+      <td class="p-3">
+        <span class="px-2 py-0.5 rounded text-[10px] font-semibold border bg-blue-950 text-blue-300 border-blue-800">
+          Phe Dân Làng
+        </span>
+      </td>
+      <td class="p-3 text-center font-mono text-slate-300 font-bold">#94</td>
+      <td class="p-3 text-center font-mono text-slate-500">
+        Thụ Động (—)
+      </td>
+      <td class="p-3 text-[11px] text-slate-300">Thụ động khi bị cắn</td>
+      <td class="p-3">
+        <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold border bg-blue-950 text-blue-400 border-blue-800">
+          Thụ Động (Có Logic Xử Lý)
+        </span>
+      </td>
+      <td class="p-3 text-[11px] text-slate-400 leading-snug">Có 2 mạng trước nanh vuốt Sói (phải bị cắn 2 lần mới chết). Nhưng nếu chết vì dân làng, toàn bộ phe Dân mất hết kỹ năng....</td>
+    </tr>
+    
+
+    <tr class="hover:bg-occult-800/40 transition-colors role-row" data-name="người thế thân (kẻ thế thân) scapegoat nguoi-the-than" data-team="V" data-status="PASSIVE">
+      <td class="p-3 text-center font-mono text-slate-500">16</td>
+      <td class="p-3">
+        <div class="font-bold text-slate-100 flex items-center gap-1.5">
+          <span>Người Thế Thân (Kẻ Thế Thân)</span>
+        </div>
+        <div class="text-[10px] font-mono text-slate-400">Scapegoat &bull; <span class="text-occult-gold/70">nguoi-the-than</span></div>
+      </td>
+      <td class="p-3">
+        <span class="px-2 py-0.5 rounded text-[10px] font-semibold border bg-blue-950 text-blue-300 border-blue-800">
+          Phe Dân Làng
+        </span>
+      </td>
+      <td class="p-3 text-center font-mono text-slate-300 font-bold">#93</td>
+      <td class="p-3 text-center font-mono text-slate-500">
+        Thụ Động (—)
+      </td>
+      <td class="p-3 text-[11px] text-slate-300">Khi bỏ phiếu hòa</td>
+      <td class="p-3">
+        <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold border bg-slate-900 text-slate-400 border-slate-700">
+          Thụ Động (Không Thức Đêm)
+        </span>
+      </td>
+      <td class="p-3 text-[11px] text-slate-400 leading-snug">Nếu kết quả bỏ phiếu treo cổ của làng bị hòa, Người Thế Thân lập tức bị xử tử thay thế. Khi chết có quyền chỉ định ai đư...</td>
+    </tr>
+    
+
+    <tr class="hover:bg-occult-800/40 transition-colors role-row" data-name="người thổi sáo pied piper nguoi-thoi-sao" data-team="3" data-status="CATALOG">
+      <td class="p-3 text-center font-mono text-slate-500">17</td>
+      <td class="p-3">
+        <div class="font-bold text-slate-100 flex items-center gap-1.5">
+          <span>Người Thổi Sáo</span>
+        </div>
+        <div class="text-[10px] font-mono text-slate-400">Pied Piper &bull; <span class="text-occult-gold/70">nguoi-thoi-sao</span></div>
+      </td>
+      <td class="p-3">
+        <span class="px-2 py-0.5 rounded text-[10px] font-semibold border bg-purple-950 text-purple-300 border-purple-800">
+          Phe Thứ 3 (Độc Lập)
+        </span>
+      </td>
+      <td class="p-3 text-center font-mono text-slate-300 font-bold">#7</td>
+      <td class="p-3 text-center font-mono text-emerald-400 font-bold">
+        Priority #8
+      </td>
+      <td class="p-3 text-[11px] text-slate-300">Mỗi đêm</td>
+      <td class="p-3">
+        <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold border bg-purple-950 text-purple-400 border-purple-800">
+          Chỉ Danh Mục Thẻ Bài
+        </span>
+      </td>
+      <td class="p-3 text-[11px] text-slate-400 leading-snug">Mỗi đêm thôi miên 2 người. Những người bị thôi miên nhận diện nhau. Thắng khi toàn bộ người còn sống đều bị thôi miên....</td>
+    </tr>
+    
+
+    <tr class="hover:bg-occult-800/40 transition-colors role-row" data-name="kẻ đốt nhà (hỏa hoạn) pyromaniac ke-dot-nha" data-team="W" data-status="FALLBACK_UNHANDLED">
+      <td class="p-3 text-center font-mono text-slate-500">18</td>
+      <td class="p-3">
+        <div class="font-bold text-slate-100 flex items-center gap-1.5">
+          <span>Kẻ Đốt Nhà (Hỏa Hoạn)</span>
+        </div>
+        <div class="text-[10px] font-mono text-slate-400">Pyromaniac &bull; <span class="text-occult-gold/70">ke-dot-nha</span></div>
+      </td>
+      <td class="p-3">
+        <span class="px-2 py-0.5 rounded text-[10px] font-semibold border bg-rose-950 text-rose-300 border-rose-800">
+          Phe Sói / Phá Hoại
+        </span>
+      </td>
+      <td class="p-3 text-center font-mono text-slate-300 font-bold">#8</td>
+      <td class="p-3 text-center font-mono text-rose-400 font-bold">
+        Priority #99
+      </td>
+      <td class="p-3 text-[11px] text-slate-300">Mỗi đêm</td>
+      <td class="p-3">
+        <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold border bg-rose-950 text-rose-400 border-rose-800">
+          Lệch Thứ Tự (Rơi vào Fallback 99)
+        </span>
+      </td>
+      <td class="p-3 text-[11px] text-slate-400 leading-snug">Chọn phóng hỏa đốt 1 ngôi nhà. Nếu nhà đó là nơi Sói cắn nạn nhân, con Sói đầu tiên bên phải nhà đó sẽ bị thiêu chết....</td>
+    </tr>
+    
+
+    <tr class="hover:bg-occult-800/40 transition-colors role-row" data-name="con quạ (the village) raven con-qua" data-team="V" data-status="UI_ONLY">
+      <td class="p-3 text-center font-mono text-slate-500">19</td>
+      <td class="p-3">
+        <div class="font-bold text-slate-100 flex items-center gap-1.5">
+          <span>Con Quạ (The Village)</span>
+        </div>
+        <div class="text-[10px] font-mono text-slate-400">Raven &bull; <span class="text-occult-gold/70">con-qua</span></div>
+      </td>
+      <td class="p-3">
+        <span class="px-2 py-0.5 rounded text-[10px] font-semibold border bg-blue-950 text-blue-300 border-blue-800">
+          Phe Dân Làng
+        </span>
+      </td>
+      <td class="p-3 text-center font-mono text-slate-300 font-bold">#9</td>
+      <td class="p-3 text-center font-mono text-emerald-400 font-bold">
+        Priority #9
+      </td>
+      <td class="p-3 text-[11px] text-slate-300">Cuối mỗi đêm</td>
+      <td class="p-3">
+        <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold border bg-amber-950 text-amber-400 border-amber-800">
+          Chỉ Có Kịch Bản Đêm (Thiếu Logic Event)
+        </span>
+      </td>
+      <td class="p-3 text-[11px] text-slate-400 leading-snug">Mỗi đêm đặt thẻ 'Chỉ định' trước cửa 1 người chơi. Sáng hôm sau người bị chỉ định mặc định nhận thêm 2 phiếu vote treo c...</td>
+    </tr>
+    
+
+    <tr class="hover:bg-occult-800/40 transition-colors role-row" data-name="dân thường (characters) simple villager variant dan-thuong" data-team="V" data-status="PASSIVE">
+      <td class="p-3 text-center font-mono text-slate-500">20</td>
+      <td class="p-3">
+        <div class="font-bold text-slate-100 flex items-center gap-1.5">
+          <span>Dân Thường (Characters)</span>
+        </div>
+        <div class="text-[10px] font-mono text-slate-400">Simple Villager Variant &bull; <span class="text-occult-gold/70">dan-thuong</span></div>
+      </td>
+      <td class="p-3">
+        <span class="px-2 py-0.5 rounded text-[10px] font-semibold border bg-blue-950 text-blue-300 border-blue-800">
+          Phe Dân Làng
+        </span>
+      </td>
+      <td class="p-3 text-center font-mono text-slate-300 font-bold">#99</td>
+      <td class="p-3 text-center font-mono text-slate-500">
+        Thụ Động (—)
+      </td>
+      <td class="p-3 text-[11px] text-slate-300">Không thức dậy</td>
+      <td class="p-3">
+        <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold border bg-slate-900 text-slate-400 border-slate-700">
+          Thụ Động (Không Thức Đêm)
+        </span>
+      </td>
+      <td class="p-3 text-[11px] text-slate-400 leading-snug">Lá bài Dân làng phiên bản tạo hình nghệ thuật của bộ Characters....</td>
+    </tr>
+    
+
+    <tr class="hover:bg-occult-800/40 transition-colors role-row" data-name="hai chị em two sisters hai-chi-em" data-team="V" data-status="FALLBACK_UNHANDLED">
+      <td class="p-3 text-center font-mono text-slate-500">21</td>
+      <td class="p-3">
+        <div class="font-bold text-slate-100 flex items-center gap-1.5">
+          <span>Hai Chị Em</span>
+        </div>
+        <div class="text-[10px] font-mono text-slate-400">Two Sisters &bull; <span class="text-occult-gold/70">hai-chi-em</span></div>
+      </td>
+      <td class="p-3">
+        <span class="px-2 py-0.5 rounded text-[10px] font-semibold border bg-blue-950 text-blue-300 border-blue-800">
+          Phe Dân Làng
+        </span>
+      </td>
+      <td class="p-3 text-center font-mono text-slate-300 font-bold">#2</td>
+      <td class="p-3 text-center font-mono text-rose-400 font-bold">
+        Priority #99
+      </td>
+      <td class="p-3 text-[11px] text-slate-300">Mỗi đêm (hoặc đêm đầu)</td>
+      <td class="p-3">
+        <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold border bg-rose-950 text-rose-400 border-rose-800">
+          Lệch Thứ Tự (Rơi vào Fallback 99)
+        </span>
+      </td>
+      <td class="p-3 text-[11px] text-slate-400 leading-snug">Hai người chơi giữ thẻ Hai Chị Em thức dậy nhận diện nhau vào ban đêm, cùng phối hợp biểu quyết vào ban ngày....</td>
+    </tr>
+    
+
+    <tr class="hover:bg-occult-800/40 transition-colors role-row" data-name="ba anh em three brothers ba-anh-em" data-team="V" data-status="FALLBACK_UNHANDLED">
+      <td class="p-3 text-center font-mono text-slate-500">22</td>
+      <td class="p-3">
+        <div class="font-bold text-slate-100 flex items-center gap-1.5">
+          <span>Ba Anh Em</span>
+        </div>
+        <div class="text-[10px] font-mono text-slate-400">Three Brothers &bull; <span class="text-occult-gold/70">ba-anh-em</span></div>
+      </td>
+      <td class="p-3">
+        <span class="px-2 py-0.5 rounded text-[10px] font-semibold border bg-blue-950 text-blue-300 border-blue-800">
+          Phe Dân Làng
+        </span>
+      </td>
+      <td class="p-3 text-center font-mono text-slate-300 font-bold">#2.1</td>
+      <td class="p-3 text-center font-mono text-rose-400 font-bold">
+        Priority #99
+      </td>
+      <td class="p-3 text-[11px] text-slate-300">Đêm đầu tiên</td>
+      <td class="p-3">
+        <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold border bg-rose-950 text-rose-400 border-rose-800">
+          Lệch Thứ Tự (Rơi vào Fallback 99)
+        </span>
+      </td>
+      <td class="p-3 text-[11px] text-slate-400 leading-snug">Ba người chơi giữ lá Ba Anh Em thức dậy nhận diện nhau vào ban đêm, tạo thành liên minh 3 phiếu tin cậy tuyệt đối....</td>
+    </tr>
+    
+
+    <tr class="hover:bg-occult-800/40 transition-colors role-row" data-name="thiên sứ angel thien-su" data-team="3" data-status="PASSIVE">
+      <td class="p-3 text-center font-mono text-slate-500">23</td>
+      <td class="p-3">
+        <div class="font-bold text-slate-100 flex items-center gap-1.5">
+          <span>Thiên Sứ</span>
+        </div>
+        <div class="text-[10px] font-mono text-slate-400">Angel &bull; <span class="text-occult-gold/70">thien-su</span></div>
+      </td>
+      <td class="p-3">
+        <span class="px-2 py-0.5 rounded text-[10px] font-semibold border bg-purple-950 text-purple-300 border-purple-800">
+          Phe Thứ 3 (Độc Lập)
+        </span>
+      </td>
+      <td class="p-3 text-center font-mono text-slate-300 font-bold">#92</td>
+      <td class="p-3 text-center font-mono text-slate-500">
+        Thụ Động (—)
+      </td>
+      <td class="p-3 text-[11px] text-slate-300">Ngày đầu tiên</td>
+      <td class="p-3">
+        <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold border bg-slate-900 text-slate-400 border-slate-700">
+          Thụ Động (Không Thức Đêm)
+        </span>
+      </td>
+      <td class="p-3 text-[11px] text-slate-400 leading-snug">Mục tiêu là tự làm cho bản thân bị dân làng treo cổ ngay trong ngày biểu quyết đầu tiên. Nếu làm được, thắng game ngay!...</td>
+    </tr>
+    
+
+    <tr class="hover:bg-occult-800/40 transition-colors role-row" data-name="thẩm phán lắp bắp stuttering judge tham-phan-lap-bap" data-team="V" data-status="CATALOG">
+      <td class="p-3 text-center font-mono text-slate-500">24</td>
+      <td class="p-3">
+        <div class="font-bold text-slate-100 flex items-center gap-1.5">
+          <span>Thẩm Phán Lắp Bắp</span>
+        </div>
+        <div class="text-[10px] font-mono text-slate-400">Stuttering Judge &bull; <span class="text-occult-gold/70">tham-phan-lap-bap</span></div>
+      </td>
+      <td class="p-3">
+        <span class="px-2 py-0.5 rounded text-[10px] font-semibold border bg-blue-950 text-blue-300 border-blue-800">
+          Phe Dân Làng
+        </span>
+      </td>
+      <td class="p-3 text-center font-mono text-slate-300 font-bold">#91</td>
+      <td class="p-3 text-center font-mono text-emerald-400 font-bold">
+        Priority #99
+      </td>
+      <td class="p-3 text-[11px] text-slate-300">Đêm 1 ra ám hiệu</td>
+      <td class="p-3">
+        <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold border bg-purple-950 text-purple-400 border-purple-800">
+          Chỉ Danh Mục Thẻ Bài
+        </span>
+      </td>
+      <td class="p-3 text-[11px] text-slate-400 leading-snug">Trong đêm đầu tiên thống nhất 1 ám hiệu với Quản trò. Ban ngày được kích hoạt ám hiệu 1 lần để mở cuộc vote treo cổ thứ ...</td>
+    </tr>
+    
+
+    <tr class="hover:bg-occult-800/40 transition-colors role-row" data-name="hiệp sĩ kiếm gỉ knight with the rusty sword hiep-si-kiem-gi" data-team="V" data-status="CATALOG">
+      <td class="p-3 text-center font-mono text-slate-500">25</td>
+      <td class="p-3">
+        <div class="font-bold text-slate-100 flex items-center gap-1.5">
+          <span>Hiệp Sĩ Kiếm Gỉ</span>
+        </div>
+        <div class="text-[10px] font-mono text-slate-400">Knight with the Rusty Sword &bull; <span class="text-occult-gold/70">hiep-si-kiem-gi</span></div>
+      </td>
+      <td class="p-3">
+        <span class="px-2 py-0.5 rounded text-[10px] font-semibold border bg-blue-950 text-blue-300 border-blue-800">
+          Phe Dân Làng
+        </span>
+      </td>
+      <td class="p-3 text-center font-mono text-slate-300 font-bold">#90</td>
+      <td class="p-3 text-center font-mono text-emerald-400 font-bold">
+        Priority #99
+      </td>
+      <td class="p-3 text-[11px] text-slate-300">Thụ động khi bị Sói cắn</td>
+      <td class="p-3">
+        <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold border bg-purple-950 text-purple-400 border-purple-800">
+          Chỉ Danh Mục Thẻ Bài
+        </span>
+      </td>
+      <td class="p-3 text-[11px] text-slate-400 leading-snug">Nếu bị Sói cắn chết, thanh kiếm rỉ sét sẽ làm nhiễm trùng con Sói cắn mình. Con Sói đó sẽ chết vào sáng ngày hôm sau nữa...</td>
+    </tr>
+    
+
+    <tr class="hover:bg-occult-800/40 transition-colors role-row" data-name="cáo fox cao" data-team="V" data-status="UI_ONLY">
+      <td class="p-3 text-center font-mono text-slate-500">26</td>
+      <td class="p-3">
+        <div class="font-bold text-slate-100 flex items-center gap-1.5">
+          <span>Cáo</span>
+        </div>
+        <div class="text-[10px] font-mono text-slate-400">Fox &bull; <span class="text-occult-gold/70">cao</span></div>
+      </td>
+      <td class="p-3">
+        <span class="px-2 py-0.5 rounded text-[10px] font-semibold border bg-blue-950 text-blue-300 border-blue-800">
+          Phe Dân Làng
+        </span>
+      </td>
+      <td class="p-3 text-center font-mono text-slate-300 font-bold">#4.1</td>
+      <td class="p-3 text-center font-mono text-emerald-400 font-bold">
+        Priority #6.1
+      </td>
+      <td class="p-3 text-[11px] text-slate-300">Mỗi đêm</td>
+      <td class="p-3">
+        <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold border bg-amber-950 text-amber-400 border-amber-800">
+          Chỉ Có Kịch Bản Đêm (Thiếu Logic Event)
+        </span>
+      </td>
+      <td class="p-3 text-[11px] text-slate-400 leading-snug">Mỗi đêm chọn nhóm 3 người chơi ngồi liền kề. Nếu có ít nhất 1 Sói thì Quản trò gật đầu và Cáo giữ năng lực. Nếu không có...</td>
+    </tr>
+    
+
+    <tr class="hover:bg-occult-800/40 transition-colors role-row" data-name="người thuần phục gấu bear tamer nguoi-thuan-phuc-gau" data-team="V" data-status="PASSIVE">
+      <td class="p-3 text-center font-mono text-slate-500">27</td>
+      <td class="p-3">
+        <div class="font-bold text-slate-100 flex items-center gap-1.5">
+          <span>Người Thuần Phục Gấu</span>
+        </div>
+        <div class="text-[10px] font-mono text-slate-400">Bear Tamer &bull; <span class="text-occult-gold/70">nguoi-thuan-phuc-gau</span></div>
+      </td>
+      <td class="p-3">
+        <span class="px-2 py-0.5 rounded text-[10px] font-semibold border bg-blue-950 text-blue-300 border-blue-800">
+          Phe Dân Làng
+        </span>
+      </td>
+      <td class="p-3 text-center font-mono text-slate-300 font-bold">#89</td>
+      <td class="p-3 text-center font-mono text-slate-500">
+        Thụ Động (—)
+      </td>
+      <td class="p-3 text-[11px] text-slate-300">Đầu mỗi buổi sáng</td>
+      <td class="p-3">
+        <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold border bg-slate-900 text-slate-400 border-slate-700">
+          Thụ Động (Không Thức Đêm)
+        </span>
+      </td>
+      <td class="p-3 text-[11px] text-slate-400 leading-snug">Vào đầu buổi sáng, nếu 1 trong 2 người ngồi sát bên cạnh là Ma Sói, chú gấu sẽ gầm lên (Quản trò gầm 'Gừ...')....</td>
+    </tr>
+    
+
+    <tr class="hover:bg-occult-800/40 transition-colors role-row" data-name="diễn viên actor dien-vien" data-team="?" data-status="UI_ONLY">
+      <td class="p-3 text-center font-mono text-slate-500">28</td>
+      <td class="p-3">
+        <div class="font-bold text-slate-100 flex items-center gap-1.5">
+          <span>Diễn Viên</span>
+        </div>
+        <div class="text-[10px] font-mono text-slate-400">Actor &bull; <span class="text-occult-gold/70">dien-vien</span></div>
+      </td>
+      <td class="p-3">
+        <span class="px-2 py-0.5 rounded text-[10px] font-semibold border bg-purple-950 text-purple-300 border-purple-800">
+          Tùy Chọn / Biến Đổi
+        </span>
+      </td>
+      <td class="p-3 text-center font-mono text-slate-300 font-bold">#0.5</td>
+      <td class="p-3 text-center font-mono text-emerald-400 font-bold">
+        Priority #3.5
+      </td>
+      <td class="p-3 text-[11px] text-slate-300">Trong 3 đêm đầu</td>
+      <td class="p-3">
+        <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold border bg-amber-950 text-amber-400 border-amber-800">
+          Chỉ Có Kịch Bản Đêm (Thiếu Logic Event)
+        </span>
+      </td>
+      <td class="p-3 text-[11px] text-slate-400 leading-snug">Để 3 lá bài thừa ngoài cuộc. Trong 3 đêm đầu, Diễn Viên có thể chọn tráo thẻ của mình lấy 1 trong 3 lá này. Sau đêm 3 th...</td>
+    </tr>
+    
+
+    <tr class="hover:bg-occult-800/40 transition-colors role-row" data-name="người đầy tớ tận tụy devoted servant nguoi-day-to-tan-tuy" data-team="V" data-status="PASSIVE">
+      <td class="p-3 text-center font-mono text-slate-500">29</td>
+      <td class="p-3">
+        <div class="font-bold text-slate-100 flex items-center gap-1.5">
+          <span>Người Đầy Tớ Tận Tụy</span>
+        </div>
+        <div class="text-[10px] font-mono text-slate-400">Devoted Servant &bull; <span class="text-occult-gold/70">nguoi-day-to-tan-tuy</span></div>
+      </td>
+      <td class="p-3">
+        <span class="px-2 py-0.5 rounded text-[10px] font-semibold border bg-blue-950 text-blue-300 border-blue-800">
+          Biến Đổi / Thừa Kế
+        </span>
+      </td>
+      <td class="p-3 text-center font-mono text-slate-300 font-bold">#88</td>
+      <td class="p-3 text-center font-mono text-slate-500">
+        Thụ Động (—)
+      </td>
+      <td class="p-3 text-[11px] text-slate-300">Khi có người bị treo cổ</td>
+      <td class="p-3">
+        <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold border bg-slate-900 text-slate-400 border-slate-700">
+          Thụ Động (Không Thức Đêm)
+        </span>
+      </td>
+      <td class="p-3 text-[11px] text-slate-400 leading-snug">Bất cứ lúc nào khi có 1 người bị làng biểu quyết treo cổ, Người Hầu có thể lật bài đổi thẻ lấy nhân vật của người vừa ch...</td>
+    </tr>
+    
+
+    <tr class="hover:bg-occult-800/40 transition-colors role-row" data-name="thành viên giáo phái cult leader thanh-vien-giao-phai" data-team="3" data-status="FALLBACK_UNHANDLED">
+      <td class="p-3 text-center font-mono text-slate-500">30</td>
+      <td class="p-3">
+        <div class="font-bold text-slate-100 flex items-center gap-1.5">
+          <span>Thành Viên Giáo Phái</span>
+        </div>
+        <div class="text-[10px] font-mono text-slate-400">Cult Leader &bull; <span class="text-occult-gold/70">thanh-vien-giao-phai</span></div>
+      </td>
+      <td class="p-3">
+        <span class="px-2 py-0.5 rounded text-[10px] font-semibold border bg-purple-950 text-purple-300 border-purple-800">
+          Phe Thứ 3 (Độc Lập)
+        </span>
+      </td>
+      <td class="p-3 text-center font-mono text-slate-300 font-bold">#87</td>
+      <td class="p-3 text-center font-mono text-rose-400 font-bold">
+        Priority #99
+      </td>
+      <td class="p-3 text-[11px] text-slate-300">Trước ván chia phe</td>
+      <td class="p-3">
+        <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold border bg-rose-950 text-rose-400 border-rose-800">
+          Lệch Thứ Tự (Rơi vào Fallback 99)
+        </span>
+      </td>
+      <td class="p-3 text-[11px] text-slate-400 leading-snug">Quản trò chia cả làng làm 2 phái (theo kính/không kính, nam/nữ...). Hắn thuộc 1 phe và thắng khi toàn bộ phe đối địch bị...</td>
+    </tr>
+    
+
+    <tr class="hover:bg-occult-800/40 transition-colors role-row" data-name="đứa trẻ hoang dã wild child dua-tre-hoang-da" data-team="?" data-status="CATALOG">
+      <td class="p-3 text-center font-mono text-slate-500">31</td>
+      <td class="p-3">
+        <div class="font-bold text-slate-100 flex items-center gap-1.5">
+          <span>Đứa Trẻ Hoang Dã</span>
+        </div>
+        <div class="text-[10px] font-mono text-slate-400">Wild Child &bull; <span class="text-occult-gold/70">dua-tre-hoang-da</span></div>
+      </td>
+      <td class="p-3">
+        <span class="px-2 py-0.5 rounded text-[10px] font-semibold border bg-purple-950 text-purple-300 border-purple-800">
+          Biến Đổi (Phe Dân -> Phe Sói)
+        </span>
+      </td>
+      <td class="p-3 text-center font-mono text-slate-300 font-bold">#1.5</td>
+      <td class="p-3 text-center font-mono text-emerald-400 font-bold">
+        Priority #3
+      </td>
+      <td class="p-3 text-[11px] text-slate-300">Đêm 1 chọn thần tượng</td>
+      <td class="p-3">
+        <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold border bg-purple-950 text-purple-400 border-purple-800">
+          Chỉ Danh Mục Thẻ Bài
+        </span>
+      </td>
+      <td class="p-3 text-[11px] text-slate-400 leading-snug">Đêm đầu tiên chọn 1 người chơi làm Thần Tượng. Nếu Thần Tượng chết trong ván chơi, Đứa Trẻ lập tức hóa thành Ma Sói....</td>
+    </tr>
+    
+
+    <tr class="hover:bg-occult-800/40 transition-colors role-row" data-name="chó sói / bán sói / sói lai wolf hound cho-soi-soi-lai" data-team="?" data-status="FALLBACK_UNHANDLED">
+      <td class="p-3 text-center font-mono text-slate-500">32</td>
+      <td class="p-3">
+        <div class="font-bold text-slate-100 flex items-center gap-1.5">
+          <span>Chó Sói / Bán Sói / Sói Lai</span>
+        </div>
+        <div class="text-[10px] font-mono text-slate-400">Wolf Hound &bull; <span class="text-occult-gold/70">cho-soi-soi-lai</span></div>
+      </td>
+      <td class="p-3">
+        <span class="px-2 py-0.5 rounded text-[10px] font-semibold border bg-purple-950 text-purple-300 border-purple-800">
+          Tự Chọn (Dân hoặc Sói)
+        </span>
+      </td>
+      <td class="p-3 text-center font-mono text-slate-300 font-bold">#0.8</td>
+      <td class="p-3 text-center font-mono text-rose-400 font-bold">
+        Priority #99
+      </td>
+      <td class="p-3 text-[11px] text-slate-300">Đêm đầu tiên</td>
+      <td class="p-3">
+        <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold border bg-rose-950 text-rose-400 border-rose-800">
+          Lệch Thứ Tự (Rơi vào Fallback 99)
+        </span>
+      </td>
+      <td class="p-3 text-[11px] text-slate-400 leading-snug">Vào đêm đầu tiên, được tự ý lựa chọn muốn trở thành Dân Làng lương thiện hay gia nhập phe Ma Sói tàn bạo....</td>
+    </tr>
+    
+
+    <tr class="hover:bg-occult-800/40 transition-colors role-row" data-name="sói lớn xấu xa big bad wolf soi-lon-xau-xa" data-team="W" data-status="UI_ONLY">
+      <td class="p-3 text-center font-mono text-slate-500">33</td>
+      <td class="p-3">
+        <div class="font-bold text-slate-100 flex items-center gap-1.5">
+          <span>Sói Lớn Xấu Xa</span>
+        </div>
+        <div class="text-[10px] font-mono text-slate-400">Big Bad Wolf &bull; <span class="text-occult-gold/70">soi-lon-xau-xa</span></div>
+      </td>
+      <td class="p-3">
+        <span class="px-2 py-0.5 rounded text-[10px] font-semibold border bg-rose-950 text-rose-300 border-rose-800">
+          Phe Sói
+        </span>
+      </td>
+      <td class="p-3 text-center font-mono text-slate-300 font-bold">#5.1</td>
+      <td class="p-3 text-center font-mono text-emerald-400 font-bold">
+        Priority #5.2
+      </td>
+      <td class="p-3 text-[11px] text-slate-300">Mỗi đêm</td>
+      <td class="p-3">
+        <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold border bg-amber-950 text-amber-400 border-amber-800">
+          Chỉ Có Kịch Bản Đêm (Thiếu Logic Event)
+        </span>
+      </td>
+      <td class="p-3 text-[11px] text-slate-400 leading-snug">Thuộc phe Sói. Cho đến khi chưa có bất kỳ con Sói nào (kể cả Sói lai, Sói con) chết, Sói Lớn được thức dậy cắn thêm 1 ng...</td>
+    </tr>
+    
+
+    <tr class="hover:bg-occult-800/40 transition-colors role-row" data-name="sói quỷ (sói nguyền / người cha của sói) cursed wolf-father soi-quy" data-team="W" data-status="PROD_READY">
+      <td class="p-3 text-center font-mono text-slate-500">34</td>
+      <td class="p-3">
+        <div class="font-bold text-slate-100 flex items-center gap-1.5">
+          <span>Sói Quỷ (Sói Nguyền / Người Cha Của Sói)</span>
+        </div>
+        <div class="text-[10px] font-mono text-slate-400">Cursed Wolf-Father &bull; <span class="text-occult-gold/70">soi-quy</span></div>
+      </td>
+      <td class="p-3">
+        <span class="px-2 py-0.5 rounded text-[10px] font-semibold border bg-rose-950 text-rose-300 border-rose-800">
+          Phe Sói
+        </span>
+      </td>
+      <td class="p-3 text-center font-mono text-slate-300 font-bold">#5.2</td>
+      <td class="p-3 text-center font-mono text-emerald-400 font-bold">
+        Priority #4.9
+      </td>
+      <td class="p-3 text-[11px] text-slate-300">Mỗi đêm</td>
+      <td class="p-3">
+        <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold border bg-emerald-950 text-emerald-400 border-emerald-800">
+          Sẵn Sàng (Full Flow)
+        </span>
+      </td>
+      <td class="p-3 text-[11px] text-slate-400 leading-snug">Thuộc phe Sói. 1 lần duy nhất trong ván: nguyền nạn nhân vừa bị Sói cắn biến thành Ma Sói (giữ nguyên kỹ năng cũ) thay v...</td>
+    </tr>
+    
+
+    <tr class="hover:bg-occult-800/40 transition-colors role-row" data-name="bà đồng village soothsayer ba-dong" data-team="V" data-status="FALLBACK_UNHANDLED">
+      <td class="p-3 text-center font-mono text-slate-500">35</td>
+      <td class="p-3">
+        <div class="font-bold text-slate-100 flex items-center gap-1.5">
+          <span>Bà Đồng</span>
+        </div>
+        <div class="text-[10px] font-mono text-slate-400">Village Soothsayer &bull; <span class="text-occult-gold/70">ba-dong</span></div>
+      </td>
+      <td class="p-3">
+        <span class="px-2 py-0.5 rounded text-[10px] font-semibold border bg-blue-950 text-blue-300 border-blue-800">
+          Phe Dân Làng
+        </span>
+      </td>
+      <td class="p-3 text-center font-mono text-slate-300 font-bold">#3.5</td>
+      <td class="p-3 text-center font-mono text-rose-400 font-bold">
+        Priority #99
+      </td>
+      <td class="p-3 text-[11px] text-slate-300">5 lần trong ván</td>
+      <td class="p-3">
+        <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold border bg-rose-950 text-rose-400 border-rose-800">
+          Lệch Thứ Tự (Rơi vào Fallback 99)
+        </span>
+      </td>
+      <td class="p-3 text-[11px] text-slate-400 leading-snug">Có tối đa 5 lần gọi hồn trong ván. Quản trò đọc 4 câu hỏi từ lá Gọi Hồn, Bà Đồng chọn 1 câu và chỉ 1 người trả lời vào s...</td>
+    </tr>
+    
+
+    <tr class="hover:bg-occult-800/40 transition-colors role-row" data-name="cảnh sát sheriff's deputy / policeman canh-sat-characters" data-team="V" data-status="FALLBACK_UNHANDLED">
+      <td class="p-3 text-center font-mono text-slate-500">36</td>
+      <td class="p-3">
+        <div class="font-bold text-slate-100 flex items-center gap-1.5">
+          <span>Cảnh Sát</span>
+        </div>
+        <div class="text-[10px] font-mono text-slate-400">Sheriff's Deputy / Policeman &bull; <span class="text-occult-gold/70">canh-sat-characters</span></div>
+      </td>
+      <td class="p-3">
+        <span class="px-2 py-0.5 rounded text-[10px] font-semibold border bg-blue-950 text-blue-300 border-blue-800">
+          Chức vị phong thêm
+        </span>
+      </td>
+      <td class="p-3 text-center font-mono text-slate-300 font-bold">#86</td>
+      <td class="p-3 text-center font-mono text-rose-400 font-bold">
+        Priority #99
+      </td>
+      <td class="p-3 text-[11px] text-slate-300">Mỗi buổi sáng</td>
+      <td class="p-3">
+        <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold border bg-rose-950 text-rose-400 border-rose-800">
+          Lệch Thứ Tự (Rơi vào Fallback 99)
+        </span>
+      </td>
+      <td class="p-3 text-[11px] text-slate-400 leading-snug">Do Cảnh Sát Trưởng bổ nhiệm. Phụ trách bốc và đọc to các lá bài Sự Kiện của làng mỗi buổi sáng trước khi vote....</td>
+    </tr>
+    
+
+    <tr class="hover:bg-occult-800/40 transition-colors role-row" data-name="nguyệt nữ moon maiden nguyet-nu" data-team="V" data-status="UI_ONLY">
+      <td class="p-3 text-center font-mono text-slate-500">37</td>
+      <td class="p-3">
+        <div class="font-bold text-slate-100 flex items-center gap-1.5">
+          <span>Nguyệt Nữ</span>
+        </div>
+        <div class="text-[10px] font-mono text-slate-400">Moon Maiden &bull; <span class="text-occult-gold/70">nguyet-nu</span></div>
+      </td>
+      <td class="p-3">
+        <span class="px-2 py-0.5 rounded text-[10px] font-semibold border bg-blue-950 text-blue-300 border-blue-800">
+          Phe Dân Làng
+        </span>
+      </td>
+      <td class="p-3 text-center font-mono text-slate-300 font-bold">#0.2</td>
+      <td class="p-3 text-center font-mono text-emerald-400 font-bold">
+        Priority #0.5
+      </td>
+      <td class="p-3 text-[11px] text-slate-300">Đầu mỗi đêm</td>
+      <td class="p-3">
+        <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold border bg-amber-950 text-amber-400 border-amber-800">
+          Chỉ Có Kịch Bản Đêm (Thiếu Logic Event)
+        </span>
+      </td>
+      <td class="p-3 text-[11px] text-slate-400 leading-snug">Đầu mỗi đêm thức dậy chọn 1 người để phong ấn, người đó sẽ bị vô hiệu hóa toàn bộ kỹ năng trong suốt đêm đó....</td>
+    </tr>
+    
+
+    <tr class="hover:bg-occult-800/40 transition-colors role-row" data-name="thầy thôi miên hypnotist thay-thoi-mien" data-team="V" data-status="UI_ONLY">
+      <td class="p-3 text-center font-mono text-slate-500">38</td>
+      <td class="p-3">
+        <div class="font-bold text-slate-100 flex items-center gap-1.5">
+          <span>Thầy Thôi Miên</span>
+        </div>
+        <div class="text-[10px] font-mono text-slate-400">Hypnotist &bull; <span class="text-occult-gold/70">thay-thoi-mien</span></div>
+      </td>
+      <td class="p-3">
+        <span class="px-2 py-0.5 rounded text-[10px] font-semibold border bg-blue-950 text-blue-300 border-blue-800">
+          Phe Dân Làng
+        </span>
+      </td>
+      <td class="p-3 text-center font-mono text-slate-300 font-bold">#3.2</td>
+      <td class="p-3 text-center font-mono text-emerald-400 font-bold">
+        Priority #6.5
+      </td>
+      <td class="p-3 text-[11px] text-slate-300">Mỗi đêm</td>
+      <td class="p-3">
+        <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold border bg-amber-950 text-amber-400 border-amber-800">
+          Chỉ Có Kịch Bản Đêm (Thiếu Logic Event)
+        </span>
+      </td>
+      <td class="p-3 text-[11px] text-slate-400 leading-snug">Mỗi đêm mê hoặc 1 người. Nếu đêm đó Thầy Thôi Miên bị chết, người bị mê hoặc sẽ chết thay thế! Không chọn 1 người 2 đêm ...</td>
+    </tr>
+    
+
+    <tr class="hover:bg-occult-800/40 transition-colors role-row" data-name="dược sĩ apothecary / pharmacist duoc-si" data-team="V" data-status="UI_ONLY">
+      <td class="p-3 text-center font-mono text-slate-500">39</td>
+      <td class="p-3">
+        <div class="font-bold text-slate-100 flex items-center gap-1.5">
+          <span>Dược Sĩ</span>
+        </div>
+        <div class="text-[10px] font-mono text-slate-400">Apothecary / Pharmacist &bull; <span class="text-occult-gold/70">duoc-si</span></div>
+      </td>
+      <td class="p-3">
+        <span class="px-2 py-0.5 rounded text-[10px] font-semibold border bg-blue-950 text-blue-300 border-blue-800">
+          Phe Dân Làng
+        </span>
+      </td>
+      <td class="p-3 text-center font-mono text-slate-300 font-bold">#6.5</td>
+      <td class="p-3 text-center font-mono text-emerald-400 font-bold">
+        Priority #7.5
+      </td>
+      <td class="p-3 text-[11px] text-slate-300">Mỗi đêm</td>
+      <td class="p-3">
+        <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold border bg-amber-950 text-amber-400 border-amber-800">
+          Chỉ Có Kịch Bản Đêm (Thiếu Logic Event)
+        </span>
+      </td>
+      <td class="p-3 text-[11px] text-slate-400 leading-snug">Có 2 bình dùng 1 lần: Bình Thuốc Mê (cấm 1 người nói và cấm vote trong ngày) và Bình Hồi Phục (cứu người bị Phù Thủy giế...</td>
+    </tr>
+    
+
+    <tr class="hover:bg-occult-800/40 transition-colors role-row" data-name="người múa rối puppeteer nguoi-mua-roi" data-team="V" data-status="FALLBACK_UNHANDLED">
+      <td class="p-3 text-center font-mono text-slate-500">40</td>
+      <td class="p-3">
+        <div class="font-bold text-slate-100 flex items-center gap-1.5">
+          <span>Người Múa Rối</span>
+        </div>
+        <div class="text-[10px] font-mono text-slate-400">Puppeteer &bull; <span class="text-occult-gold/70">nguoi-mua-roi</span></div>
+      </td>
+      <td class="p-3">
+        <span class="px-2 py-0.5 rounded text-[10px] font-semibold border bg-blue-950 text-blue-300 border-blue-800">
+          Phe Dân / Phe Sói (Tùy bản)
+        </span>
+      </td>
+      <td class="p-3 text-center font-mono text-slate-300 font-bold">#4.9</td>
+      <td class="p-3 text-center font-mono text-rose-400 font-bold">
+        Priority #99
+      </td>
+      <td class="p-3 text-[11px] text-slate-300">1 lần trong ván</td>
+      <td class="p-3">
+        <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold border bg-rose-950 text-rose-400 border-rose-800">
+          Lệch Thứ Tự (Rơi vào Fallback 99)
+        </span>
+      </td>
+      <td class="p-3 text-[11px] text-slate-400 leading-snug">Một lần duy nhất trong cả ván chơi, có quyền ép bầy Sói phải ăn thịt 1 người do mình chỉ định (kể cả ép Sói tự ăn thịt m...</td>
+    </tr>
+    
+
+    <tr class="hover:bg-occult-800/40 transition-colors role-row" data-name="sát thủ (thích khách) assassin sat-thu" data-team="3" data-status="FALLBACK_UNHANDLED">
+      <td class="p-3 text-center font-mono text-slate-500">41</td>
+      <td class="p-3">
+        <div class="font-bold text-slate-100 flex items-center gap-1.5">
+          <span>Sát Thủ (Thích Khách)</span>
+        </div>
+        <div class="text-[10px] font-mono text-slate-400">Assassin &bull; <span class="text-occult-gold/70">sat-thu</span></div>
+      </td>
+      <td class="p-3">
+        <span class="px-2 py-0.5 rounded text-[10px] font-semibold border bg-purple-950 text-purple-300 border-purple-800">
+          Phe Độc Lập / Phục Thù
+        </span>
+      </td>
+      <td class="p-3 text-center font-mono text-slate-300 font-bold">#7.5</td>
+      <td class="p-3 text-center font-mono text-rose-400 font-bold">
+        Priority #99
+      </td>
+      <td class="p-3 text-[11px] text-slate-300">Mỗi 2 đêm khi đủ 4 phiếu</td>
+      <td class="p-3">
+        <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold border bg-rose-950 text-rose-400 border-rose-800">
+          Lệch Thứ Tự (Rơi vào Fallback 99)
+        </span>
+      </td>
+      <td class="p-3 text-[11px] text-slate-400 leading-snug">Mỗi 2 đêm, nếu số phiếu biểu quyết vào Sát Thủ trong các ngày qua đạt mốc 4 phiếu, Sát Thủ thức dậy ám sát 1 người ngay ...</td>
+    </tr>
+    
+
+    <tr class="hover:bg-occult-800/40 transition-colors role-row" data-name="kị sĩ knight ki-si" data-team="V" data-status="FALLBACK_UNHANDLED">
+      <td class="p-3 text-center font-mono text-slate-500">42</td>
+      <td class="p-3">
+        <div class="font-bold text-slate-100 flex items-center gap-1.5">
+          <span>Kị Sĩ</span>
+        </div>
+        <div class="text-[10px] font-mono text-slate-400">Knight &bull; <span class="text-occult-gold/70">ki-si</span></div>
+      </td>
+      <td class="p-3">
+        <span class="px-2 py-0.5 rounded text-[10px] font-semibold border bg-blue-950 text-blue-300 border-blue-800">
+          Phe Dân Làng
+        </span>
+      </td>
+      <td class="p-3 text-center font-mono text-slate-300 font-bold">#85</td>
+      <td class="p-3 text-center font-mono text-rose-400 font-bold">
+        Priority #99
+      </td>
+      <td class="p-3 text-[11px] text-slate-300">Ban ngày trước giờ vote</td>
+      <td class="p-3">
+        <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold border bg-rose-950 text-rose-400 border-rose-800">
+          Lệch Thứ Tự (Rơi vào Fallback 99)
+        </span>
+      </td>
+      <td class="p-3 text-[11px] text-slate-400 leading-snug">1 lần duy nhất vào ban ngày trước khi treo cổ, được lật bài thách đấu 1 người. Nếu là Sói, Sói chết ngay; nếu không phải...</td>
+    </tr>
+    
+
+    <tr class="hover:bg-occult-800/40 transition-colors role-row" data-name="con quạ (plus) raven plus con-qua-plus" data-team="V" data-status="FALLBACK_UNHANDLED">
+      <td class="p-3 text-center font-mono text-slate-500">43</td>
+      <td class="p-3">
+        <div class="font-bold text-slate-100 flex items-center gap-1.5">
+          <span>Con Quạ (Plus)</span>
+        </div>
+        <div class="text-[10px] font-mono text-slate-400">Raven Plus &bull; <span class="text-occult-gold/70">con-qua-plus</span></div>
+      </td>
+      <td class="p-3">
+        <span class="px-2 py-0.5 rounded text-[10px] font-semibold border bg-blue-950 text-blue-300 border-blue-800">
+          Phe Dân Làng
+        </span>
+      </td>
+      <td class="p-3 text-center font-mono text-slate-300 font-bold">#9.1</td>
+      <td class="p-3 text-center font-mono text-rose-400 font-bold">
+        Priority #99
+      </td>
+      <td class="p-3 text-[11px] text-slate-300">Mỗi đêm</td>
+      <td class="p-3">
+        <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold border bg-rose-950 text-rose-400 border-rose-800">
+          Lệch Thứ Tự (Rơi vào Fallback 99)
+        </span>
+      </td>
+      <td class="p-3 text-[11px] text-slate-400 leading-snug">Hằng đêm đặt lời nguyền lên 1 người. Người bị dính lời nguyền sáng hôm sau tự động bị cộng 2 phiếu vote treo cổ....</td>
+    </tr>
+    
+
+    <tr class="hover:bg-occult-800/40 transition-colors role-row" data-name="người gọi hồn spiritualist nguoi-goi-hon" data-team="V" data-status="UI_ONLY">
+      <td class="p-3 text-center font-mono text-slate-500">44</td>
+      <td class="p-3">
+        <div class="font-bold text-slate-100 flex items-center gap-1.5">
+          <span>Người Gọi Hồn</span>
+        </div>
+        <div class="text-[10px] font-mono text-slate-400">Spiritualist &bull; <span class="text-occult-gold/70">nguoi-goi-hon</span></div>
+      </td>
+      <td class="p-3">
+        <span class="px-2 py-0.5 rounded text-[10px] font-semibold border bg-blue-950 text-blue-300 border-blue-800">
+          Phe Dân Làng
+        </span>
+      </td>
+      <td class="p-3 text-center font-mono text-slate-300 font-bold">#3.8</td>
+      <td class="p-3 text-center font-mono text-emerald-400 font-bold">
+        Priority #10
+      </td>
+      <td class="p-3 text-[11px] text-slate-300">Mỗi đêm</td>
+      <td class="p-3">
+        <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold border bg-amber-950 text-amber-400 border-amber-800">
+          Chỉ Có Kịch Bản Đêm (Thiếu Logic Event)
+        </span>
+      </td>
+      <td class="p-3 text-[11px] text-slate-400 leading-snug">Mỗi đêm Quản trò hỏi linh hồn người vừa chết gần nhất: 'Hãy chỉ vào kẻ mình nghi ngờ nhất' để Người Gọi Hồn nhìn thấy....</td>
+    </tr>
+    
+
+    <tr class="hover:bg-occult-800/40 transition-colors role-row" data-name="sói lửa (cáo lửa) fire werewolf soi-lua" data-team="W" data-status="FALLBACK_UNHANDLED">
+      <td class="p-3 text-center font-mono text-slate-500">45</td>
+      <td class="p-3">
+        <div class="font-bold text-slate-100 flex items-center gap-1.5">
+          <span>Sói Lửa (Cáo Lửa)</span>
+        </div>
+        <div class="text-[10px] font-mono text-slate-400">Fire Werewolf &bull; <span class="text-occult-gold/70">soi-lua</span></div>
+      </td>
+      <td class="p-3">
+        <span class="px-2 py-0.5 rounded text-[10px] font-semibold border bg-rose-950 text-rose-300 border-rose-800">
+          Phe Sói
+        </span>
+      </td>
+      <td class="p-3 text-center font-mono text-slate-300 font-bold">#5.8</td>
+      <td class="p-3 text-center font-mono text-rose-400 font-bold">
+        Priority #99
+      </td>
+      <td class="p-3 text-[11px] text-slate-300">Khi có đồng bọn chết</td>
+      <td class="p-3">
+        <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold border bg-rose-950 text-rose-400 border-rose-800">
+          Lệch Thứ Tự (Rơi vào Fallback 99)
+        </span>
+      </td>
+      <td class="p-3 text-[11px] text-slate-400 leading-snug">Khi có ít nhất 1 Sói chết, đêm tiếp theo Sói Lửa được chọn 1 người để tước đoạt vĩnh viễn năng lực của người đó. Khi có ...</td>
+    </tr>
+    
+
+    <tr class="hover:bg-occult-800/40 transition-colors role-row" data-name="anh em sói wolf brothers anh-em-soi" data-team="W" data-status="FALLBACK_UNHANDLED">
+      <td class="p-3 text-center font-mono text-slate-500">46</td>
+      <td class="p-3">
+        <div class="font-bold text-slate-100 flex items-center gap-1.5">
+          <span>Anh Em Sói</span>
+        </div>
+        <div class="text-[10px] font-mono text-slate-400">Wolf Brothers &bull; <span class="text-occult-gold/70">anh-em-soi</span></div>
+      </td>
+      <td class="p-3">
+        <span class="px-2 py-0.5 rounded text-[10px] font-semibold border bg-rose-950 text-rose-300 border-rose-800">
+          Phe Sói
+        </span>
+      </td>
+      <td class="p-3 text-center font-mono text-slate-300 font-bold">#5.3</td>
+      <td class="p-3 text-center font-mono text-rose-400 font-bold">
+        Priority #99
+      </td>
+      <td class="p-3 text-[11px] text-slate-300">Đêm đầu nhận nhau</td>
+      <td class="p-3">
+        <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold border bg-rose-950 text-rose-400 border-rose-800">
+          Lệch Thứ Tự (Rơi vào Fallback 99)
+        </span>
+      </td>
+      <td class="p-3 text-[11px] text-slate-400 leading-snug">Gồm Sói Anh và Sói Em. Sói Anh dậy đi săn bình thường. Sói Em chưa thức cùng bầy (Tiên Tri/Gấu soi ra Dân). Khi Sói Anh ...</td>
+    </tr>
+    
+
+    <tr class="hover:bg-occult-800/40 transition-colors role-row" data-name="ảnh tử (bóng ma) shadow anh-tu" data-team="?" data-status="UI_ONLY">
+      <td class="p-3 text-center font-mono text-slate-500">47</td>
+      <td class="p-3">
+        <div class="font-bold text-slate-100 flex items-center gap-1.5">
+          <span>Ảnh Tử (Bóng Ma)</span>
+        </div>
+        <div class="text-[10px] font-mono text-slate-400">Shadow &bull; <span class="text-occult-gold/70">anh-tu</span></div>
+      </td>
+      <td class="p-3">
+        <span class="px-2 py-0.5 rounded text-[10px] font-semibold border bg-purple-950 text-purple-300 border-purple-800">
+          Tùy Thuộc / Kế Thừa
+        </span>
+      </td>
+      <td class="p-3 text-center font-mono text-slate-300 font-bold">#0.4</td>
+      <td class="p-3 text-center font-mono text-emerald-400 font-bold">
+        Priority #2.5
+      </td>
+      <td class="p-3 text-[11px] text-slate-300">Đêm đầu tiên</td>
+      <td class="p-3">
+        <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold border bg-amber-950 text-amber-400 border-amber-800">
+          Chỉ Có Kịch Bản Đêm (Thiếu Logic Event)
+        </span>
+      </td>
+      <td class="p-3 text-[11px] text-slate-400 leading-snug">Đêm đầu chọn 1 người làm bản thể. Nếu người đó sống đến cuối, Ảnh Tử thắng theo Dân làng. Nếu người đó chết, Ảnh Tử lấy ...</td>
+    </tr>
+    
+
+    <tr class="hover:bg-occult-800/40 transition-colors role-row" data-name="kẻ báo thù avenger ke-bao-thu" data-team="?" data-status="FALLBACK_UNHANDLED">
+      <td class="p-3 text-center font-mono text-slate-500">48</td>
+      <td class="p-3">
+        <div class="font-bold text-slate-100 flex items-center gap-1.5">
+          <span>Kẻ Báo Thù</span>
+        </div>
+        <div class="text-[10px] font-mono text-slate-400">Avenger &bull; <span class="text-occult-gold/70">ke-bao-thu</span></div>
+      </td>
+      <td class="p-3">
+        <span class="px-2 py-0.5 rounded text-[10px] font-semibold border bg-purple-950 text-purple-300 border-purple-800">
+          Tự Chọn Phe (Dân hoặc Sói)
+        </span>
+      </td>
+      <td class="p-3 text-center font-mono text-slate-300 font-bold">#0.6</td>
+      <td class="p-3 text-center font-mono text-rose-400 font-bold">
+        Priority #99
+      </td>
+      <td class="p-3 text-[11px] text-slate-300">Đêm đầu chọn phe</td>
+      <td class="p-3">
+        <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold border bg-rose-950 text-rose-400 border-rose-800">
+          Lệch Thứ Tự (Rơi vào Fallback 99)
+        </span>
+      </td>
+      <td class="p-3 text-[11px] text-slate-400 leading-snug">Đêm đầu bí mật chọn theo Dân hoặc Sói. Khi Kẻ Báo Thù chết, được chọn 1 người: nếu người đó thuộc phe đối lập với phe mì...</td>
+    </tr>
+    
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ================= 3. TOP 10 ROLE CONFLICTS & CODE FLAWS ================= -->
+    <section id="conflicts" class="space-y-6">
+      <div class="flex items-center justify-between">
+        <div>
+          <h2 class="font-cinzel font-black text-xl sm:text-2xl text-rose-400 tracking-wide flex items-center gap-2">
+            <span>3. TOP 10 XUNG ĐỘT QUY TẮC &amp; LỖ HỔNG LOGIC</span>
+            <span class="px-2.5 py-0.5 rounded-full text-xs font-mono bg-rose-950 border border-rose-800 text-rose-300">Critical &amp; High Risk</span>
+          </h2>
+          <p class="text-xs sm:text-sm text-slate-400">Các kịch bản đối kháng giữa các năng lực bài, sai lệch so với luật quốc tế và đề xuất mã nguồn khắc phục</p>
+        </div>
+      </div>
+
+      <!-- Conflicts List -->
+      <div class="space-y-4">
+
+        <!-- Conflict #1: Thợ Săn chết do Thuốc Độc Phù Thủy -->
+        <div class="p-5 rounded-2xl bg-occult-900 border-2 border-rose-900/80 shadow-xl space-y-3">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-rose-950/80 pb-3">
+            <div class="flex items-center gap-2.5">
+              <span class="px-2 py-1 rounded bg-rose-950 border border-rose-800 text-rose-300 font-mono text-xs font-bold">LỖI LOGIC #1</span>
+              <h3 class="font-cinzel font-black text-base text-slate-100">THỢ SĂN BỊ PHÙ THỦY ĐẦU ĐỘC CHẾT VẪN ĐƯỢC BẮN ĐẠN TRẢ ĐŨA</h3>
+            </div>
+            <span class="px-2.5 py-0.5 rounded text-[11px] font-mono bg-rose-900/40 text-rose-300 border border-rose-700/60 font-semibold">Mức Độ: CRITICAL (Vi Phạm Luật)</span>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+            <div class="space-y-1.5 p-3.5 rounded-xl bg-occult-850/80 border border-occult-700">
+              <div class="font-semibold text-rose-300 flex items-center gap-1.5 uppercase font-cinzel">
+                <span class="text-rose-500">&times;</span> Hiện Trạng Code (App.jsx L761)
+              </div>
+              <p class="text-slate-300 leading-relaxed">
+                Hệ thống chỉ kiểm tra: <code class="text-rose-300 font-mono bg-black/40 px-1 py-0.5 rounded">killedPlayerIds.includes(p.id) &amp;&amp; role.id === 'tho-san'</code>. Bất kể Thợ Săn chết vì Sói cắn, Thuốc Độc Phù Thủy hay chết theo người yêu Cupid, popup bắn đạn <code class="font-mono text-amber-300">actionType: 'hunter'</code> vẫn tự động kích hoạt!
+              </p>
+            </div>
+
+            <div class="space-y-1.5 p-3.5 rounded-xl bg-occult-850/80 border border-occult-700">
+              <div class="font-semibold text-emerald-400 flex items-center gap-1.5 uppercase font-cinzel">
+                <span class="text-emerald-500">&radic;</span> Quy Chuẩn Luật Quốc Tế &amp; Việt Nam
+              </div>
+              <p class="text-slate-300 leading-relaxed">
+                Theo luật Ma Sói chính thống (The Werewolves of Millers Hollow): Thuốc độc làm tê liệt thần kinh và cơ bắp ngay trong giấc ngủ. Thợ Săn <strong>chết bất đắc kỳ tử không kịp rút súng bắn</strong>. Thợ Săn chỉ được bắn khi bị Sói cắn chết hoặc bị Dân làng đưa lên giàn treo cổ.
+              </p>
+            </div>
+          </div>
+
+          <!-- Code Diff -->
+          <div class="rounded-xl bg-black/60 border border-occult-700 overflow-hidden text-xs font-mono">
+            <div class="bg-occult-800 px-3 py-1.5 text-[11px] text-slate-400 border-b border-occult-700 font-mono">Đề xuất sửa tại src/App.jsx (Dòng 760):</div>
+            <div class="p-3 space-y-1">
+              <div class="code-diff-del px-2 py-1 rounded">- const deadHunter = updatedPlayers.find(p =&gt; killedPlayerIds.includes(p.id) &amp;&amp; getPlayerRole(p)?.id === 'tho-san');</div>
+              <div class="code-diff-add px-2 py-1 rounded">+ // Thuốc độc làm Thợ Săn tê liệt không kịp bắn; chỉ bắn khi chết do Sói cắn</div>
+              <div class="code-diff-add px-2 py-1 rounded">+ const isPoisonedHunter = deadHunter &amp;&amp; nightState.witchPoisonTargetId === deadHunter.id;</div>
+              <div class="code-diff-add px-2 py-1 rounded">+ if (deadHunter &amp;&amp; !isPoisonedHunter) { setActionModal({ isOpen: true, actionType: 'hunter', player: deadHunter }); }</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Conflict #2: Già Làng (Elder) bị Dân Treo Cổ hoặc Phù Thủy Độc -->
+        <div class="p-5 rounded-2xl bg-occult-900 border-2 border-rose-900/80 shadow-xl space-y-3">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-rose-950/80 pb-3">
+            <div class="flex items-center gap-2.5">
+              <span class="px-2 py-1 rounded bg-rose-950 border border-rose-800 text-rose-300 font-mono text-xs font-bold">LỖI LOGIC #2</span>
+              <h3 class="font-cinzel font-black text-base text-slate-100">GIÀ LÀNG BỊ DÂN TREO CỔ / PHÙ THỦY ĐỘC KHÔNG TƯỚC CHỨC NĂNG PHE DÂN</h3>
+            </div>
+            <span class="px-2.5 py-0.5 rounded text-[11px] font-mono bg-rose-900/40 text-rose-300 border border-rose-700/60 font-semibold">Mức Độ: HIGH (Thiếu Cơ Chế Lời Nguyền)</span>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+            <div class="space-y-1.5 p-3.5 rounded-xl bg-occult-850/80 border border-occult-700">
+              <div class="font-semibold text-rose-300 flex items-center gap-1.5 uppercase font-cinzel">
+                <span class="text-rose-500">&times;</span> Hiện Trạng Code
+              </div>
+              <p class="text-slate-300 leading-relaxed">
+                Hệ thống chỉ xử lý Già Làng có 2 mạng khi bị Ma Sói cắn trong <code class="text-amber-300 font-mono">gameLogic.js</code>. Khi Già Làng bị Dân Làng biểu quyết treo cổ ban ngày hoặc bị Phù Thủy dùng bình độc, Già Làng chết nhưng các đêm sau Bảo Vệ, Tiên Tri, Phù Thủy vẫn dùng năng lực bình thường.
+              </p>
+            </div>
+
+            <div class="space-y-1.5 p-3.5 rounded-xl bg-occult-850/80 border border-occult-700">
+              <div class="font-semibold text-emerald-400 flex items-center gap-1.5 uppercase font-cinzel">
+                <span class="text-emerald-500">&radic;</span> Quy Chuẩn Luật Quốc Tế
+              </div>
+              <p class="text-slate-300 leading-relaxed">
+                Khi Già Làng chết dưới tay phe Dân (treo cổ hoặc trúng độc Phù Thủy), nỗi thất vọng của Già Làng biến thành lời nguyền: <strong>Toàn bộ phe Dân Làng bị tước đoạt toàn bộ năng lực đặc biệt</strong>, trở thành Dân Thường vô dụng trong các đêm tiếp theo.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Conflict #3: Bảo Vệ và Phù Thủy cùng cứu 1 người -->
+        <div class="p-5 rounded-2xl bg-occult-900 border border-occult-700/80 shadow-xl space-y-3">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-occult-800 pb-3">
+            <div class="flex items-center gap-2.5">
+              <span class="px-2 py-1 rounded bg-amber-950 border border-amber-800 text-amber-300 font-mono text-xs font-bold">XUNG ĐỘT #3</span>
+              <h3 class="font-cinzel font-black text-base text-slate-100">BẢO VỆ VÀ PHÙ THỦY CÙNG CỨU 1 MỤC TIÊU TRONG ĐÊM SÓI CẮN</h3>
+            </div>
+            <span class="px-2.5 py-0.5 rounded text-[11px] font-mono bg-amber-900/40 text-amber-300 border border-amber-700/60 font-semibold">Mức Độ: MEDIUM (Lãng Phí Bình Cứu)</span>
+          </div>
+
+          <div class="text-xs text-slate-300 leading-relaxed space-y-2">
+            <p>
+              Khi Bảo Vệ chọn bảo vệ Người A, Sói cắn Người A. Ở lượt Phù Thủy, Quản trò ra dấu Người A bị cắn và Phù Thủy bấm dùng bình cứu. Cả 2 cùng cứu khiến Người A sống an toàn, nhưng <strong>Phù Thủy bị trừ mất 1 bình cứu quý giá duy nhất của cả ván</strong> trong khi Bảo Vệ đã đỡ đòn thành công.
+            </p>
+            <div class="p-3 rounded-xl bg-occult-850 border border-occult-700 font-mono text-slate-400">
+              💡 Khuyến nghị: Bổ sung tùy chọn trong cài đặt Quản trò: <em>"Hoàn trả bình cứu nếu mục tiêu đã được Bảo Vệ bảo vệ thành công"</em> hoặc ghi chú cảnh báo cho Quản trò trên giao diện Phù Thủy.
+            </div>
+          </div>
+        </div>
+
+        <!-- Conflict #4: Sói Con (Wolf Pup) chết -->
+        <div class="p-5 rounded-2xl bg-occult-900 border border-occult-700/80 shadow-xl space-y-3">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-occult-800 pb-3">
+            <div class="flex items-center gap-2.5">
+              <span class="px-2 py-1 rounded bg-rose-950 border border-rose-800 text-rose-300 font-mono text-xs font-bold">XUNG ĐỘT #4</span>
+              <h3 class="font-cinzel font-black text-base text-slate-100">SÓI CON CHẾT KHÔNG KÍCH HOẠT CƠ CHẾ CẮN 2 NẠN NHÂN ĐÊM TIẾP THEO</h3>
+            </div>
+            <span class="px-2.5 py-0.5 rounded text-[11px] font-mono bg-rose-900/40 text-rose-300 border border-rose-700/60 font-semibold">Mức Độ: HIGH (Thiếu Feature)</span>
+          </div>
+
+          <div class="text-xs text-slate-300 leading-relaxed space-y-2">
+            <p>
+              Theo luật: Khi Sói Con chết, bầy Ma Sói nổi cơn thịnh nộ và được quyền cắn <strong>2 người chơi</strong> vào đêm tiếp theo. Hiện tại hệ thống <code class="font-mono text-amber-300">NightPhaseView</code> chỉ lưu trữ 1 ID duy nhất <code class="font-mono text-amber-300">wolfTargetId</code>. Khi có Sói Con chết, Quản trò không có cách nào chọn 2 nạn nhân trên app.
+            </p>
+          </div>
+        </div>
+
+        <!-- Conflict #5: Sói Trắng (White Werewolf) -->
+        <div class="p-5 rounded-2xl bg-occult-900 border border-occult-700/80 shadow-xl space-y-3">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-occult-800 pb-3">
+            <div class="flex items-center gap-2.5">
+              <span class="px-2 py-1 rounded bg-amber-950 border border-amber-800 text-amber-300 font-mono text-xs font-bold">XUNG ĐỘT #5</span>
+              <h3 class="font-cinzel font-black text-base text-slate-100">SÓI TRẮNG THỨC DẬY GIẾT SÓI CÁCH ĐÊM THIẾU GIAO DIỆN CHỌN MỤC TIÊU</h3>
+            </div>
+            <span class="px-2.5 py-0.5 rounded text-[11px] font-mono bg-amber-900/40 text-amber-300 border border-amber-700/60 font-semibold">Mức Độ: MEDIUM (Giao Diện Fallback)</span>
+          </div>
+
+          <div class="text-xs text-slate-300 leading-relaxed space-y-2">
+            <p>
+              Sói Trắng có priority 5.3 trong kịch bản đêm, nhưng chỉ hiển thị thông tin thẻ bài mà <strong>không có ô chọn mục tiêu con Sói bị giết</strong>. Quản trò đến bước này buộc phải bấm nút Bỏ Qua và nhớ thủ công để trừ máu ngoài đời.
+            </p>
+          </div>
+        </div>
+
+        <!-- Conflict #6: Người Thổi Sáo (Pied Piper) -->
+        <div class="p-5 rounded-2xl bg-occult-900 border border-occult-700/80 shadow-xl space-y-3">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-occult-800 pb-3">
+            <div class="flex items-center gap-2.5">
+              <span class="px-2 py-1 rounded bg-amber-950 border border-amber-800 text-amber-300 font-mono text-xs font-bold">XUNG ĐỘT #6</span>
+              <h3 class="font-cinzel font-black text-base text-slate-100">NGƯỜI THỔI SÁO THÔI MIÊN 2 NGƯỜI CHƯA CÓ UI GÁN TRẠNG THÁI</h3>
+            </div>
+            <span class="px-2.5 py-0.5 rounded text-[11px] font-mono bg-amber-900/40 text-amber-300 border border-amber-700/60 font-semibold">Mức Độ: MEDIUM (Thiếu UI Tương Tác)</span>
+          </div>
+
+          <div class="text-xs text-slate-300 leading-relaxed space-y-2">
+            <p>
+              Trong <code class="font-mono text-emerald-400">gameLogic.js</code>, điều kiện thắng của Người Thổi Sáo đã được code rất chuẩn (<code class="font-mono text-slate-300">others.every(p =&gt; p.isHypnotized)</code>). Tuy nhiên, trong <code class="font-mono text-amber-300">NightPhaseView</code> lại <strong>chưa có ô chọn 2 ghế</strong> để bật cờ <code class="font-mono text-amber-300">isHypnotized = true</code>!
+            </p>
+          </div>
+        </div>
+
+        <!-- Conflict #7: Thiên Sứ / Thiên Thần (Angel) -->
+        <div class="p-5 rounded-2xl bg-occult-900 border-2 border-occult-700/80 shadow-xl space-y-3">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-occult-800 pb-3">
+            <div class="flex items-center gap-2.5">
+              <span class="px-2 py-1 rounded bg-slate-800 border border-slate-700 text-slate-300 font-mono text-xs font-bold">XUNG ĐỘT #7</span>
+              <h3 class="font-cinzel font-black text-base text-slate-100">THIÊN SỨ BỊ TREO CỔ NGÀY 1 CHƯA CÓ CƠ CHẾ THẮNG TỨC THÌ</h3>
+            </div>
+            <span class="px-2.5 py-0.5 rounded text-[11px] font-mono bg-slate-800 text-slate-300 border border-slate-700 font-semibold">Mức Độ: LOW (Thẻ Ít Dùng)</span>
+          </div>
+
+          <div class="text-xs text-slate-300 leading-relaxed">
+            Thiên Sứ thắng cuộc nếu bị Dân làng treo cổ ngay trong Ngày 1. Hiện tại hàm <code class="font-mono text-amber-300">handleLynchPlayer</code> chưa kiểm tra điều kiện này, Thiên Sứ bị chết như một người dân bình thường.
+          </div>
+        </div>
+
+        <!-- Conflict #8: Cảnh Sát Trưởng (Thị Trưởng) chết -->
+        <div class="p-5 rounded-2xl bg-occult-900 border-2 border-occult-700/80 shadow-xl space-y-3">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-occult-800 pb-3">
+            <div class="flex items-center gap-2.5">
+              <span class="px-2 py-1 rounded bg-amber-950 border border-amber-800 text-amber-300 font-mono text-xs font-bold">XUNG ĐỘT #8</span>
+              <h3 class="font-cinzel font-black text-base text-slate-100">CẢNH SÁT TRƯỞNG CHẾT THIẾU DI CHÚC CHUYỂN GIAO HUY HIỆU TỰ ĐỘNG</h3>
+            </div>
+            <span class="px-2.5 py-0.5 rounded text-[11px] font-mono bg-amber-900/40 text-amber-300 border border-amber-700/60 font-semibold">Mức Độ: MEDIUM (Trải Nghiệm GM)</span>
+          </div>
+
+          <div class="text-xs text-slate-300 leading-relaxed">
+            Khi Cảnh Sát Trưởng tử vong, Quản trò phải tự nhớ chuyển tab sang Sơ Đồ Bàn để chạm vào ghế người khác trao huy hiệu. Cần bổ sung Modal popup tự động: <em>"Cảnh Sát Trưởng đã chết! Hãy chỉ định người kế nhiệm huy hiệu."</em>
+          </div>
+        </div>
+
+        <!-- Conflict #9: 15 Vai trò bị lệch thứ tự đêm (Order 99) -->
+        <div class="p-5 rounded-2xl bg-occult-900 border-2 border-rose-900/80 shadow-xl space-y-3">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-occult-800 pb-3">
+            <div class="flex items-center gap-2.5">
+              <span class="px-2 py-1 rounded bg-rose-950 border border-rose-800 text-rose-300 font-mono text-xs font-bold">XUNG ĐỘT #9</span>
+              <h3 class="font-cinzel font-black text-base text-slate-100">15 VAI TRÒ MỞ RỘNG BỊ ĐẨY XUỐNG CUỐI ĐÊM (PRIORITY #99)</h3>
+            </div>
+            <span class="px-2.5 py-0.5 rounded text-[11px] font-mono bg-rose-900/40 text-rose-300 border border-rose-700/60 font-semibold">Mức Độ: HIGH (Sai Lệch Kịch Bản)</span>
+          </div>
+
+          <div class="text-xs text-slate-300 leading-relaxed">
+            Các vai như: <strong>Hai Chị Em (wakeOrder 2), Ba Anh Em (wakeOrder 2.1), Kẻ Đốt Nhà (wakeOrder 8), Sát Thủ (wakeOrder 7.5), Chó Sói / Bán Sói (wakeOrder 0.8)</strong> không có trong bảng <code class="font-mono text-amber-300">orderPriority</code> của <code class="font-mono text-amber-300">NightPhaseView</code>, khiến chúng bị đẩy xuống sau cả Phù Thủy và Quạ!
+          </div>
+        </div>
+
+        <!-- Conflict #10: Thằng Ngốc 1v1 Ma Sói -->
+        <div class="p-5 rounded-2xl bg-occult-900 border-2 border-emerald-900/80 shadow-xl space-y-3">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-occult-800 pb-3">
+            <div class="flex items-center gap-2.5">
+              <span class="px-2 py-1 rounded bg-emerald-950 border border-emerald-800 text-emerald-300 font-mono text-xs font-bold">ĐÁNH GIÁ #10</span>
+              <h3 class="font-cinzel font-black text-base text-slate-100">THẰNG NGỐC ĐẤU 1v1 VỚI MA SÓI: LOGIC ĐÃ HOẠT ĐỘNG CHUẨN XÁC</h3>
+            </div>
+            <span class="px-2.5 py-0.5 rounded text-[11px] font-mono bg-emerald-900/40 text-emerald-300 border border-emerald-700/60 font-semibold">Mức Độ: VERIFIED PASS</span>
+          </div>
+
+          <div class="text-xs text-slate-300 leading-relaxed">
+            Khi chỉ còn lại 1 Ma Sói và 1 Thằng Ngốc (đã lật bài), Thằng Ngốc không có phiếu vote nên Sói nắm quyền kiểm soát tuyệt đối. Công thức <code class="font-mono text-emerald-300">aliveWolves &gt;= aliveVillagers</code> trong engine ngay lập tức tuyên bố <strong>Phe Ma Sói Chiến Thắng</strong>. Trường hợp này đã được xác minh hoạt động hoàn hảo.
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ================= 4. NIGHT PHASE SEQUENCE TIMELINE ================= -->
+    <section id="night-audit" class="space-y-4">
+      <div>
+        <h2 class="font-cinzel font-black text-xl sm:text-2xl text-occult-gold tracking-wide">4. SƠ ĐỒ TUẦN TỰ KỊCH BẢN BAN ĐÊM (NIGHT PHASE SEQUENCE)</h2>
+        <p class="text-xs text-slate-400">Quy chuẩn thứ tự thức dậy quốc tế và trạng thái thực tế trong NightPhaseView.jsx</p>
+      </div>
+
+      <div class="p-6 rounded-2xl bg-occult-900 border border-occult-700/80 space-y-4">
+        <div class="flex items-center justify-between text-xs text-slate-400 border-b border-occult-800 pb-2">
+          <span>Thứ Tự Gọi Đêm Chuẩn (Night Wake-up Pipeline)</span>
+          <span class="font-mono text-occult-gold">Total 23 Registered Priority Steps</span>
+        </div>
+
+        <!-- Visual Timeline Steps -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 text-xs font-mono">
+          
+          <div class="p-3 rounded-xl bg-occult-850 border border-occult-700 space-y-1">
+            <div class="flex items-center justify-between text-[11px]">
+              <span class="text-occult-gold font-bold">#0.5 &bull; Nguyệt Nữ</span>
+              <span class="text-emerald-400 font-bold">Đêm 1</span>
+            </div>
+            <p class="text-[10px] text-slate-400 font-sans">Chọn người chịu hiệu ứng trăng</p>
+          </div>
+
+          <div class="p-3 rounded-xl bg-occult-850 border border-occult-700 space-y-1">
+            <div class="flex items-center justify-between text-[11px]">
+              <span class="text-occult-gold font-bold">#1.0 &bull; Ăn Trộm</span>
+              <span class="text-emerald-400 font-bold">Đêm 1</span>
+            </div>
+            <p class="text-[10px] text-slate-400 font-sans">Xem 2 lá bài thừa và đổi vai</p>
+          </div>
+
+          <div class="p-3 rounded-xl bg-emerald-950/40 border border-emerald-800/80 space-y-1">
+            <div class="flex items-center justify-between text-[11px]">
+              <span class="text-emerald-300 font-bold">#2.0 &bull; Cupid (Thần Tình Yêu)</span>
+              <span class="text-emerald-400 font-bold">Đêm 1</span>
+            </div>
+            <p class="text-[10px] text-emerald-200/80 font-sans">Ghép đôi 2 người chơi (Full Flow)</p>
+          </div>
+
+          <div class="p-3 rounded-xl bg-occult-850 border border-occult-700 space-y-1">
+            <div class="flex items-center justify-between text-[11px]">
+              <span class="text-occult-gold font-bold">#3.0 &bull; Đứa Trẻ Hoang Dã</span>
+              <span class="text-emerald-400 font-bold">Đêm 1</span>
+            </div>
+            <p class="text-[10px] text-slate-400 font-sans">Chọn Thần tượng để bảo vệ/theo phe</p>
+          </div>
+
+          <div class="p-3 rounded-xl bg-emerald-950/40 border border-emerald-800/80 space-y-1">
+            <div class="flex items-center justify-between text-[11px]">
+              <span class="text-emerald-300 font-bold">#4.0 &bull; Bảo Vệ</span>
+              <span class="text-amber-300 font-bold">Mỗi đêm</span>
+            </div>
+            <p class="text-[10px] text-emerald-200/80 font-sans">Bảo vệ 1 người (Có chặn 2 đêm trùng)</p>
+          </div>
+
+          <div class="p-3 rounded-xl bg-emerald-950/40 border border-emerald-800/80 space-y-1">
+            <div class="flex items-center justify-between text-[11px]">
+              <span class="text-emerald-300 font-bold">#4.9 / 5.0 &bull; Bầy Ma Sói &amp; Sói Quỷ</span>
+              <span class="text-rose-400 font-bold">Mỗi đêm</span>
+            </div>
+            <p class="text-[10px] text-emerald-200/80 font-sans">Săn mồi + Quyền nguyền thành Sói</p>
+          </div>
+
+          <div class="p-3 rounded-xl bg-emerald-950/40 border border-emerald-800/80 space-y-1">
+            <div class="flex items-center justify-between text-[11px]">
+              <span class="text-emerald-300 font-bold">#6.0 &bull; Tiên Tri</span>
+              <span class="text-amber-300 font-bold">Mỗi đêm</span>
+            </div>
+            <p class="text-[10px] text-emerald-200/80 font-sans">Soi 1 ghế + Hướng dẫn ra dấu tay</p>
+          </div>
+
+          <div class="p-3 rounded-xl bg-emerald-950/40 border border-emerald-800/80 space-y-1">
+            <div class="flex items-center justify-between text-[11px]">
+              <span class="text-emerald-300 font-bold">#7.0 &bull; Phù Thủy</span>
+              <span class="text-amber-300 font-bold">Mỗi đêm</span>
+            </div>
+            <p class="text-[10px] text-emerald-200/80 font-sans">Bình Cứu &amp; Bình Thuốc Độc</p>
+          </div>
+
+          <div class="p-3 rounded-xl bg-amber-950/40 border border-amber-800/80 space-y-1">
+            <div class="flex items-center justify-between text-[11px]">
+              <span class="text-amber-300 font-bold">#8.0 &bull; Người Thổi Sáo</span>
+              <span class="text-amber-300 font-bold">Mỗi đêm</span>
+            </div>
+            <p class="text-[10px] text-amber-200/80 font-sans">Thôi miên 2 người (Cần UI chọn 2 ghế)</p>
+          </div>
+
+          <div class="p-3 rounded-xl bg-occult-850 border border-occult-700 space-y-1">
+            <div class="flex items-center justify-between text-[11px]">
+              <span class="text-occult-gold font-bold">#9.0 &bull; Con Quạ</span>
+              <span class="text-amber-300 font-bold">Mỗi đêm</span>
+            </div>
+            <p class="text-[10px] text-slate-400 font-sans">Gán 2 phiếu phạt cho ban ngày</p>
+          </div>
+
+          <div class="p-3 rounded-xl bg-occult-850 border border-occult-700 space-y-1">
+            <div class="flex items-center justify-between text-[11px]">
+              <span class="text-occult-gold font-bold">#10.0 &bull; Người Gọi Hồn</span>
+              <span class="text-amber-300 font-bold">Mỗi đêm</span>
+            </div>
+            <p class="text-[10px] text-slate-400 font-sans">Giao tiếp với người chết</p>
+          </div>
+
+          <div class="p-3 rounded-xl bg-blue-950/40 border border-blue-800/80 space-y-1">
+            <div class="flex items-center justify-between text-[11px]">
+              <span class="text-blue-300 font-bold">#Tổng Kết Đêm</span>
+              <span class="text-blue-300 font-bold">Trước khi sáng</span>
+            </div>
+            <p class="text-[10px] text-blue-200/80 font-sans">Tổng hợp thương vong &amp; Lên ngày</p>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= 5. DAY PHASE & VOTING AUDIT ================= -->
+    <section id="day-audit" class="space-y-4">
+      <div>
+        <h2 class="font-cinzel font-black text-xl sm:text-2xl text-occult-gold tracking-wide">5. KIỂM TOÁN BAN NGÀY &amp; BIỂU QUYẾT TREO CỔ</h2>
+        <p class="text-xs text-slate-400">Đánh giá độ chính xác của cơ chế công bố tử vong, biểu quyết và cascade death</p>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+        <div class="p-5 rounded-2xl bg-occult-900 border border-occult-700 space-y-2">
+          <div class="font-cinzel font-bold text-sm text-occult-gold uppercase">Bản Tin Tử Vong Tự Động</div>
+          <p class="text-slate-300 leading-relaxed">
+            Hệ thống đối chiếu chính xác thương vong từ: Ma Sói cắn, Thuốc Độc Phù Thủy, và Thợ Săn bắn. Nếu được Bảo Vệ hoặc Bình Cứu, hệ thống ghi rõ lý do sống sót an toàn.
+          </p>
+          <div class="text-[11px] text-emerald-400 font-mono font-bold">Status: 100% Passed</div>
+        </div>
+
+        <div class="p-5 rounded-2xl bg-occult-900 border border-occult-700 space-y-2">
+          <div class="font-cinzel font-bold text-sm text-occult-gold uppercase">Biểu Quyết &amp; Thằng Ngốc Tha Thứ</div>
+          <p class="text-slate-300 leading-relaxed">
+            Khi Thằng Ngốc bị treo cổ, hệ thống hiển thị Dialog cảnh báo, lật bài công khai và giữ mạng sống cho Thằng Ngốc kèm đánh dấu cờ <code class="font-mono text-amber-300">isRevealedIdiot = true</code>.
+          </p>
+          <div class="text-[11px] text-emerald-400 font-mono font-bold">Status: 100% Passed</div>
+        </div>
+
+        <div class="p-5 rounded-2xl bg-occult-900 border border-occult-700 space-y-2">
+          <div class="font-cinzel font-bold text-sm text-occult-gold uppercase">Chết Dây Chuyền (Lover Cascade)</div>
+          <p class="text-slate-300 leading-relaxed">
+            Vòng lặp <code class="font-mono text-slate-300">while(loverCascade)</code> quét đệ quy đảm bảo khi một người yêu chết, người còn lại chết ngay lập tức dù chết ban ngày hay ban đêm.
+          </p>
+          <div class="text-[11px] text-emerald-400 font-mono font-bold">Status: 100% Passed</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= 6. WIN CONDITIONS ENGINE AUDIT ================= -->
+    <section id="win-conditions" class="space-y-4">
+      <div>
+        <h2 class="font-cinzel font-black text-xl sm:text-2xl text-occult-gold tracking-wide">6. KIỂM TOÁN ĐIỀU KIỆN CHIẾN THẮNG (WIN CONDITIONS ENGINE)</h2>
+        <p class="text-xs text-slate-400">Kiểm thử độ chính xác của checkGameEnd() trong utils/gameLogic.js</p>
+      </div>
+
+      <div class="p-5 rounded-2xl bg-occult-900 border border-occult-700 overflow-x-auto">
+        <table class="w-full text-xs text-left border-collapse">
+          <thead>
+            <tr class="border-b border-occult-700 text-occult-gold font-cinzel font-bold uppercase text-[11px]">
+              <th class="p-3">Phe / Vai Trò</th>
+              <th class="p-3">Điều Kiện Kích Hoạt Chiến Thắng</th>
+              <th class="p-3">Đánh Giá Engine Code</th>
+              <th class="p-3 text-center">Kết Quả E2E</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-occult-800 text-slate-300 font-mono text-[11px]">
+            <tr>
+              <td class="p-3 font-bold text-blue-400 font-sans">Phe Dân Làng</td>
+              <td class="p-3 font-sans text-slate-300">Toàn bộ Ma Sói (bao gồm Sói Quỷ, Sói Con, Sói biến đổi) bị tiêu diệt (aliveWolves === 0).</td>
+              <td class="p-3 text-slate-400">checkGameEnd L101</td>
+              <td class="p-3 text-center text-emerald-400 font-bold">PASS &radic;</td>
+            </tr>
+            <tr>
+              <td class="p-3 font-bold text-rose-400 font-sans">Phe Ma Sói</td>
+              <td class="p-3 font-sans text-slate-300">Số lượng Ma Sói &gt;= Số lượng Dân Làng còn sống (aliveWolves &gt;= aliveVillagers).</td>
+              <td class="p-3 text-slate-400">checkGameEnd L90</td>
+              <td class="p-3 text-center text-emerald-400 font-bold">PASS &radic;</td>
+            </tr>
+            <tr>
+              <td class="p-3 font-bold text-purple-400 font-sans">Người Thổi Sáo</td>
+              <td class="p-3 font-sans text-slate-300">Tất cả người chơi còn sống khác đều bị thôi miên (others.every(p =&gt; p.isHypnotized)).</td>
+              <td class="p-3 text-slate-400">checkGameEnd L44</td>
+              <td class="p-3 text-center text-emerald-400 font-bold">PASS &radic;</td>
+            </tr>
+            <tr>
+              <td class="p-3 font-bold text-pink-400 font-sans">Cặp Đôi Khác Phe (Lovers)</td>
+              <td class="p-3 font-sans text-slate-300">Cặp đôi 1 Sói + 1 Dân là 2 người duy nhất còn sống sót trên bàn.</td>
+              <td class="p-3 text-slate-400">checkGameEnd L59</td>
+              <td class="p-3 text-center text-emerald-400 font-bold">PASS &radic;</td>
+            </tr>
+            <tr>
+              <td class="p-3 font-bold text-slate-200 font-sans">Sói Trắng (White Werewolf)</td>
+              <td class="p-3 font-sans text-slate-300">Sói Trắng là người duy nhất sống sót trong làng (alivePlayers.length === 1).</td>
+              <td class="p-3 text-slate-400">checkGameEnd L78</td>
+              <td class="p-3 text-center text-emerald-400 font-bold">PASS &radic;</td>
+            </tr>
+            <tr>
+              <td class="p-3 font-bold text-amber-400 font-sans">Thiên Sứ (Angel)</td>
+              <td class="p-3 font-sans text-slate-300">Bị treo cổ vào Ngày 1.</td>
+              <td class="p-3 text-rose-400">Chưa được định nghĩa trong engine</td>
+              <td class="p-3 text-center text-rose-400 font-bold">MISSING &times;</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ================= 7. REMEDIATION ROADMAP ================= -->
+    <section id="roadmap" class="space-y-4">
+      <div>
+        <h2 class="font-cinzel font-black text-xl sm:text-2xl text-occult-gold tracking-wide">7. LỘ TRÌNH KHẮC PHỤC &amp; NÂNG CẤP (REMEDIATION ROADMAP)</h2>
+        <p class="text-xs text-slate-400">Kế hoạch tối ưu hóa mã nguồn theo thứ tự ưu tiên nghiệp vụ</p>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+        
+        <div class="p-5 rounded-2xl bg-occult-900 border-2 border-rose-900/80 space-y-3">
+          <div class="flex items-center justify-between">
+            <span class="px-2 py-0.5 rounded text-[10px] font-mono bg-rose-950 text-rose-300 border border-rose-800 font-bold">GIAI ĐOẠN P0</span>
+            <span class="text-[11px] text-rose-400 font-bold">Cần Làm Ngay</span>
+          </div>
+          <h4 class="font-cinzel font-bold text-sm text-slate-100">Khắc Phục 3 Lỗi Logic Cốt Lõi</h4>
+          <ul class="space-y-2 text-slate-300 list-disc list-inside leading-relaxed">
+            <li>Chặn Thợ Săn nổ súng khi chết do Thuốc Độc Phù Thủy trong đêm.</li>
+            <li>Thêm cảnh báo và tước quyền năng phe Dân khi Già Làng bị Dân Làng treo cổ.</li>
+            <li>Hỗ trợ bầy Sói cắn 2 nạn nhân khi Sói Con chết vào đêm tiếp theo.</li>
+          </ul>
+        </div>
+
+        <div class="p-5 rounded-2xl bg-occult-900 border-2 border-amber-900/80 space-y-3">
+          <div class="flex items-center justify-between">
+            <span class="px-2 py-0.5 rounded text-[10px] font-mono bg-amber-950 text-amber-300 border border-amber-800 font-bold">GIAI ĐOẠN P1</span>
+            <span class="text-[11px] text-amber-400 font-bold">Ưu Tiên Cao</span>
+          </div>
+          <h4 class="font-cinzel font-bold text-sm text-slate-100">Chuẩn Hóa 15 Vai Trò Lệch Thứ Tự</h4>
+          <ul class="space-y-2 text-slate-300 list-disc list-inside leading-relaxed">
+            <li>Thêm 15 vai trò mở rộng vào bảng <code class="font-mono text-amber-300">orderPriority</code> của NightPhaseView.</li>
+            <li>Đưa Hai Chị Em, Ba Anh Em, Chó Sói lên đầu đêm theo đúng quy chuẩn.</li>
+            <li>Bổ sung modal di chúc Cảnh Sát Trưởng tự động khi Cảnh Sát Trưởng qua đời.</li>
+          </ul>
+        </div>
+
+        <div class="p-5 rounded-2xl bg-occult-900 border-2 border-occult-700 space-y-3">
+          <div class="flex items-center justify-between">
+            <span class="px-2 py-0.5 rounded text-[10px] font-mono bg-occult-800 text-slate-300 border border-occult-700 font-bold">GIAI ĐOẠN P2</span>
+            <span class="text-[11px] text-slate-400 font-bold">Nâng Cấp Tính Năng</span>
+          </div>
+          <h4 class="font-cinzel font-bold text-sm text-slate-100">UI Chuyên Biệt Mở Rộng</h4>
+          <ul class="space-y-2 text-slate-300 list-disc list-inside leading-relaxed">
+            <li>Giao diện chọn 2 người thôi miên cho Người Thổi Sáo.</li>
+            <li>Giao diện cắn Sói riêng biệt cho Sói Trắng.</li>
+            <li>Hỗ trợ luật Kẻ Đốt Nhà (đổ dầu và châm lửa).</li>
+          </ul>
+        </div>
+
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Footer -->
+  <footer class="border-t border-occult-800 bg-occult-950 py-8 text-center text-xs text-slate-500 font-mono">
+    <div class="max-w-7xl mx-auto px-4 space-y-1.5">
+      <div class="font-cinzel font-bold text-occult-gold tracking-widest text-sm uppercase">CAREFLOW WEREWOLF MODERATOR &bull; SYSTEM AUDIT REPORT</div>
+      <p>Báo cáo kiểm thử tự động độc lập dành cho Quản Trò &amp; Kỹ Sư Phát Triển &bull; Xuất bản tại docs/</p>
+    </div>
+  </footer>
+
+  <!-- Script for Filtering Table -->
+  <script>
+    function filterRoleTable() {
+      const search = document.getElementById('roleSearchInput').value.toLowerCase().trim();
+      const team = document.getElementById('teamFilterSelect').value;
+      const status = document.getElementById('statusFilterSelect').value;
+      const rows = document.querySelectorAll('.role-row');
+
+      rows.forEach(row => {
+        const rowName = row.getAttribute('data-name');
+        const rowTeam = row.getAttribute('data-team');
+        const rowStatus = row.getAttribute('data-status');
+
+        let matchSearch = !search || rowName.includes(search);
+        let matchTeam = (team === 'ALL') || (rowTeam === team);
+        let matchStatus = (status === 'ALL') || (rowStatus === status);
+
+        if (status === 'PASSIVE') {
+          matchStatus = (status === 'ALL') || (rowStatus === 'PASSIVE' || rowStatus === 'PASSIVE_LOGIC');
+        }
+
+        if (matchSearch && matchTeam && matchStatus) {
+          row.style.display = '';
+        } else {
+          row.style.display = 'none';
+        }
+      });
+    }
+  </script>
+</body>
+</html>
