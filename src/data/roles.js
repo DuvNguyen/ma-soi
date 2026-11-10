@@ -317,27 +317,26 @@ export const ROLES = [
   },
   {
     "id": "thang-ngoc",
-    "name": "Thằng Ngốc",
-    "enName": "Idiot",
+    "name": "Thằng Ngố",
+    "enName": "Fool",
     "expansion": "Ma Sói New Moon",
-    "team": "Phe Dân Làng",
-    "teamCode": "V",
+    "team": "Phe Thứ Ba",
+    "teamCode": "3",
     "wakeOrder": 95,
     "wakeTime": "Khi bị biểu quyết treo cổ",
-    "shortDesc": "Nếu bị làng biểu quyết treo cổ, lật bài lên được tha mạng và tiếp tục sống, nhưng mất quyền bỏ phiếu từ đó về sau.",
-    "fullDesc": "Thằng Ngốc là một nhân vật vô tư hài hước của làng. Khi dân làng bỏ phiếu treo cổ Thằng Ngốc, nhân vật này lập tức lật lá bài của mình lên để chứng minh. Cả làng sẽ nhận ra sự vô tội ngốc nghếch của anh ta, tha thứ và không treo cổ nữa.",
-    "gmCall": "Khi Thằng Ngốc bị vote treo cổ: 'Người bị vote là Thằng Ngốc. Làng hủy bỏ án treo cổ, Thằng Ngốc lật bài và mất quyền vote. Làng tiến hành thảo luận và bỏ phiếu lại.'",
+    "shortDesc": "Mục tiêu là làm sao để bị dân làng treo cổ vào ban ngày. Nếu bị treo cổ, Thằng Ngố lập tức chiến thắng một mình!",
+    "fullDesc": "Thằng Ngố là một nhân vật đặc biệt thuộc Phe Thứ Ba. Mục tiêu tối thượng của Thằng Ngố là hành xử kỳ lạ hoặc khiêu khích để lừa toàn bộ dân làng dồn phiếu treo cổ mình vào ban ngày. Nếu bị dân làng treo cổ, trò chơi lập tức kết thúc và Thằng Ngố một mình giành chiến thắng vinh quang!",
+    "gmCall": "Khi Thằng Ngố bị treo cổ: 'Người bị treo cổ là Thằng Ngố! Trò chơi kết thúc, Thằng Ngố một mình giành chiến thắng!'",
     "notes": [
-      "Sau khi lật bài, Thằng Ngốc vẫn sống và được tham gia thảo luận nhưng MẤT HOÀN TOÀN QUYỀN BIỂU QUYẾT.",
-      "Nếu Thằng Ngốc đang giữ chức Cảnh Sát Trưởng, chức vị này phải lập tức chuyển giao cho người khác.",
-      "Lưu ý: Nếu Thằng Ngốc bị Ma Sói cắn trong đêm hoặc bị Thợ Săn bắn chết thì chết thật bình thường, không được miễn tử."
+      "Nếu Thằng Ngố bị dân làng biểu quyết treo cổ vào ban ngày, ván đấu kết thúc ngay lập tức với chiến thắng thuộc về Thằng Ngố.",
+      "Nếu Thằng Ngố bị Ma Sói cắn trong đêm hoặc bị Phù Thủy đầu độc, Thằng Ngố chết bình thường và không được chiến thắng."
     ],
     "image": "/cards/Nhan_vat_Ma_soi__Thang_ngoc.jpg",
     "colors": {
-      "bg": "#1e3a8a",
-      "border": "#3b82f6",
-      "banner": "#2563eb",
-      "text": "#93c5fd"
+      "bg": "#3b0764",
+      "border": "#a855f7",
+      "banner": "#9333ea",
+      "text": "#e9d5ff"
     }
   },
   {

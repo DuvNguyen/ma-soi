@@ -82,7 +82,7 @@ export function checkGameEnd(players, extraRules = {}) {
       winner: 'White Werewolf',
       winnerTitle: 'Sói Trắng Độc Chiếm Ngôi Làng!',
       teamCode: '3',
-      description: 'Sói Trắng đã tiêu diệt cả bầy Sói lẫn toàn bộ Dân Làng để trở thành kẻ duy nhất sống sót!'
+      description: 'Sói Trắng là kẻ duy nhất sống sót!'
     };
   }
 
@@ -93,7 +93,7 @@ export function checkGameEnd(players, extraRules = {}) {
       winner: 'Werewolves',
       winnerTitle: 'Phe Ma Sói Chiến Thắng!',
       teamCode: 'W',
-      description: `Số lượng Ma Sói (${aliveWolves}) đã áp đảo hoặc ngang bằng số Dân Làng (${aliveVillagers}). Đêm tối vĩnh hằng bao trùm ngôi làng!`
+      description: `Số Ma Sói (${aliveWolves}) đã áp đảo hoặc bằng Dân Làng (${aliveVillagers}).`
     };
   }
 
@@ -104,7 +104,7 @@ export function checkGameEnd(players, extraRules = {}) {
       winner: 'Villagers',
       winnerTitle: 'Phe Dân Làng Chiến Thắng!',
       teamCode: 'V',
-      description: 'Toàn bộ Ma Sói độc ác đã bị thanh trừng! Ngôi làng đã tìm lại được ánh bình minh yên bình.'
+      description: 'Toàn bộ Ma Sói độc ác đã bị thanh trừng sạch!'
     };
   }
 
@@ -279,6 +279,20 @@ export function resolveNightPhase(players, nightActions, roundNumber) {
       }
     }
   });
+
+  // TỔNG KẾT THƯƠNG VONG ĐẦU BẢN TIN (BẮT BUỘC IN ĐẦU TIÊN)
+  const deadCount = killedPlayerIds.size;
+  let summaryLog = '';
+  if (deadCount === 0) {
+    summaryLog = 'Đêm qua bình yên, không có ai chết!';
+  } else {
+    const deadListStr = Array.from(killedPlayerIds).map(id => {
+      const p = updatedPlayers.find(x => x.id === id);
+      return `${p?.name || 'Người chơi'} (#${id})`;
+    }).join(', ');
+    summaryLog = `Đêm qua có ${deadCount} người chết: ${deadListStr}.`;
+  }
+  logs.unshift(summaryLog);
 
   return {
     updatedPlayers,

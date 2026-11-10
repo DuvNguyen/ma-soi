@@ -1,9 +1,10 @@
 import React from 'react';
-import { Heart, Skull, Shield, Eye, UserCheck, AlertCircle, Sparkles, Star } from 'lucide-react';
+import { Heart, Skull, Shield, Eye, UserCheck, AlertCircle, Sparkles, Star, Edit3, Users } from 'lucide-react';
 import GothicBadge from './ui/GothicBadge';
+import WolfIcon from './ui/WolfIcon';
 import { isWolfPlayer, getPlayerRole, getPlayerOriginalRole } from '../utils/roleUtils';
 
-export default function PlayersGridView({ players, onOpenAssignRole }) {
+export default function PlayersGridView({ players, onOpenAssignRole, onOpenRosters }) {
   const aliveCount = players.filter(p => p.isAlive).length;
   const wolfCount = players.filter(p => p.isAlive && isWolfPlayer(p)).length;
   const villagerCount = players.filter(p => p.isAlive && !isWolfPlayer(p) && getPlayerRole(p)?.teamCode === 'V').length;
@@ -13,8 +14,8 @@ export default function PlayersGridView({ players, onOpenAssignRole }) {
       {/* Overview Stat Badges - Compact Gothic Style */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
         <div className="p-2.5 sm:p-3 rounded-xl bg-[#0f111a] border border-slate-800 flex items-center gap-2.5 shadow-sm">
-          <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg bg-slate-900 border border-slate-700 flex items-center justify-center text-slate-300 font-bold text-xs sm:text-sm shrink-0">
-            {aliveCount}/{players.length}
+          <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg bg-slate-900 border border-slate-700 flex items-center justify-center text-emerald-400 shrink-0">
+            <Heart className="w-4 h-4 fill-emerald-500/20" />
           </div>
           <div className="min-w-0">
             <div className="text-[10px] uppercase font-bold tracking-wider text-slate-400">Còn sống</div>
@@ -24,8 +25,8 @@ export default function PlayersGridView({ players, onOpenAssignRole }) {
 
         {/* Werewolves Alive Badge */}
         <div className="p-2.5 sm:p-3 rounded-xl bg-gradient-to-r from-[#240508] to-[#120204] border border-rose-600/90 shadow-[0_0_12px_rgba(225,29,72,0.35)] flex items-center gap-2.5">
-          <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg bg-rose-950 border border-rose-500 flex items-center justify-center text-rose-300 font-black shrink-0 text-xs sm:text-sm">
-            🐺 {wolfCount}
+          <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg bg-rose-950 border border-rose-500 flex items-center justify-center text-rose-300 shrink-0">
+            <WolfIcon className="w-4 h-4 sm:w-5 sm:h-5 text-rose-400" />
           </div>
           <div className="min-w-0">
             <div className="text-[10px] uppercase font-bold tracking-wider text-rose-400">Phe Sói</div>
@@ -34,8 +35,8 @@ export default function PlayersGridView({ players, onOpenAssignRole }) {
         </div>
 
         <div className="p-2.5 sm:p-3 rounded-xl bg-[#0a1224] border border-blue-900/60 flex items-center gap-2.5">
-          <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg bg-blue-950 border border-blue-800 flex items-center justify-center text-blue-300 font-black shrink-0 text-xs sm:text-sm">
-            👨‍🌾 {villagerCount}
+          <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg bg-blue-950 border border-blue-800 flex items-center justify-center text-blue-300 text-base sm:text-lg shrink-0 select-none">
+            👨‍🌾
           </div>
           <div className="min-w-0">
             <div className="text-[10px] uppercase font-bold tracking-wider text-blue-400">Phe Dân</div>
@@ -44,8 +45,8 @@ export default function PlayersGridView({ players, onOpenAssignRole }) {
         </div>
 
         <div className="p-2.5 sm:p-3 rounded-xl bg-[#170826] border border-purple-900/60 flex items-center gap-2.5">
-          <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg bg-purple-950 border border-purple-800 flex items-center justify-center text-purple-300 font-black shrink-0 text-xs sm:text-sm">
-            💀 {players.length - aliveCount}
+          <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg bg-purple-950 border border-purple-800 flex items-center justify-center text-purple-300 shrink-0">
+            <Skull className="w-4 h-4 text-purple-300" />
           </div>
           <div className="min-w-0">
             <div className="text-[10px] uppercase font-bold tracking-wider text-purple-400">Hy sinh</div>
@@ -56,16 +57,29 @@ export default function PlayersGridView({ players, onOpenAssignRole }) {
 
       {/* THEATRE / CINEMA SEATS MATRIX CONTAINER */}
       <div className="p-4 sm:p-6 rounded-2xl sm:rounded-3xl bg-[#0b0d18] border border-purple-950/80 shadow-[0_4px_30px_rgba(0,0,0,0.8)] relative overflow-hidden">
-        {/* Theatre Stage Arc Indicator */}
-        <div className="relative mb-5 text-center">
-          <div className="w-3/4 max-w-md mx-auto h-3 border-t-2 border-purple-500/50 rounded-[100%] shadow-[0_-2px_12px_rgba(168,85,247,0.4)]"></div>
-          <span className="text-[10px] sm:text-[11px] uppercase font-black tracking-widest text-purple-300 bg-[#0b0d18] px-3 py-0.5 rounded-full border border-purple-900/60">
-            ✦ SÂN KHẤU QUẢN TRÒ • VÒNG TRÒN LÀNG ✦
-          </span>
+        {/* Theatre Stage Arc Indicator & Action Header */}
+        <div className="relative mb-5 flex flex-col sm:flex-row items-center justify-between gap-2.5 pb-2 border-b border-purple-950/60">
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] sm:text-[11px] uppercase font-black tracking-widest text-purple-300 bg-purple-950/80 px-3 py-1 rounded-full border border-purple-700/80 shadow-sm font-cinzel">
+              ✦ SÂN KHẤU QUẢN TRÒ • VÒNG TRÒN LÀNG ✦
+            </span>
+          </div>
+
+          {onOpenRosters && (
+            <button
+              type="button"
+              onClick={onOpenRosters}
+              className="px-3 py-1.5 rounded-xl bg-purple-950/80 hover:bg-purple-900 border border-purple-600 hover:border-purple-400 text-purple-200 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-md hover:scale-105 active:scale-95"
+              title="Mở danh sách nhóm người chơi để đổi hoặc sửa tên"
+            >
+              <Edit3 className="w-3.5 h-3.5 text-purple-300" />
+              <span>Sửa Nhóm Người</span>
+            </button>
+          )}
         </div>
 
         {/* Theatre Matrix Seats Grid */}
-        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-7 gap-2 sm:gap-3">
+        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-7 gap-2 sm:gap-3 max-h-[62vh] overflow-y-auto custom-scrollbar pr-1">
           {players.map(p => {
             const partner = p.loverId ? players.find(x => x.id === p.loverId) : null;
             const isWolf = isWolfPlayer(p);
@@ -131,8 +145,8 @@ export default function PlayersGridView({ players, onOpenAssignRole }) {
                   ) : hasRole ? (
                     p.isCursedWolf && origRole ? (
                       <div className="space-y-0.5">
-                        <span className="text-[8px] font-bold px-1 py-0.2 rounded block truncate bg-rose-950 text-rose-200 border border-rose-600 shadow-sm">
-                          🐺 Sói (Bị Nguyền)
+                        <span className="text-[8px] font-bold px-1 py-0.5 rounded flex items-center justify-center gap-1 truncate bg-rose-950 text-rose-200 border border-rose-600 shadow-sm">
+                          <WolfIcon className="w-2.5 h-2.5 shrink-0" /> Sói (Bị Nguyền)
                         </span>
                         <span className="text-[8px] text-amber-300 font-medium block truncate" title={`Vai ban đầu: ${origRole.name}`}>
                           Gốc: {origRole.name}

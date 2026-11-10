@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Sun, Skull, Flame, ShieldAlert, Clock, Moon, AlertTriangle, Check, UserX, RotateCcw, Gavel, Play, Pause, Star, Award, ChevronDown, ChevronUp } from 'lucide-react';
 import GothicButton from './ui/GothicButton';
 import GothicBadge from './ui/GothicBadge';
+import WolfIcon from './ui/WolfIcon';
 import { isWolfPlayer, getPlayerRole, getPlayerOriginalRole } from '../utils/roleUtils';
 
 export default function DayPhaseView({
@@ -63,30 +64,57 @@ export default function DayPhaseView({
       </div>
 
       {/* Night Casualty Announcement Card */}
-      <div className="p-4 rounded-2xl bg-[#141624] border border-slate-800 shadow-xl">
-        <h3 className="font-bold text-sm text-slate-300 flex items-center gap-2 mb-3">
-          <Skull className="w-4 h-4 text-rose-400" />
-          Bản Tin Thương Vong Trong Đêm:
-        </h3>
-        {nightLogs && nightLogs.length > 0 ? (
-          <div className="space-y-2">
-            {nightLogs.map((log, index) => (
-              <div 
-                key={index}
-                className="p-3 rounded-xl bg-rose-950/30 border border-rose-900/50 text-rose-200 text-sm flex items-start gap-2.5"
-              >
-                <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
-                <span>{log}</span>
+      {(() => {
+        const deadTonight = players.filter(p => !p.isAlive && p.deathPhase === `Đêm ${roundNumber}`);
+        const detailLogs = (nightLogs || []).filter(log => !log.startsWith('Đêm qua có ') && !log.startsWith('Đêm qua bình yên'));
+
+        return (
+          <div className="p-4 rounded-2xl bg-[#141624]/60 backdrop-blur-md border border-slate-700/60 shadow-xl space-y-3">
+            <h3 className="font-bold text-sm text-slate-200 flex items-center gap-2">
+              <Skull className="w-4 h-4 text-rose-400" />
+              Bản Tin Thương Vong Trong Đêm:
+            </h3>
+
+            {/* DÒNG ĐẦU TIÊN BẮT BUỘC: SỐ LƯỢNG NGƯỜI CHẾT VÀ TÊN TỪNG NGƯỜI */}
+            <div className={`p-3.5 rounded-xl border flex items-center gap-3 font-cinzel text-sm sm:text-base font-black ${
+              deadTonight.length > 0
+                ? 'bg-rose-950/80 border-rose-500 text-rose-100 shadow-[0_0_15px_rgba(225,29,72,0.4)]'
+                : 'bg-emerald-950/70 border-emerald-500/80 text-emerald-200'
+            }`}>
+              <Skull className={`w-5 h-5 shrink-0 ${deadTonight.length > 0 ? 'text-rose-400 animate-pulse' : 'text-emerald-400'}`} />
+              <div className="flex-1">
+                {deadTonight.length > 0 ? (
+                  <span>
+                    Đêm qua có <span className="text-rose-300 underline font-black">{deadTonight.length} người chết</span>: {deadTonight.map(p => `${p.name} (#${p.id})`).join(', ')}.
+                  </span>
+                ) : (
+                  <span className="text-emerald-300">
+                    Đêm qua bình yên, không có ai chết!
+                  </span>
+                )}
               </div>
-            ))}
+            </div>
+
+            {/* CÁC MÔ TẢ CHI TIẾT NẰM Ở DƯỚI */}
+            {detailLogs.length > 0 && (
+              <div className="space-y-2 pt-1">
+                <span className="text-[11px] uppercase tracking-wider font-bold text-slate-400 block">
+                  Chi tiết diễn biến đêm:
+                </span>
+                {detailLogs.map((log, index) => (
+                  <div 
+                    key={index}
+                    className="p-3 rounded-xl bg-slate-900/60 backdrop-blur-sm border border-slate-700/70 text-slate-200 text-xs sm:text-sm flex items-start gap-2.5"
+                  >
+                    <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+                    <span>{log}</span>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
-        ) : (
-          <div className="p-4 rounded-xl bg-emerald-950/20 border border-emerald-900/40 text-emerald-300 text-sm flex items-center gap-2.5">
-            <Check className="w-5 h-5 text-emerald-400 shrink-0" />
-            <span>Một đêm bình yên trôi qua! Không có người dân nào thiệt mạng.</span>
-          </div>
-        )}
-      </div>
+        );
+      })()}
 
       {/* PUBLIC OFFICE: SHERIFF (CẢNH SÁT TRƯỞNG / TRƯỞNG LÀNG - #09) */}
       {(() => {
@@ -94,12 +122,12 @@ export default function DayPhaseView({
         const sheriffDead = sheriff && !sheriff.isAlive;
 
         return (
-          <div className={`p-4 rounded-2xl border transition-all ${
+          <div className={`p-4 rounded-2xl border transition-all backdrop-blur-md ${
             sheriffDead
-              ? 'bg-rose-950/40 border-rose-600/90 shadow-[0_0_20px_rgba(225,29,72,0.3)]'
+              ? 'bg-rose-950/50 border-rose-600/90 shadow-[0_0_20px_rgba(225,29,72,0.3)]'
               : sheriff
-              ? 'bg-[#151226] border-amber-600/60 shadow-[0_2px_15px_rgba(245,158,11,0.2)]'
-              : 'bg-[#10121d] border-purple-900/60'
+              ? 'bg-[#151226]/60 border-amber-600/60 shadow-[0_2px_15px_rgba(245,158,11,0.2)]'
+              : 'bg-[#10121d]/60 border-purple-900/60'
           }`}>
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div className="flex items-center gap-3">
@@ -208,7 +236,7 @@ export default function DayPhaseView({
       })()}
 
       {/* Discussion Timer */}
-      <div className="p-4 rounded-2xl bg-[#10121d] border border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-4">
+      <div className="p-4 rounded-2xl bg-[#10121d]/60 backdrop-blur-md border border-slate-700/60 flex flex-col sm:flex-row items-center justify-between gap-4">
         <div className="flex items-center gap-3">
           <Clock className="w-8 h-8 text-amber-400" />
           <div>
@@ -254,7 +282,7 @@ export default function DayPhaseView({
       </div>
 
       {/* Voting & Lynching Section - STRICT SINGLE LYNCH RULE */}
-      <div className="p-5 rounded-2xl bg-[#0f111c] border border-purple-950/80 shadow-[0_4px_25px_rgba(0,0,0,0.6)] space-y-4">
+      <div className="p-5 rounded-2xl bg-[#0f111c]/60 backdrop-blur-md border border-purple-900/60 shadow-[0_4px_25px_rgba(0,0,0,0.6)] space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
           <div>
             <h3 className="font-bold text-base text-slate-100 flex items-center gap-2 font-cinzel">
@@ -359,8 +387,8 @@ export default function DayPhaseView({
                             </span>
                           )}
                           {isWolf && (
-                            <span className="text-[9px] px-1.5 py-0.2 rounded font-black uppercase bg-rose-950 text-rose-300 border border-rose-600 shadow-[0_0_8px_rgba(225,29,72,0.5)]">
-                              🐺 Sói
+                            <span className="text-[9px] px-1.5 py-0.2 rounded font-black uppercase bg-rose-950 text-rose-300 border border-rose-600 shadow-[0_0_8px_rgba(225,29,72,0.5)] flex items-center gap-1">
+                              <WolfIcon className="w-2.5 h-2.5" /> Sói
                             </span>
                           )}
                         </div>

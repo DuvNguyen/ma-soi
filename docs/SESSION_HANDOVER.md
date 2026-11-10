@@ -199,3 +199,163 @@ Theo quy chuẩn [docs/game-rules.md](file:///home/levi/Desktop/Projects/werewol
   - `HẾT NGÀY - ĐÊM BUÔNG XUỐNG` ➔ **`Hết ngày ➔ Ban đêm`**
   - `Thẩm Phán Lắp Bắp kích hoạt (Treo thêm lượt 2)` ➔ **`Thẩm Phán kích hoạt`**
 - **Cập nhật quy chuẩn thiết kế**: Bổ sung điều khoản cấm nút bấm over-explained và quy định vị trí nút xóa chọn vào [docs/DESIGN_RULES.md](file:///home/levi/Desktop/Projects/werewolf/docs/DESIGN_RULES.md).
+
+## 8. Thay Thế Toàn Bộ Icon Sói Bằng Artwork Đầu Sói Gầm Custom & Gỡ Bỏ Dấu Chấm Hỏi Header
+- **Tạo và chuẩn hóa asset Artwork Đầu Sói Gầm (`public/`)**:
+  - Cắt tỉa chuẩn alpha channel từ ảnh người dùng cung cấp (`uploaded_media_1794313774183.png`), lưu thành `public/wolf-head.png`, `public/wolf-icon.png`, `public/wolf-icon-128.png`.
+  - Cập nhật Favicon dự án (`public/favicon.svg`) theo silhouette đầu Sói gầm mắt đỏ đồng bộ thương hiệu.
+- **Cập nhật components giao diện UI (`src/components/ui/`)**:
+  - `WolfIcon.jsx`: Render thẻ `<img>` với asset `/wolf-icon.png` sắc nét, kèm drop shadow đỏ nhẹ.
+  - `WolfHead.jsx`: Render hình ảnh đầu Sói `/wolf-head.png` với filter drop-shadow mắt đỏ phát sáng.
+- **Loại bỏ nút Dấu chấm hỏi `(?)` trên Header (`src/App.jsx`)**:
+  - Đã gỡ bỏ nút `HelpCircle` mở Cẩm nang hướng dẫn theo yêu cầu người dùng, đảm bảo Header luôn gọn gàng 1 dòng duy nhất trên mọi độ phân giải.
+- **Thay thế triệt để Emoji Sói `🐺` bằng `<WolfIcon />` trên toàn hệ thống**:
+  - [PlayersGridView.jsx](file:///home/levi/Desktop/Projects/werewolf/src/components/PlayersGridView.jsx): Huy hiệu Phe Sói còn sống và tag Sói (Bị Nguyền).
+  - [DeckInventoryRadar.jsx](file:///home/levi/Desktop/Projects/werewolf/src/components/DeckInventoryRadar.jsx): Danh sách lá bài Sói còn lại trong bộ bài.
+  - [WolfWhisperBox.jsx](file:///home/levi/Desktop/Projects/werewolf/src/components/WolfWhisperBox.jsx): Avatar chuyền máy bầy Sói, nút gửi tin và lịch sử nhắn tin bí mật.
+  - [GameOverModal.jsx](file:///home/levi/Desktop/Projects/werewolf/src/components/GameOverModal.jsx): Cúp chiến thắng phe Sói.
+  - [SetupGameModal.jsx](file:///home/levi/Desktop/Projects/werewolf/src/components/SetupGameModal.jsx), [DeckTemplateModal.jsx](file:///home/levi/Desktop/Projects/werewolf/src/components/DeckTemplateModal.jsx), [DayPhaseView.jsx](file:///home/levi/Desktop/Projects/werewolf/src/components/DayPhaseView.jsx), [NightPhaseView.jsx](file:///home/levi/Desktop/Projects/werewolf/src/components/NightPhaseView.jsx), [ActionModal.jsx](file:///home/levi/Desktop/Projects/werewolf/src/components/ActionModal.jsx), [RoleLibraryModal.jsx](file:///home/levi/Desktop/Projects/werewolf/src/components/RoleLibraryModal.jsx), [RoleClaimBox.jsx](file:///home/levi/Desktop/Projects/werewolf/src/components/RoleClaimBox.jsx).
+- **Kiểm tra & nghiệm thu**: `npm run build` thành công 100%, không phát sinh lỗi cú pháp hay cảnh báo logic.
+
+## 9. Chức Năng Chỉnh Sửa Bộ Bài, Nhóm Lá Trùng Lặp (Dân Làng x4) & Background Ngày/Đêm
+- **Chức năng Chỉnh Sửa Bộ Bài (Edit Template) (`src/components/DeckTemplateModal.jsx`)**:
+  - Thêm nút **Sửa** (icon `Edit3`) trên từng thẻ bộ bài đã lưu.
+  - Khi bấm "Sửa", modal tự động chuyển sang form biên tập, nạp sẵn toàn bộ thông tin: Tên bộ bài, Mô tả, Số lượng từng vai trò (`roleCounts`), và Danh sách tên người chơi.
+  - Nút lưu hiển thị rõ ràng: `Lưu Thay Đổi Bộ Bài`. API backend (`src/server/db.js` và `src/services/api.js`) tự động thực thi `ON CONFLICT (id) DO UPDATE SET` và đồng bộ `localStorage` cache ngay lập tức.
+- **Nhóm Lá Bài Trùng Lặp Trong Template (`Dân Làng x4`, `Sói Thường x2`)**:
+  - Giải quyết triệt để vấn đề in lặp lại hàng loạt thẻ Dân Làng.
+  - Bộ đếm tự động nhóm các `roleIds` giống nhau, hiển thị tên kèm badge số lượng `x{count}` màu hổ phách (VD: `Dân Làng x4`), phân màu phe Sói / phe Dân / phe Thứ 3 trực quan, thẩm mỹ.
+- **Background Nghệ Thuật Động Cho Ngày & Đêm (`src/App.jsx`, `public/`)**:
+  - Ban ngày: Artwork Mặt trời vàng xoắn ốc tỏa ánh hào quang huyền bí (`public/bg-day-sun.jpg`).
+  - Ban đêm: Artwork Mặt trăng bạc xoắn ốc lạnh lẽo bí ẩn (`public/bg-night-moon.jpg`).
+  - Hiệu ứng cross-fade mượt mà (`duration-1000`) khi chuyển pha Ban ngày ➔ Ban đêm, kết hợp lớp vignette tối nhẹ để các thẻ chức năng và văn bản luôn đạt độ tương phản chuẩn WCAG.
+
+## 10. Cờ Chiến Thắng Khắc Tên Phe Thắng (Font TH Kinhdi 1) & Tinh Chỉnh Xuyên Thấu Background
+- **Cờ Chiến Thắng Ragged Banner (`GameOverModal.jsx`, `public/victory-banner.png`)**:
+  - Cắt tỉa chuẩn alpha asset cờ chiến trận rách cổ điển treo trên thanh sắt (`public/victory-banner.png`).
+  - Hiệu ứng rơi cờ `animate-banner-drop` và hiệu ứng đóng dấu máu / mực khắc `animate-stamp-in` đập mạnh lên mặt cờ.
+  - Nội dung in trực tiếp: dòng tiêu đề "PHE THẮNG LÀ:" và tên phe (MA SÓI, DÂN LÀNG, CẶP ĐÔI...).
+  - Áp dụng chuẩn font rùng rợn `TH Kinhdi 1` (`font-kinhdi`) kèm fallback Google horror display fonts (`Nosifer`, `Creepster`, `Cinzel`).
+- **Hiệu Ứng Xuyên Thấu Background Cho Modal & Bảng Điều Khiển**:
+  - Tăng độ hiển thị của artwork Mặt trời (Day) và Mặt trăng (Night) lên 40-55% để các vòng xoắn ốc tỏa sáng ma mị phía sau giao diện.
+  - Chuyển toàn bộ khung viền modal (`GothicModalContainer`, `DeckTemplateModal`, `PlayerRosterModal`, `MatchHistoryModal`, `RoleLibraryModal`, `SetupGameModal`, `ActionModal`) và khung bàn chơi (`NightPhaseView`) sang dạng kính mờ gothic (`backdrop-blur-md` kết hợp `bg-.../75-90`).
+  - Đảm bảo thẻ bài, văn bản và icon vẫn giữ nền đục 100% không bị xuyên thấu ("không xuyên qua thẻ và chữ") nhằm bảo toàn độ tương phản và dễ đọc tối đa.
+
+## 11. Gỡ Bỏ Tiếng Kêu Khi Gửi Tin Nhắn Bầy Sói
+- **Xóa âm thanh beep khi gửi tin nhắn (`WolfWhisperBox.jsx`)**:
+  - Đã loại bỏ các lệnh phát âm thanh `playBeep` khi người chơi bấm nút "Gửi Tin & Chuyền Cho Sói Kế Tiếp" và "Hoàn Tất Lượt Chuyền Máy Bầy Sói".
+  - Giúp việc chuyền máy trong đêm hoàn toàn yên lặng, không phát ra tiếng động gây chú ý hoặc làm lộ danh tính người đang thao tác trong phòng chơi thực tế.
+
+## 12. Tinh Gọn Chat Box Bầy Sói (Gộp Tin Nhanh Vào Dấu 3 Chấm) & Đơn Giản Hóa Thẻ Soi Tiên Tri (Nút X To Đỏ)
+- **Chat Box Bầy Sói Đơn Giản & Gọn Gàng (`WolfWhisperBox.jsx`)**:
+  - Loại bỏ hoàn toàn khối 6 viên thuốc (pills) tin nhắn nhanh xếp dọc từng chiếm diện tích lớn màn hình di động.
+  - Tích hợp nút dấu 3 chấm `...` (`MoreHorizontal`) nằm ngay trong thanh chat input.
+  - Khi bấm `...`, popover menu các tin nhắn nhanh sẽ mở ra; bấm chọn 1 tin sẽ tự động điền vào ô và đóng menu ngay.
+  - Thu gọn danh sách ứng viên cắn thành các chip bo góc nhỏ gọn.
+  - Tích hợp nút Gửi / Chuyền tiếp trực tiếp trên thanh chat bar, tiết kiệm tối đa diện tích dọc và triệt tiêu mọi yếu tố gây xao nhãng.
+- **Tối Giản Thẻ Lật Soi Bài Của Tiên Tri (`NightPhaseView.jsx`)**:
+  - Biến nút đóng thành **dấu X to đỏ** (`w-8 h-8 rounded-full bg-rose-600 hover:bg-rose-500 text-white font-bold`) gắn cố định ở góc trên thẻ bài và thanh tiêu đề.
+  - Lược bỏ toàn bộ các đoạn văn giải thích dài dòng (`Thẻ bài của...`, `Phe: [?] Chưa lộ phe`, `👉 RA DẤU CHO TIÊN TRI:...`).
+  - Chỉ hiển thị ngắn gọn, trực diện: Số ghế & Tên người chơi, Tên vai trò và một badge kết quả to rõ ràng: `Là Ma Sói` (đỏ) hoặc `Là Dân Làng` (xanh), giúp Quản trò ra hiệu trong 1 giây mà không bị rối mắt.
+
+## 13. Tối Ưu UX Bình Độc Phù Thủy, Lưu Bước Đêm Khi Refresh (F5), Khung Nền Mờ 60% & Header Thương Vong Chuẩn
+- **Modal Xác Nhận & Hoàn Tác Bình Độc Phù Thủy (`NightPhaseView.jsx`)**:
+  - Ngăn chặn hoàn toàn việc bấm nhầm mất bình độc: Khi quản trò bấm vào người chơi trong mục "Dùng Bình Độc (Giết 1 Người)", hệ thống sẽ hiển thị một Modal cảnh báo Gothic xác nhận: `Có chắc chắn muốn Phù Thủy sử dụng BÌNH ĐỘC để tiêu diệt {player.name} (#id) đêm nay không?` kèm cảnh báo bình độc chỉ dùng 1 lần duy nhất trong cả ván đấu.
+  - Khi đã chọn mục tiêu độc, hiển thị banner thông báo nổi bật màu đỏ máu cùng nút `[↩ Hủy Dùng Độc]` hoặc bấm lại vào đúng người đó để hủy ngay lập tức mà không cần xác nhận phức tạp.
+- **Lưu Giữ Trạng Thái Bước Ban Đêm Qua F5/Reload (`App.jsx`, `NightPhaseView.jsx`)**:
+  - Bước gọi đêm hiện tại (`currentNightStepIdx`) được lưu trữ tức thì vào cả `localStorage` (`werewolf_current_night_step`) lẫn state game `stateToSave`.
+  - Khi Quản trò đang ở bước bất kỳ trong đêm (ví dụ: đã đi qua Sói, Tiên tri, Bảo vệ và đang ở bước Phù Thủy) mà vô tình bấm F5/refresh trình duyệt, hệ thống sẽ tự động khôi phục đúng ngay bước đó, không bị nhảy ngược lại bước đầu tiên.
+  - Tự động dọn dẹp và reset về bước 0 khi sang Ban Ngày hoặc reset ván mới.
+- **Khung Nền Trong Suốt ~60% (Translucent Frames) Xuyên Thấu Background Nghệ Thuật (`DayPhaseView.jsx`, `NightPhaseView.jsx`)**:
+  - Đổi nền các panel khung vuông ở Ban Ngày (`Bản Tin Thương Vong`, `Cảnh Sát Trưởng`, `Thời Gian Thảo Luận`, `Biểu Quyết Treo Cổ`) và Ban Đêm từ nền màu đặc 100% sang `bg-[#...]/60 backdrop-blur-md`.
+  - Giúp nhìn thấy trọn vẹn artwork hào quang Mặt Trời (Ban Ngày) và Mặt Trăng (Ban Đêm) huyền bí xuyên qua các khung.
+  - Bảo toàn 100% độ đậm nét cho toàn bộ văn bản, hình thẻ bài nhân vật, nút bấm và badge kết quả (không làm mờ chữ và thẻ).
+- **Dòng Đầu Tiên Bản Tin Thương Vong Luôn In Số Lượng & Danh Tánh Người Chết (`DayPhaseView.jsx`, `gameLogic.js`)**:
+  - Dòng đầu tiên trong Bản Tin Thương Vong Trong Đêm luôn là một Banner nổi bật khẳng định:
+    - Nếu có người chết: `Đêm qua có {N} người chết: {Tên 1 (#id), Tên 2 (#id)}.` (Ví dụ: `Đêm qua có 1 người chết: Ha vy (#2).`).
+    - Nếu không ai chết: `Đêm qua bình yên, không có ai chết!`.
+  - Toàn bộ các dòng mô tả diễn biến chi tiết (ai được Bảo Vệ che chở, ai được Phù Thủy cứu bằng thần dược, ai bị Sói Nguyền lây nhiễm,...) được hiển thị gọn gàng ở phần mô tả phía dưới.
+
+## 14. Sửa Lỗi Luân Chuyển Vai Trò (Bán Sói, Sói Nguyền), Bộ Đếm Sói Động & Tinh Chỉnh Cờ Chiến Thắng
+- **Loại Bỏ Nút X Thừa Ở Thẻ Soi Tiên Tri (`NightPhaseView.jsx`)**:
+  - Đã loại bỏ nút đóng X ở thanh tiêu đề ngoài (`BẤM VÀO NGƯỜI ĐỂ LẬT THẺ BÀI:`), CHỈ GIỮ nút X tròn đỏ to nổi bật ở góc trên bên phải tấm thẻ bên trong theo đúng yêu cầu.
+- **Sửa Lỗi Bộ Đếm Sói Khi Có Người Hóa Sói (`App.jsx`)**:
+  - Khắc phục lỗi hiển thị tỷ lệ kỳ quặc `3/2 Sói`: Mẫu số trước đây chỉ đếm số thẻ sói tĩnh ban đầu trong deck (`totalWolvesInDeck = 2`).
+  - Đã chuyển sang công thức động: `totalWolvesInGame = Math.max(initialWolvesInDeck, players.filter(isWolfPlayer).length)`. Khi có người bị lây nhiễm hoặc Bán Sói hóa Sói, mẫu số tự động tăng tương ứng (ví dụ: `3/3 Sói`). Nếu một con sói chết thì còn `2/3 Sói`.
+- **Luân Chuyển Chuẩn Xác Vai Trò Nửa Người Nửa Sói (Bán Sói) (`NightPhaseView.jsx`, `gameLogic.js`)**:
+  - Bổ sung `nua-nguoi-nua-soi` vào danh sách vai trò CHỈ GỌI NHẬN DIỆN ĐÊM 1 (`roundNumber === 1`). Từ Đêm 2 trở đi (`roundNumber > 1`), vai này hoàn toàn không còn xuất hiện trong quy trình gọi đêm.
+  - Khi Bán Sói bị Ma Sói cắn trong đêm, người này thức tỉnh thành Ma Sói (`currentRoleId: 'soi-thuong'`, `roleId: 'soi-thuong'`, `isCursedWolf: true`), gia nhập đàn Sói và thức dậy cắn người cùng đàn Sói ở bước Bầy Ma Sói. Không còn yêu cầu gán lại vai trò Bán Sói ở các đêm sau.
+- **Sửa Quyền Năng Sói Nguyền (Sói Quỷ) (`NightPhaseView.jsx`)**:
+  - Xóa bỏ hoàn toàn khối code gán nhầm quyền năng Sói Nguyền vào bước Nửa Người Nửa Sói.
+  - Chức năng Sói Nguyền CHỈ xuất hiện trong lượt Bầy Sói khi thỏa mãn đủ 3 điều kiện: (1) Trong bộ bài/ván đấu có thẻ Sói Nguyền (`soi-quy` / `nguoi-cha-cua-soi`), (2) Người giữ vai Sói Nguyền CÒN SỐNG, và (3) Chưa từng dùng quyền năng nguyền (`!nightState.cursedUsed`). Nếu Sói Nguyền đã chết thì mất hoàn toàn quyền năng nguyền.
+- **Tinh Chỉnh Cờ Chiến Thắng & Logo Ma Sói Mobile (`GameOverModal.jsx`, `gameLogic.js`)**:
+  - Đoạn text thông báo kết quả (ví dụ: `Số Ma Sói (2) đã áp đảo hoặc bằng Dân Làng (2).`) được rút ngắn súc tích, chữ font dày dặn (`font-bold text-xs sm:text-sm`), gom gọn gàng vào trung tâm dải vải cờ (`max-w-[80%] mx-auto`), không còn bị dạt ra 2 mép vải rách.
+  - Trên mobile, logo đầu Ma Sói được dịch xuống dưới một khoảng hợp lý (`pt-3 sm:pt-4`), không còn bị dính sát thanh xà cừ ngang.
+  - Bỏ hoàn toàn khung mờ bao quanh, hiển thị trực tiếp đầu sói to rõ nét và nổi bật trên mặt cờ.
+
+## 15. Nhật Ký Biên Niên Sử Trận Đấu, Tinh Chỉnh Nút Tạo Bộ Bài, Tìm Kiếm Bộ Bài, Giao Diện Gán Vai & Role Thằng Ngốc
+- **Quyển Nhật Ký Biên Niên Sử Ván Đấu (Diary Chronicles) (`App.jsx`, `MatchHistoryModal.jsx`, `db.js`)**:
+  - Xây dựng hệ thống nhật ký thời gian thực `gameDiary`: ghi chép đầy đủ toàn bộ diễn biến ván đấu theo từng chặng nối tiếp: `Đêm 1 ➔ Ngày 1 ➔ Đêm 2 ➔ Ngày 2 ➔ ...`.
+  - Khi xem Lịch sử đấu (`MatchHistoryModal.jsx`), diễn biến không còn là 1 dòng đơn điệu mà được hiển thị như một cuốn nhật ký biên niên sử cổ điển: phân chia rành mạch chặng Ban Đêm (icon Mặt Trăng tím) và chặng Ban Ngày (icon Mặt Trời vàng), ghi rõ ai bị cắn, ai được bảo vệ/cứu sống, ai bị làng biểu quyết treo cổ, Cảnh sát trưởng là ai.
+- **Khắc Phục Nút "Tạo Bộ Bài Mới" Bị Broken Trên Mobile (`DeckTemplateModal.jsx`)**:
+  - Tiêu đề modal được bổ sung `truncate` và `flex-1` để không chèn ép nút bấm.
+  - Nút tạo mới được rút gọn text thành `+ Tạo Mới` với fixed size (`whitespace-nowrap shrink-0 h-8.5 px-3 text-xs`), loại bỏ hoàn toàn hiện tượng vỡ khung hay chữ bị gãy thành 4 dòng trên di động.
+- **Tích Hợp Thanh Tìm Kiếm Nhỏ Gọn Trong Quản Lý Bộ Bài (`DeckTemplateModal.jsx`)**:
+  - Màn hình danh sách template: Thêm ô tìm kiếm nhỏ gọn (`Tìm bộ bài...`) để lọc template tức thì theo tên hoặc mô tả.
+  - Màn hình soạn thảo/chỉnh sửa template: Thêm ô tìm kiếm vai trò (`Tìm vai...`) ngay cạnh nhãn chọn số lượng để Quản trò lọc nhanh lá bài trong danh mục `ROLES`.
+- **Giao Diện Gán Vai Mặc Định Tinh Gọn (Hình 4) (`RoleHolderBanner.jsx`, `NightPhaseView.jsx`)**:
+  - Loại bỏ hoàn toàn khối `RoleClaimBox` dài ngoằng cồng kềnh đối với các vai đơn.
+  - Chuẩn hóa giao diện gán vai mặc định theo đúng layout Hình 4: Dùng `RoleHolderBanner` tự động mở sẵn drawer lưới 2 cột (`grid grid-cols-2`) khi chưa có ai giữ vai để Quản trò bấm `[ Gán + ]` ngay; khi gán xong drawer tự thu gọn lại thành thanh 1 hàng tinh tế.
+- **Tích Hợp Chuẩn Role Thằng Ngốc (`thang-ngoc`) (`NightPhaseView.jsx`, `App.jsx`, `roles.js`)**:
+  - Cho phép Thằng Ngốc thức dậy nhận diện 1 lần duy nhất ở Đêm 1 (`wakeOrder: 3.2`, chỉ gọi khi `roundNumber === 1`) để Quản trò biết role và gán thẻ; từ Đêm 2 trở đi không gọi dậy nữa.
+  - Kỹ năng ban ngày: Nếu Thằng Ngốc bị Làng biểu quyết treo cổ, hệ thống hiển thị thông báo cả làng tha thứ, Thằng Ngốc lật bài chứng minh (`isRevealedIdiot = true`), thoát chết và mất quyền biểu quyết từ đó về sau.
+
+## 16. Chuẩn Hóa Layout Ma Trận Ghế, Loại Bỏ Thu Hà, Tinh Chỉnh Cờ Chiến Thắng, Roster & Thằng Ngố
+- **Đồng Bộ Giao Diện Chọn Người Ma Trận Ghế & Slider Cho Toàn Bộ Nhân Vật (`PlayerSeatPicker.jsx`, `NightPhaseView.jsx`, `RoleClaimBox.jsx`)**:
+  - Toàn bộ các bước chọn người (Bảo Vệ, Bầy Sói săn mồi, Bước nhận diện danh tính Ma Sói đêm đầu, Cupid, Tiên Tri) đều dùng chung **Layout Ma Trận Ghế (Theatre Seat Matrix)** và **Thanh Trượt (Slider)** đồng bộ tuyệt đối với layout của Cupid.
+  - Mỗi vai trò có bảng tóm tắt mục tiêu (Summary Box) nổi bật ở đầu trang:
+    - **Bảo Vệ**: Theme ngọc teal (`variant="protect"`), hiển thị mục tiêu bảo vệ đêm nay và cảnh báo cấm bảo vệ người của đêm trước.
+    - **Bầy Sói (Săn mồi)**: Theme đỏ rose (`variant="wolf"`), hiển thị mục tiêu cắn 1 và mồi 2 (khi cuồng sát), panel Sói Nguyền lây nhiễm tức thì.
+    - **Bước Nhận Diện Danh Tính Ma Sói (`RoleClaimBox.jsx`)**: Hiển thị slot các con Sói đã chọn. Nếu bộ bài có thẻ Sói Nguyền/Sói Quỷ, người được chọn đầu tiên (#1) tự động nhận vai `🔮 Sói Nguyền`, các slot tiếp theo nhận `🐺 Sói Thường`.
+    - Phía dưới có nút hành động: `✕ Xóa chọn lại` và nút `🚫 Không Chọn / Xác Nhận`.
+- **Loại Bỏ Vĩnh Viễn Tên "Thu Hà" Khỏi Hệ Thống (`defaultPlayers.js`, `App.jsx`)**:
+  - Đã xóa triệt để tên "Thu Hà" khỏi mảng `DEFAULT_PLAYER_NAMES`.
+  - Bổ sung bộ lọc sanitizer trong `App.jsx` tự động quét sạch và đổi bất kỳ bản ghi "Thu Hà" nào còn tồn đọng trong localStorage/cache trình duyệt sang `Người chơi #id`, đảm bảo không bao giờ xuất hiện lại trên bàn đấu.
+- **Bó Gọn Văn Bản Cờ Chiến Thắng Vào Vùng Vải Trung Tâm (`GameOverModal.jsx`)**:
+  - Giới hạn diện tích in nội dung cờ vào vùng an toàn: `left-[18%] right-[18%]` và `top-[20%] bottom-[18%]`.
+  - Thêm `line-clamp` và font chữ responsive, loại bỏ triệt để hiện tượng chữ dòng `THẰNG NGỐ ĐƠN ĐỘC CHIẾN THẮNG!` và đoạn mô tả bị tràn lòi ra ngoài mép răng cưa của lá cờ.
+- **Chuẩn Hóa Danh Sách Nhóm Người Chơi (`PlayerRosterModal.jsx`)**:
+  - Rút gọn tiêu đề thành `LƯU TRỮ DANH SÁCH NGƯỜI CHƠI` (bỏ chữ `(NEON CLOUD)` / `(NEON DB)`).
+  - Nút thêm mới đổi thành `Thêm Nhóm` (bỏ dấu `+` và chữ "Mới").
+  - Nút áp dụng đổi thành `Dùng Nhóm Này` (bỏ ngoặc đơn số người vì đã có badge ở trên).
+  - Bỏ icon avatar 2 người bên cạnh tiêu đề.
+  - Ràng buộc logic số người: Số tên điền trong nhóm phải khớp chính xác với số lá bài trong bộ bài hiện tại (`deckSize`), hỗ trợ nút `Sửa` để chỉnh sửa trực tiếp từng nhóm.
+- **Đổi Tên Vai Trò: Thằng Ngốc ➔ Thằng Ngố & Luật Thắng Treo Cổ Tức Thì (`roles.js`, `gameLogic.js`, `App.jsx`)**:
+  - Đổi tên chính thức của vai trò thành **Thằng Ngố** (`ROLES.thang-ngoc.name = "Thằng Ngố"`).
+  - Cập nhật logic: Nếu Thằng Ngố bị dân làng biểu quyết treo cổ vào ban ngày, ván đấu kết thúc ngay lập tức với chiến thắng độc tôn thuộc về Thằng Ngố (`THẰNG NGỐ ĐƠN ĐỘC CHIẾN THẮNG! 🃏`).
+- **Lịch Sử Đấu Tinh Gọn & Modal Chi Tiết Riêng Biệt (`MatchHistoryModal.jsx`)**:
+  - Chuyển giao diện lịch sử ván đấu thành danh sách lưới 2 cột tinh tế.
+  - Khi bấm vào bất kỳ trận đấu nào, một sub-modal chi tiết riêng biệt sẽ mở lên, khắc phục triệt để hiện tượng nội dung hiển thị inline kéo dài vô tận gây khó chịu trên thiết bị di động.
+- **Bỏ Số Người Trong Avatar Thống Kê & Custom Scrollbar (`PlayersGridView.jsx`, `index.css`)**:
+  - Xóa bỏ số người lặp lại bên trong ô avatar của 4 card thống kê ở Sơ Đồ Bàn (Còn sống, Phe Sói, Phe Dân, Hy sinh), chỉ giữ icon chuyên biệt tinh tế.
+  - Tích hợp `custom-scrollbar` thanh mảnh màu tím bóng mượt cho toàn bộ danh sách và lưới ghế.
+
+## 17. Sửa Lỗi Đếm Số Ngày Lịch Sử Đấu, Modal Cài Đặt Luật Game & Đồng Bộ "Đang Dùng" / Sửa Nhóm Desktop
+- **Sửa Triệt Để Lỗi Đếm Số Ngày & Sắp Xếp Nhật Ký Biên Niên Sử (`App.jsx`, `MatchHistoryModal.jsx`)**:
+  - Khắc phục lỗi xuất hiện 2 lần "Ngày 1" xen kẽ "Đêm 1" và số vòng bị sai thành "1 vòng":
+    - Xây dựng hàm `appendToDiary(timeline, newEntry)` tự động loại bỏ trùng lặp theo `phase` và sắp xếp các chặng chuẩn thứ tự thời gian: Đêm 1 ➔ Ngày 1 ➔ Đêm 2 ➔ Ngày 2... (Đêm luôn diễn ra trước Ngày trong cùng một vòng).
+    - Tính toán chính xác số vòng tổng thể: `totalRounds = Math.max(roundNumber, totalNights, totalDays, 1)` và hiển thị chi tiết `{totalRounds} vòng ({totalNights} đêm, {totalDays} ngày)`.
+- **Modal Cài Đặt Trò Chơi & Công Tắc Luật "Sói Cắn Đồng Loại" (`GameSettingsModal.jsx`, `NightPhaseView.jsx`, `App.jsx`)**:
+  - Tạo mới `GameSettingsModal.jsx` với giao diện Gothic huyền bí, có nút `⚙️ Cài Đặt` trên thanh Header.
+  - Công tắc iOS toggle: **"Ma Sói Có Thể Cắn Đồng Loại"** (`canWolvesKillTeammates`).
+  - Ràng buộc an toàn: Khi thay đổi công tắc này, hệ thống hiển thị hộp thoại xác nhận bắt buộc thiết lập ván chơi mới (Reset Game về Đêm 1) để tránh xung đột dữ liệu logic giữa chừng.
+  - Khi bật: Trong bước Bầy Sói săn mồi (`NightPhaseView.jsx`), các ghế Ma Sói không bị khóa, cho phép chọn cắn chính đồng loại, kèm thông báo badge màu tím cảnh báo Quản trò.
+- **Đồng Bộ Trạng Thái "✓ Đang Dùng" Template Giữa Mobile & Desktop (`DeckTemplateModal.jsx`)**:
+  - Bổ sung kiểm tra `activeTplId` từ `localStorage.getItem('werewolf_active_template_id')` song song với so sánh danh sách `roleIds`.
+  - Khi áp dụng template bộ bài, lưu ngay key `werewolf_active_template_id`, đảm bảo cả desktop và mobile đều nhận diện chính xác nhãn `✓ Đang Dùng`.
+- **Bổ Sung Nút Sửa Nhóm Người Rõ Ràng Trên Desktop (`PlayerRosterModal.jsx`, `PlayersGridView.jsx`, `App.jsx`)**:
+  - Đổi nút `Tên` trên Header thành `Nhóm Người` trực quan.
+  - Thêm nút hành động nhanh `[✏️ Sửa Nhóm Người]` nổi bật ngay trên thanh Sân Khấu Quản Trò tại tab `Sơ Đồ Bàn` (`PlayersGridView.jsx`).
+  - Trong `PlayerRosterModal.jsx`, nút `[✏️ Sửa Nhóm]` được thiết kế dạng button tím viền sáng (`bg-purple-950/80 border-purple-600 font-bold`) để người dùng desktop bấm sửa tức thì.
+
+

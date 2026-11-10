@@ -34,20 +34,64 @@ export async function saveTemplateApi(template) {
       body: JSON.stringify(template)
     });
     const data = await res.json();
+    // Synchronize local cache
+    try {
+      const cached = localStorage.getItem('werewolf_templates_cache');
+      let list = cached ? JSON.parse(cached) : [];
+      const idx = list.findIndex(t => t.id === template.id);
+      if (idx >= 0) {
+        list[idx] = { ...list[idx], ...template };
+      } else {
+        list.unshift(template);
+      }
+      localStorage.setItem('werewolf_templates_cache', JSON.stringify(list));
+    } catch (e) {
+      console.warn('Failed to update local templates cache:', e);
+    }
     return data;
   } catch (err) {
     console.error('Failed to save template to Neon:', err);
-    throw err;
+    // Offline fallback to local storage
+    try {
+      const cached = localStorage.getItem('werewolf_templates_cache');
+      let list = cached ? JSON.parse(cached) : [];
+      const idx = list.findIndex(t => t.id === template.id);
+      if (idx >= 0) {
+        list[idx] = { ...list[idx], ...template };
+      } else {
+        list.unshift(template);
+      }
+      localStorage.setItem('werewolf_templates_cache', JSON.stringify(list));
+      return { ok: true, template };
+    } catch (localErr) {
+      throw err;
+    }
   }
 }
 
 export async function deleteTemplateApi(id) {
   try {
     const res = await fetch(`/api/templates/${id}`, { method: 'DELETE' });
+    try {
+      const cached = localStorage.getItem('werewolf_templates_cache');
+      if (cached) {
+        const list = JSON.parse(cached).filter(t => t.id !== id);
+        localStorage.setItem('werewolf_templates_cache', JSON.stringify(list));
+      }
+    } catch (e) {}
     return await res.json();
   } catch (err) {
     console.error('Failed to delete template from Neon:', err);
-    throw err;
+    try {
+      const cached = localStorage.getItem('werewolf_templates_cache');
+      if (cached) {
+        const list = JSON.parse(cached).filter(t => t.id !== id);
+        localStorage.setItem('werewolf_templates_cache', JSON.stringify(list));
+      }
+      return { ok: true };
+    } catch (localErr) {
+      throw err;
+    }
   }
 }
 

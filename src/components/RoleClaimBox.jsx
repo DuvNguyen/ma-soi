@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
-import { UserCheck, Sparkles, Skull, Check, AlertCircle, HelpCircle, SkipForward, Lock } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { UserCheck, Sparkles, Skull, Check, AlertCircle, HelpCircle, SkipForward, Lock, ChevronLeft, ChevronRight } from 'lucide-react';
 import GothicButton from './ui/GothicButton';
+import WolfIcon from './ui/WolfIcon';
 import { getPlayerRole, isWolfPlayer as checkWolfPlayer, WOLF_ROLE_IDS } from '../utils/roleUtils';
 
 export default function RoleClaimBox({
@@ -14,11 +15,26 @@ export default function RoleClaimBox({
   isWolfPlayer
 }) {
   const [selectedWolfIds, setSelectedWolfIds] = useState([]);
+  const [viewMode, setViewMode] = useState('matrix'); // 'matrix' | 'slider'
+  const [slidePage, setSlidePage] = useState(0);
 
   // Calculate maximum wolves strictly allowed by deck configuration
   const maxWolves = isWolfStep
     ? (deckRoleIds.filter(id => WOLF_ROLE_IDS.includes(id)).length || 2)
     : 1;
+
+  const hasCursedInDeck = deckRoleIds.some(id => ['soi-quy', 'nguoi-cha-cua-soi', 'soi-nguyen'].includes(id));
+
+  const pageSize = 6;
+  const totalPages = Math.ceil(players.length / pageSize);
+
+  const scrollSlider = (direction) => {
+    if (direction === 'prev') {
+      setSlidePage(prev => Math.max(0, prev - 1));
+    } else {
+      setSlidePage(prev => Math.min(totalPages - 1, prev + 1));
+    }
+  };
 
   // Initialize selected wolves from already assigned wolves if any
   useEffect(() => {
@@ -70,6 +86,154 @@ export default function RoleClaimBox({
     }
   };
 
+  const renderSeatCard = (p) => {
+    const pCurrentId = p.currentRoleId || p.roleId;
+    const hasRole = Boolean(pCurrentId);
+    const isWolf = isWolfPlayer(p);
+    const isCurrentSelectedWolf = selectedWolfIds.includes(p.id);
+    const hasOtherRole = hasRole && !isWolf;
+    const isMaxReached = selectedWolfIds.length >= maxWolves;
+    const isSlotLocked = isMaxReached && !isCurrentSelectedWolf && !isWolf;
+    const isFirstSelectedWolf = isCurrentSelectedWolf && selectedWolfIds[0] === p.id && hasCursedInDeck;
+
+    if (isWolfStep) {
+      const isDisabled = hasOtherRole || isSlotLocked;
+
+      return (
+        <button
+          key={p.id}
+          type="button"
+          disabled={isDisabled && !isCurrentSelectedWolf && !isWolf}
+          onClick={() => toggleWolfSelection(p.id)}
+          className={`p-2 rounded-xl border text-left transition-all duration-75 select-none touch-manipulation active:scale-95 cursor-pointer flex flex-col justify-between min-h-[64px] sm:min-h-[72px] relative overflow-hidden ${
+            isCurrentSelectedWolf || isWolf
+              ? isFirstSelectedWolf
+                ? 'bg-gradient-to-r from-purple-950 via-[#3b084d] to-purple-950 border-purple-400 text-white shadow-[0_0_18px_rgba(168,85,247,0.7)] ring-1 ring-purple-300 scale-[1.03]'
+                : 'bg-gradient-to-r from-rose-950 via-[#3b090e] to-rose-950 border-rose-500 text-white shadow-[0_0_18px_rgba(225,29,72,0.7)] ring-1 ring-rose-400 scale-[1.03]'
+              : hasOtherRole
+              ? 'opacity-30 cursor-not-allowed bg-black/40 border-slate-900 text-slate-600'
+              : isSlotLocked
+              ? 'opacity-50 cursor-not-allowed bg-[#10121e] border-slate-800 text-slate-500'
+              : 'bg-[#101322] hover:bg-[#181c33] border-slate-800 hover:border-rose-600 text-slate-300 shadow-sm'
+          }`}
+        >
+          {/* Top seat bar indicator */}
+          <div className={`w-6 h-0.5 rounded-full mb-1 ${
+            isCurrentSelectedWolf || isWolf
+              ? isFirstSelectedWolf ? 'bg-purple-300' : 'bg-rose-400'
+              : 'bg-slate-700'
+          }`}></div>
+
+          {/* Seat Header: Seat Number + Status Icon */}
+          <div className="flex items-center justify-between w-full">
+            <span className={`font-mono font-black text-xs sm:text-sm ${
+              isCurrentSelectedWolf || isWolf
+                ? 'text-white'
+                : hasOtherRole
+                ? 'text-slate-600'
+                : 'text-slate-300'
+            }`}>
+              #{p.id}
+            </span>
+
+            {(isCurrentSelectedWolf || isWolf) ? (
+              isFirstSelectedWolf ? (
+                <span className="text-xs">🔮</span>
+              ) : (
+                <Skull className="w-3.5 h-3.5 text-rose-400 fill-rose-500 animate-pulse" />
+              )
+            ) : hasOtherRole ? (
+              <Lock className="w-3 h-3 text-slate-600" />
+            ) : null}
+          </div>
+
+          {/* Player Name */}
+          <div className="font-bold text-xs truncate w-full mt-0.5">
+            <span className={
+              isCurrentSelectedWolf || isWolf
+                ? 'text-white font-black'
+                : hasOtherRole
+                ? 'text-slate-500'
+                : 'text-slate-200'
+            }>
+              {p.name}
+            </span>
+          </div>
+
+          {/* Role or Action hint */}
+          <div className="text-[9px] truncate w-full mt-0.5">
+            {hasOtherRole ? (
+              <span className="text-slate-500">Đã có vai</span>
+            ) : (isCurrentSelectedWolf || isWolf) ? (
+              isFirstSelectedWolf ? (
+                <span className="text-purple-300 font-bold">🔮 Sói Nguyền</span>
+              ) : (
+                <span className="text-rose-300 font-bold flex items-center gap-0.5"><WolfIcon className="w-2.5 h-2.5 inline" /> Sói Thường</span>
+              )
+            ) : isSlotLocked ? (
+              <span className="text-slate-500">Đã đủ {maxWolves}</span>
+            ) : (
+              <span className="text-slate-500">Chưa có vai</span>
+            )}
+          </div>
+        </button>
+      );
+    }
+
+    // Single role assignment
+    const isHoldingCurrent = pCurrentId === currentRole.id;
+    const isHoldingOther = hasRole && !isHoldingCurrent;
+
+    return (
+      <button
+        key={p.id}
+        type="button"
+        disabled={isHoldingOther}
+        onClick={() => handleSingleAssign(p.id)}
+        className={`p-2 rounded-xl border text-left transition-all duration-75 select-none touch-manipulation active:scale-95 cursor-pointer flex flex-col justify-between min-h-[64px] sm:min-h-[72px] relative overflow-hidden ${
+          isHoldingCurrent
+            ? 'bg-purple-950 border-purple-400 text-white shadow-[0_0_18px_rgba(168,85,247,0.7)] ring-1 ring-purple-300 scale-[1.03]'
+            : isHoldingOther
+            ? 'opacity-30 cursor-not-allowed bg-black/40 border-slate-900 text-slate-600'
+            : 'bg-[#101322] hover:bg-[#181c33] border-slate-800 hover:border-purple-600 text-slate-300 shadow-sm'
+        }`}
+      >
+        <div className={`w-6 h-0.5 rounded-full mb-1 ${
+          isHoldingCurrent ? 'bg-purple-300' : 'bg-slate-700'
+        }`}></div>
+
+        <div className="flex items-center justify-between w-full">
+          <span className={`font-mono font-black text-xs sm:text-sm ${
+            isHoldingCurrent ? 'text-white' : isHoldingOther ? 'text-slate-600' : 'text-slate-300'
+          }`}>
+            #{p.id}
+          </span>
+          {isHoldingCurrent ? (
+            <Check className="w-3.5 h-3.5 text-purple-300" />
+          ) : isHoldingOther ? (
+            <Lock className="w-3 h-3 text-slate-600" />
+          ) : null}
+        </div>
+
+        <div className="font-bold text-xs truncate w-full mt-0.5">
+          <span className={isHoldingCurrent ? 'text-white font-black' : isHoldingOther ? 'text-slate-500' : 'text-slate-200'}>
+            {p.name}
+          </span>
+        </div>
+
+        <div className="text-[9px] truncate w-full mt-0.5">
+          {isHoldingCurrent ? (
+            <span className="text-purple-300 font-bold">✓ Giữ vai này</span>
+          ) : isHoldingOther ? (
+            <span className="text-slate-500">Đã có vai</span>
+          ) : (
+            <span className="text-slate-500">Chưa có vai</span>
+          )}
+        </div>
+      </button>
+    );
+  };
+
   return (
     <div className={`p-4 sm:p-5 rounded-3xl border shadow-[0_6px_30px_rgba(0,0,0,0.7)] animate-fade-in mb-4 ${
       isWolfStep
@@ -77,7 +241,7 @@ export default function RoleClaimBox({
         : 'bg-gradient-to-b from-[#190d2e] via-[#100921] to-[#0a0714] border-purple-600/80 shadow-[0_0_25px_rgba(168,85,247,0.3)]'
     }`}>
       {/* Header Prompt */}
-      <div className="space-y-2 mb-4 text-center sm:text-left">
+      <div className="space-y-2 mb-3 text-center sm:text-left">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="flex items-center gap-2">
             <div className={`w-8 h-8 rounded-xl flex items-center justify-center font-bold text-sm border ${
@@ -126,176 +290,151 @@ export default function RoleClaimBox({
           </div>
         </div>
 
-        {/* Subtitle instructions */}
-        <div className="flex flex-wrap items-center justify-between gap-1 text-xs">
-          <p className="text-slate-400">
-            {isWolfStep
-              ? `Chọn ${maxWolves} người làm Ma Sói:`
-              : `Chọn người nhận vai ${currentRole.name}:`}
-          </p>
-          {isWolfStep && selectedWolfIds.length === maxWolves && (
-            <span className="text-[11px] font-bold text-emerald-400 bg-emerald-950/70 border border-emerald-800 px-2 py-0.5 rounded-full animate-pulse">
-              ✓ Đã chọn {maxWolves}/{maxWolves} Sói
+        {/* Tip for Cursed Wolf */}
+        {isWolfStep && hasCursedInDeck && (
+          <div className="text-[11px] text-purple-300 font-medium bg-purple-950/50 border border-purple-800/60 rounded-xl px-2.5 py-1.5 flex items-center gap-1.5 shadow-sm">
+            <span className="text-sm">🔮</span>
+            <span>Bộ bài có Sói Nguyền: <strong>Người được chọn đầu tiên (#1)</strong> sẽ giữ vai <strong>Sói Nguyền</strong>.</span>
+          </div>
+        )}
+      </div>
+
+      {/* TOP SUMMARY BOX: CHOSEN PLAYERS HIGHLIGHT (LIKE CUPID) */}
+      {isWolfStep && (
+        <div className="p-3 sm:p-4 rounded-2xl bg-gradient-to-r from-[#2a060b] via-[#1a0407] to-[#120204] border border-rose-600/80 shadow-md mb-3.5 space-y-2">
+          <div className="flex items-center justify-between text-xs font-bold">
+            <span className="text-rose-200 uppercase tracking-wider flex items-center gap-1.5 font-cinzel">
+              <Skull className="w-3.5 h-3.5 text-rose-400 fill-rose-500" />
+              <span>Danh Sách Ma Sói Đã Chọn ({selectedWolfIds.length}/{maxWolves}):</span>
             </span>
-          )}
+            {selectedWolfIds.length === maxWolves && (
+              <span className="text-emerald-400 font-bold flex items-center gap-1 animate-pulse">
+                ✓ Đã chọn đủ {maxWolves} Sói
+              </span>
+            )}
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+            {Array.from({ length: maxWolves }).map((_, idx) => {
+              const targetId = selectedWolfIds[idx];
+              const targetPlayer = targetId ? players.find(p => p.id === targetId) : null;
+              const isCursedSlot = idx === 0 && hasCursedInDeck;
+
+              return (
+                <div
+                  key={idx}
+                  className={`p-2 sm:p-2.5 rounded-xl border text-center transition-all ${
+                    targetPlayer
+                      ? isCursedSlot
+                        ? 'bg-purple-950/80 border-purple-400 shadow-[0_0_12px_rgba(168,85,247,0.4)] text-white'
+                        : 'bg-rose-950/80 border-rose-500 shadow-[0_0_12px_rgba(225,29,72,0.4)] text-white'
+                      : 'bg-black/30 border-dashed border-slate-800 text-slate-500'
+                  }`}
+                >
+                  <div className={`text-[10px] uppercase font-bold tracking-wider ${
+                    isCursedSlot ? 'text-purple-300' : 'text-rose-400'
+                  }`}>
+                    {isCursedSlot ? '🔮 Sói Nguyền' : `🐺 Sói ${idx + 1}`}
+                  </div>
+                  <div className="font-black text-sm truncate mt-0.5">
+                    {targetPlayer ? targetPlayer.name : '— Chưa chọn —'}
+                  </div>
+                  <div className="text-[10px] text-slate-400">
+                    {targetPlayer ? `Ghế #${targetPlayer.id}` : `Chạm ghế bên dưới`}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Control Switcher Bar: Theatre Matrix vs Slider */}
+      <div className="flex items-center justify-between gap-2 text-xs mb-2.5">
+        <span className="text-[11px] text-slate-400 uppercase font-black tracking-wider flex items-center gap-1.5">
+          <span>Ghế Ngồi: {isWolfStep ? `${selectedWolfIds.length}/${maxWolves}` : '1'} đã chọn</span>
+        </span>
+
+        <div className="flex items-center gap-1 bg-black/60 p-0.5 rounded-lg border border-slate-800">
+          <button
+            type="button"
+            onClick={() => setViewMode('matrix')}
+            className={`px-2 py-0.5 rounded text-[10px] font-bold transition-all cursor-pointer ${
+              viewMode === 'matrix'
+                ? isWolfStep ? 'bg-rose-900 border border-rose-500 text-white' : 'bg-purple-900 border border-purple-500 text-white'
+                : 'text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            Ma Trận Ghế
+          </button>
+          <button
+            type="button"
+            onClick={() => setViewMode('slider')}
+            className={`px-2 py-0.5 rounded text-[10px] font-bold transition-all cursor-pointer ${
+              viewMode === 'slider'
+                ? isWolfStep ? 'bg-rose-900 border border-rose-500 text-white' : 'bg-purple-900 border border-purple-500 text-white'
+                : 'text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            Thanh Trượt (Slider)
+          </button>
         </div>
       </div>
 
-      {/* Grid of Players to Claim */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
-        {players.map(p => {
-          const pCurrentId = p.currentRoleId || p.roleId;
-          const hasRole = Boolean(pCurrentId);
-          const isWolf = isWolfPlayer(p);
-          const isCurrentSelectedWolf = selectedWolfIds.includes(p.id);
-          const hasOtherRole = hasRole && !isWolf;
-          const isHalfWolf = pCurrentId === 'nua-nguoi-nua-soi' || pCurrentId === 'cho-soi-soi-lai';
-          const isMaxReached = selectedWolfIds.length >= maxWolves;
-          const isSlotLocked = isMaxReached && !isCurrentSelectedWolf && !isWolf;
+      {/* MODE 1: THEATRE SEAT MATRIX */}
+      {viewMode === 'matrix' && (
+        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-7 gap-2 animate-fade-in">
+          {players.map(p => renderSeatCard(p))}
+        </div>
+      )}
 
-          if (isWolfStep) {
-            const isDisabled = hasOtherRole || isSlotLocked;
+      {/* MODE 2: HORIZONTAL SLIDER */}
+      {viewMode === 'slider' && (
+        <div className="space-y-2 animate-fade-in">
+          <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
+            {players
+              .slice(slidePage * pageSize, (slidePage + 1) * pageSize)
+              .map(p => renderSeatCard(p))}
+          </div>
 
-            return (
-              <button
-                key={p.id}
-                type="button"
-                disabled={isDisabled && !isCurrentSelectedWolf && !isWolf}
-                onClick={() => toggleWolfSelection(p.id)}
-                className={`p-2 sm:p-2.5 rounded-xl border text-left transition-all duration-200 flex items-center justify-between gap-1.5 ${
-                  isCurrentSelectedWolf || isWolf
-                    ? 'bg-gradient-to-r from-rose-950 via-[#3b090e] to-rose-950 border-rose-500 text-white shadow-[0_0_15px_rgba(225,29,72,0.6)] ring-1 ring-rose-400 cursor-pointer'
-                    : hasOtherRole
-                    ? 'bg-[#0a0c16] border-slate-900/90 text-slate-500 opacity-40 cursor-not-allowed select-none'
-                    : isSlotLocked
-                    ? 'bg-[#10121e] border-slate-800/60 text-slate-400 opacity-60 cursor-not-allowed'
-                    : 'bg-[#181a2e] hover:bg-[#221c38] border-purple-900/80 hover:border-rose-600 text-slate-200 cursor-pointer'
-                }`}
-              >
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-1.5">
-                    <span className={`w-5 h-5 rounded flex items-center justify-center font-mono font-black text-[10px] shrink-0 border ${
-                      isCurrentSelectedWolf || isWolf
-                        ? 'bg-rose-900 text-rose-100 border-rose-500'
-                        : hasOtherRole
-                        ? 'bg-slate-950 text-slate-600 border-slate-900'
-                        : 'bg-slate-900 text-slate-300 border-slate-800'
-                    }`}>
-                      {p.id}
-                    </span>
-                    <span className={`font-bold text-xs truncate ${
-                      isCurrentSelectedWolf || isWolf ? 'text-white' : hasOtherRole ? 'text-slate-400' : 'text-slate-100'
-                    }`}>
-                      {p.name}
-                    </span>
-                  </div>
-                  <div className="text-[10px] truncate pl-6.5 mt-0.5">
-                    {hasOtherRole ? (
-                      isHalfWolf ? (
-                        <span className="text-amber-400/90 font-medium">🔒 Bán Sói (chỉ hóa khi bị cắn)</span>
-                      ) : (
-                        <span className="text-purple-400/80 font-medium">🔒 Đã là {getPlayerRole(p)?.name || pCurrentId}</span>
-                      )
-                    ) : (isCurrentSelectedWolf || isWolf) ? (
-                      <span className="text-rose-300 font-bold">🐺 Đang chọn làm Sói</span>
-                    ) : (
-                      <span className="text-slate-500">Chưa có vai</span>
-                    )}
-                  </div>
-                </div>
-
-                {(isCurrentSelectedWolf || isWolf) ? (
-                  <span className="text-[10px] font-bold text-rose-300 bg-rose-950 px-1.5 py-0.5 rounded border border-rose-700/80 shrink-0">
-                    🐺 Bỏ
-                  </span>
-                ) : hasOtherRole ? (
-                  <span className="text-[9px] text-slate-500 bg-slate-950 border border-slate-900 px-1.5 py-0.5 rounded shrink-0 font-mono">
-                    Đã có vai
-                  </span>
-                ) : isSlotLocked ? (
-                  <span className="text-[9px] text-amber-500/80 bg-amber-950/40 border border-amber-900/40 px-1.5 py-0.5 rounded shrink-0">
-                    Đã đủ {maxWolves}
-                  </span>
-                ) : (
-                  <span className="text-[10px] text-rose-300 bg-rose-950/80 hover:bg-rose-900 border border-rose-700/80 px-2 py-0.5 rounded shrink-0 font-bold">
-                    Chọn +
-                  </span>
-                )}
-              </button>
-            );
-          }
-
-          // Single role assignment (Cupid, Seer, Bodyguard, Witch, etc.)
-          // RULE: ONE PERSON 1 ROLE - Players who already have other roles CANNOT be assigned
-          const isHoldingCurrent = pCurrentId === currentRole.id;
-          const isHoldingOther = hasRole && !isHoldingCurrent;
-
-          return (
+          <div className="flex items-center justify-between pt-1 text-xs">
             <button
-              key={p.id}
               type="button"
-              disabled={isHoldingOther}
-              onClick={() => handleSingleAssign(p.id)}
-              className={`p-2 sm:p-2.5 rounded-xl border text-left transition-all duration-200 flex items-center justify-between gap-1.5 ${
-                isHoldingCurrent
-                  ? 'bg-purple-900/90 border-purple-400 text-white shadow-[0_0_15px_rgba(168,85,247,0.5)] ring-1 ring-purple-300 cursor-pointer'
-                  : isHoldingOther
-                  ? 'bg-[#0a0c16] border-slate-900/90 text-slate-500 opacity-40 cursor-not-allowed select-none'
-                  : 'bg-gradient-to-r from-[#170e28] to-[#111425] hover:from-[#2a134d] hover:to-[#1b1c36] border-purple-800/80 hover:border-purple-500 text-slate-200 shadow-sm cursor-pointer'
-              }`}
+              disabled={slidePage === 0}
+              onClick={() => scrollSlider('prev')}
+              className="px-2.5 py-1 rounded-lg bg-black/50 border border-slate-800 disabled:opacity-30 text-slate-300 flex items-center gap-1 cursor-pointer"
             >
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-1.5">
-                  <span className={`w-5 h-5 rounded flex items-center justify-center font-mono font-black text-[10px] shrink-0 border ${
-                    isHoldingCurrent
-                      ? 'bg-purple-950 text-purple-200 border-purple-400'
-                      : isHoldingOther
-                      ? 'bg-slate-950 text-slate-600 border-slate-900'
-                      : 'bg-purple-950 text-purple-200 border-purple-700/80'
-                  }`}>
-                    {p.id}
-                  </span>
-                  <span className={`font-bold text-xs truncate ${
-                    isHoldingCurrent ? 'text-white' : isHoldingOther ? 'text-slate-400' : 'text-slate-100'
-                  }`}>
-                    {p.name}
-                  </span>
-                </div>
-                <div className="text-[10px] truncate pl-6.5 mt-0.5">
-                  {isHoldingCurrent ? (
-                    <span className="text-purple-200 font-bold">✓ Đang giữ vai này</span>
-                  ) : isHoldingOther ? (
-                    <span className="text-purple-400/80 font-medium">🔒 Đã là {getPlayerRole(p)?.name || pCurrentId}</span>
-                  ) : (
-                    <span className="text-slate-500">Chưa có vai</span>
-                  )}
-                </div>
-              </div>
-
-              <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded border shrink-0 ${
-                isHoldingCurrent
-                  ? 'bg-purple-950 text-purple-200 border-purple-400'
-                  : isHoldingOther
-                  ? 'bg-slate-950 text-slate-600 border-slate-900'
-                  : 'bg-purple-900/90 text-purple-200 border-purple-600'
-              }`}>
-                {isHoldingCurrent ? 'Bỏ vai' : isHoldingOther ? 'Đã có vai' : 'Gán +'}
-              </span>
+              <ChevronLeft className="w-3.5 h-3.5" /> Trước
             </button>
-          );
-        })}
-      </div>
+            <span className="text-[11px] text-slate-400 font-mono">
+              Trang {slidePage + 1}/{totalPages} ({players.length} ghế)
+            </span>
+            <button
+              type="button"
+              disabled={slidePage >= totalPages - 1}
+              onClick={() => scrollSlider('next')}
+              className="px-2.5 py-1 rounded-lg bg-black/50 border border-slate-800 disabled:opacity-30 text-slate-300 flex items-center gap-1 cursor-pointer"
+            >
+              Sau <ChevronRight className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Wolf Confirm Action Footer */}
       {isWolfStep && (
-        <div className="mt-4 pt-3 border-t border-rose-950/80 flex flex-wrap items-center justify-between gap-2">
-          <div className="text-xs text-rose-300">
-            {selectedWolfIds.length === maxWolves ? (
-              <span className="text-emerald-400 font-bold">✓ Đã chọn {maxWolves}/{maxWolves} Ma Sói</span>
-            ) : (
-              <span>Đã chọn <strong>{selectedWolfIds.length}/{maxWolves}</strong></span>
-            )}
-          </div>
+        <div className="mt-3.5 pt-3 border-t border-rose-950/80 flex items-center justify-between gap-2">
+          {selectedWolfIds.length > 0 ? (
+            <button
+              type="button"
+              onClick={() => setSelectedWolfIds([])}
+              className="text-xs text-slate-400 hover:text-rose-300 underline font-medium cursor-pointer"
+            >
+              ✕ Xóa chọn lại
+            </button>
+          ) : (
+            <div className="text-xs text-slate-500 italic">Chạm vào ghế để chọn Ma Sói</div>
+          )}
 
           <GothicButton
             variant="blood"
@@ -305,10 +444,11 @@ export default function RoleClaimBox({
             className="shadow-xl"
           >
             <Check className="w-4 h-4 mr-1 inline" />
-            <span>Xác Nhận ({selectedWolfIds.length}/{maxWolves}) ✓</span>
+            <span>Xác Nhận ({selectedWolfIds.length}/{maxWolves}) Sói ✓</span>
           </GothicButton>
         </div>
       )}
     </div>
   );
 }
+

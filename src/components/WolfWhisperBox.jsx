@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Skull, Clock, Play, Pause, RotateCcw, Send, Settings, Check, Volume2, VolumeX, MessageSquare, ChevronRight, UserCheck, Trash2, AlertCircle } from 'lucide-react';
+import { Skull, Clock, Play, Pause, RotateCcw, Send, Settings, Check, Volume2, VolumeX, MessageSquare, ChevronRight, UserCheck, Trash2, AlertCircle, MoreHorizontal } from 'lucide-react';
 import GothicButton from './ui/GothicButton';
 import GothicBadge from './ui/GothicBadge';
+import WolfIcon from './ui/WolfIcon';
 import { isWolfPlayer, getPlayerRole } from '../utils/roleUtils';
 
 export default function WolfWhisperBox({
@@ -17,6 +18,21 @@ export default function WolfWhisperBox({
   });
   const [showSettings, setShowSettings] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(true);
+  const [showQuickMenu, setShowQuickMenu] = useState(false);
+  const quickMenuRef = useRef(null);
+
+  // Close quick menu on outside click
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (quickMenuRef.current && !quickMenuRef.current.contains(e.target)) {
+        setShowQuickMenu(false);
+      }
+    };
+    if (showQuickMenu) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showQuickMenu]);
 
   const livingWolves = players.filter(p => p.isAlive && isWolfPlayer(p));
   const aliveVictimCandidates = players.filter(p => p.isAlive);
@@ -121,12 +137,10 @@ export default function WolfWhisperBox({
       setActiveWolfIndex(prev => prev + 1);
       setTimeLeft(timerDuration);
       setIsRunning(true); // auto-start for next wolf
-      playBeep(520, 0.12);
     } else {
       // Completed all wolves
       setIsRunning(false);
       setTimeLeft(timerDuration);
-      playBeep(784, 0.25);
     }
   };
 
@@ -273,8 +287,8 @@ export default function WolfWhisperBox({
               {/* Hand-off Alert Header & Countdown Clock */}
               <div className="flex flex-col sm:flex-row items-center justify-between gap-3 border-b border-rose-900/60 pb-3">
                 <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-2xl bg-rose-950 border-2 border-rose-500 flex items-center justify-center text-rose-300 text-xl font-black shadow-[0_0_15px_rgba(225,29,72,0.7)] shrink-0">
-                    🐺
+                  <div className="w-12 h-12 rounded-2xl bg-rose-950 border-2 border-rose-500 flex items-center justify-center shadow-[0_0_15px_rgba(225,29,72,0.7)] shrink-0 p-2">
+                    <WolfIcon className="w-full h-full" />
                   </div>
                   <div>
                     <div className="text-[10px] uppercase font-bold tracking-widest text-rose-400">
@@ -321,19 +335,21 @@ export default function WolfWhisperBox({
                 </div>
               </div>
 
-              {/* Step 1: Select Proposed Victim Target */}
-              <div className="space-y-2">
-                <label className="text-xs font-bold text-rose-200 flex items-center justify-between">
-                  <span>1. {currentWolf.name} muốn cắn ai đêm nay? (Bấm chọn người):</span>
+              {/* Step 1: Select Proposed Victim Target (Compact Chips) */}
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="font-bold text-rose-200">
+                    1. {currentWolf.name} muốn cắn ai đêm nay?
+                  </span>
                   {proposedTargetId && (
-                    <span className="text-rose-300 text-[11px] font-black">
+                    <span className="text-rose-300 text-[11px] font-bold">
                       Đã chọn: {players.find(p => p.id === proposedTargetId)?.name}
                     </span>
                   )}
-                </label>
+                </div>
 
-                {/* Candidate Grid */}
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 max-h-36 overflow-y-auto pr-1">
+                {/* Compact Candidate Chips */}
+                <div className="flex flex-wrap gap-1.5 max-h-24 overflow-y-auto pr-1">
                   {aliveVictimCandidates.map(p => {
                     const isSelected = proposedTargetId === p.id;
                     const isSelfOrWolf = isWolfPlayer(p);
@@ -343,89 +359,113 @@ export default function WolfWhisperBox({
                         key={p.id}
                         type="button"
                         onClick={() => setProposedTargetId(p.id)}
-                        className={`p-2 rounded-xl text-left border text-xs transition-all flex items-center justify-between cursor-pointer ${
+                        className={`px-2.5 py-1 rounded-xl text-xs font-semibold border transition-all flex items-center gap-1.5 cursor-pointer active:scale-95 ${
                           isSelected
-                            ? 'bg-rose-600 text-white border-rose-400 shadow-[0_0_15px_rgba(225,29,72,0.8)] font-bold'
+                            ? 'bg-rose-600 text-white border-rose-400 shadow-[0_0_12px_rgba(225,29,72,0.8)] font-bold'
                             : isSelfOrWolf
-                            ? 'bg-[#180306] border-rose-950 text-rose-400/70 hover:border-rose-800'
+                            ? 'bg-[#180306] border-rose-950 text-rose-400/60 hover:border-rose-800'
                             : 'bg-[#0f0103] hover:bg-[#200307] border-rose-900/60 text-slate-200'
                         }`}
                       >
-                        <span className="truncate">
-                          {p.name} {isSelfOrWolf ? '(Sói)' : ''}
-                        </span>
-                        {isSelected && <Skull className="w-3.5 h-3.5 shrink-0 fill-white" />}
+                        <span>{p.name}</span>
+                        {isSelfOrWolf && <span className="text-[10px] text-rose-500">(Sói)</span>}
+                        {isSelected && <Skull className="w-3 h-3 fill-white" />}
                       </button>
                     );
                   })}
                 </div>
               </div>
 
-              {/* Step 2: Quick Whisper Message & Custom Text */}
-              <div className="space-y-2">
-                <label className="text-xs font-bold text-rose-200 block">
-                  2. Để lại lời nhắn bí mật cho bầy Sói (hoặc bấm chọn nhanh):
-                </label>
-
-                {/* Quick Pills */}
-                <div className="flex flex-wrap gap-1.5">
-                  {quickPills.map((pill, idx) => (
-                    <button
-                      key={idx}
-                      type="button"
-                      onClick={() => setMessageText(pill)}
-                      className={`text-[11px] px-2.5 py-1 rounded-lg border transition-colors cursor-pointer ${
-                        messageText === pill
-                          ? 'bg-rose-950 border-rose-500 text-rose-200 font-bold'
-                          : 'bg-[#150204] border-rose-900/70 text-rose-300/80 hover:text-white hover:border-rose-700'
-                      }`}
+              {/* Step 2: Streamlined Chat Box with 3-dots Quick Pills */}
+              <div className="space-y-2 pt-1">
+                <div className="relative">
+                  {/* 3-dots Quick Pills Popover Menu */}
+                  {showQuickMenu && (
+                    <div 
+                      ref={quickMenuRef}
+                      className="absolute bottom-full mb-2 left-0 right-0 sm:right-auto sm:w-80 p-2.5 rounded-2xl bg-[#140205] border border-rose-700 shadow-[0_0_25px_rgba(225,29,72,0.5)] backdrop-blur-md z-30 space-y-1.5 animate-fade-in"
                     >
-                      {pill}
+                      <div className="text-[10px] font-bold uppercase tracking-wider text-rose-400 px-1 flex items-center justify-between border-b border-rose-950 pb-1">
+                        <span>Gợi ý tin nhắn nhanh:</span>
+                        <button 
+                          type="button" 
+                          onClick={() => setShowQuickMenu(false)}
+                          className="text-slate-400 hover:text-white cursor-pointer px-1 text-xs"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                      <div className="grid grid-cols-1 gap-1 max-h-48 overflow-y-auto pr-1">
+                        {quickPills.map((pill, idx) => (
+                          <button
+                            key={idx}
+                            type="button"
+                            onClick={() => {
+                              setMessageText(pill);
+                              setShowQuickMenu(false);
+                            }}
+                            className="text-left text-xs px-2.5 py-1.5 rounded-lg bg-[#200306] hover:bg-rose-900/60 border border-rose-950 text-rose-200 hover:text-white transition-colors cursor-pointer truncate"
+                          >
+                            {pill}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Clean Chat Input Bar */}
+                  <div className="flex items-center gap-1.5 bg-[#0a0102] border border-rose-900/80 rounded-2xl p-1.5 focus-within:border-rose-500 shadow-inner">
+                    {/* 3-dots Button for Quick Messages */}
+                    <button
+                      type="button"
+                      onClick={() => setShowQuickMenu(prev => !prev)}
+                      className={`w-9 h-9 rounded-xl flex items-center justify-center transition-all cursor-pointer shrink-0 ${
+                        showQuickMenu
+                          ? 'bg-rose-600 text-white shadow-md'
+                          : 'bg-rose-950/80 hover:bg-rose-900 text-rose-300 border border-rose-800/80'
+                      }`}
+                      title="Bấm để mở tin nhắn nhanh (...)"
+                    >
+                      <MoreHorizontal className="w-5 h-5" />
                     </button>
-                  ))}
+
+                    {/* Chat Input Field */}
+                    <input
+                      type="text"
+                      value={messageText}
+                      onChange={(e) => setMessageText(e.target.value)}
+                      placeholder="Nhắn tin bí mật cho bầy Sói..."
+                      className="flex-1 bg-transparent px-2 py-1 text-xs sm:text-sm text-rose-100 placeholder:text-rose-900/80 focus:outline-none"
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          handleSendAndNextWolf();
+                        }
+                      }}
+                    />
+
+                    {/* Send & Next Wolf Action Button */}
+                    <button
+                      type="button"
+                      onClick={handleSendAndNextWolf}
+                      className="h-9 px-3.5 rounded-xl bg-gradient-to-r from-rose-700 to-rose-900 hover:from-rose-600 hover:to-rose-800 text-white font-bold text-xs flex items-center gap-1.5 shadow-md shadow-rose-950/80 active:scale-95 transition-all cursor-pointer shrink-0"
+                    >
+                      <Send className="w-3.5 h-3.5" />
+                      <span>
+                        {activeWolfIndex < livingWolves.length - 1 ? 'Chuyền tiếp' : 'Hoàn tất'}
+                      </span>
+                    </button>
+                  </div>
                 </div>
 
-                {/* Custom text field */}
-                <div className="flex items-center gap-2">
-                  <input
-                    type="text"
-                    value={messageText}
-                    onChange={(e) => setMessageText(e.target.value)}
-                    placeholder="Soạn tin nhắn bí mật ngắn (VD: Cắn ông Tuấn trước)..."
-                    className="flex-1 bg-[#0c0103] border border-rose-900/80 rounded-xl px-3 py-2 text-xs text-rose-100 placeholder:text-rose-950 focus:outline-none focus:border-rose-500"
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        e.preventDefault();
-                        handleSendAndNextWolf();
-                      }
-                    }}
-                  />
-                </div>
-              </div>
-
-              {/* Action: Pass to Next Wolf */}
-              <div className="pt-1 flex flex-col sm:flex-row items-center justify-between gap-2.5">
-                <div className="text-[11px] text-rose-300/70">
+                {/* Next wolf indicator */}
+                <div className="text-[11px] text-rose-300/70 px-1 flex items-center justify-between">
                   {activeWolfIndex < livingWolves.length - 1 ? (
-                    <span>➔ Tiếp theo sẽ chuyền cho: <strong>{livingWolves[activeWolfIndex + 1]?.name}</strong></span>
+                    <span>➔ Sói tiếp theo: <strong className="text-rose-200">{livingWolves[activeWolfIndex + 1]?.name}</strong></span>
                   ) : (
-                    <span>✓ Đây là con Sói cuối cùng trong bầy đêm nay.</span>
+                    <span className="text-emerald-400 font-medium">✓ Sói cuối cùng trong bầy đêm nay.</span>
                   )}
                 </div>
-
-                <GothicButton
-                  variant="blood"
-                  size="md"
-                  icon={Send}
-                  onClick={handleSendAndNextWolf}
-                  className="w-full sm:w-auto shadow-[0_0_20px_rgba(225,29,72,0.6)]"
-                >
-                  {activeWolfIndex < livingWolves.length - 1 ? (
-                    <span>Gửi Tin & Chuyền Cho Sói Kế Tiếp 🐺</span>
-                  ) : (
-                    <span>Hoàn Tất Lượt Chuyền Máy Bầy Sói ✓</span>
-                  )}
-                </GothicButton>
               </div>
             </div>
           )}
@@ -458,7 +498,10 @@ export default function WolfWhisperBox({
                     className="p-2 rounded-xl bg-[#190306] border border-rose-950 flex flex-col sm:flex-row sm:items-center justify-between gap-1 text-xs"
                   >
                     <div className="flex items-center gap-2">
-                      <span className="font-bold text-rose-300">🐺 {log.wolfName}:</span>
+                      <span className="font-bold text-rose-300 flex items-center gap-1">
+                        <WolfIcon className="w-3.5 h-3.5 shrink-0" />
+                        <span>{log.wolfName}:</span>
+                      </span>
                       <span className="text-rose-100">{log.text}</span>
                     </div>
                     <div className="flex items-center gap-2 shrink-0 text-[10px] text-rose-400/70">

@@ -208,7 +208,7 @@ export default function GameGuideModal({ isOpen, onClose }) {
                   <span>Biểu Quyết Treo Cổ &amp; Xử Lý Kỹ Năng Tự Động</span>
                 </div>
                 <p className="text-[#30180c] text-xs leading-relaxed pl-7">
-                  Sau khi cả làng tranh luận và bỏ phiếu, Quản trò chạm vào người bị nhiều phiếu nhất và bấm <strong>"Xác nhận treo cổ"</strong>. Nếu người chết là <em>Thằng Ngốc</em>, hệ thống tự động lật bài và tha thứ; nếu là <em>Thợ Săn</em>, popup bắn đạn trả đũa sẽ lập tức mở ra.
+                  Sau khi cả làng tranh luận và bỏ phiếu, Quản trò chạm vào người bị nhiều phiếu nhất và bấm <strong>"Xác nhận treo cổ"</strong>. Nếu người bị treo cổ là <em>Thằng Ngố</em>, ván đấu lập tức kết thúc và Thằng Ngố một mình giành chiến thắng; nếu là <em>Thợ Săn</em>, popup bắn đạn trả đũa sẽ lập tức mở ra.
                 </p>
               </div>
 

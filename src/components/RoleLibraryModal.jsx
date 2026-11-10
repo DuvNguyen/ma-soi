@@ -56,8 +56,8 @@ export default function RoleLibraryModal({ isOpen, onClose }) {
   }), []);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 md:p-6 bg-black/90 backdrop-blur-md animate-fade-in touch-manipulation">
-      <div className="bg-[#0e101a] border border-purple-950/80 rounded-2xl sm:rounded-3xl w-full max-w-5xl shadow-[0_0_50px_rgba(0,0,0,0.95)] flex flex-col h-[94vh] max-h-[94vh] overflow-hidden text-slate-100">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 md:p-6 bg-black/65 backdrop-blur-sm animate-fade-in touch-manipulation">
+      <div className="bg-[#0e101a]/90 border border-purple-950/80 rounded-2xl sm:rounded-3xl w-full max-w-5xl shadow-[0_0_50px_rgba(0,0,0,0.95)] backdrop-blur-md flex flex-col h-[94vh] max-h-[94vh] overflow-hidden text-slate-100">
         
         {/* ================= MODAL TOP HEADER ================= */}
         <div className="p-3 sm:p-4 border-b border-purple-950/60 bg-[#090b14]/95 flex items-center justify-between gap-3 shrink-0">
@@ -255,7 +255,7 @@ export default function RoleLibraryModal({ isOpen, onClose }) {
                             className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-200"
                           />
                         ) : (
-                          <span className="text-xl">{isWolf ? '🐺' : isNeutral ? '🎭' : '👨‍🌾'}</span>
+                          <span className="text-xl flex items-center justify-center">{isWolf ? <WolfIcon className="w-6 h-6" /> : isNeutral ? '🎭' : '👨‍🌾'}</span>
                         )}
                       </div>
 
@@ -382,8 +382,8 @@ export default function RoleLibraryModal({ isOpen, onClose }) {
                           className="w-full h-full object-contain"
                         />
                       ) : (
-                        <div className="text-6xl">
-                          {activeRole.teamCode === 'W' ? '🐺' : activeRole.teamCode === '3' ? '🎭' : '👨‍🌾'}
+                        <div className="text-6xl flex items-center justify-center">
+                          {activeRole.teamCode === 'W' ? <WolfIcon className="w-16 h-16" /> : activeRole.teamCode === '3' ? '🎭' : '👨‍🌾'}
                         </div>
                       )}
                     </div>

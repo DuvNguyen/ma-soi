@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { UserCheck, AlertTriangle, AlertCircle, RefreshCw, ChevronDown, ChevronUp, Skull, ShieldCheck, X } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { UserCheck, AlertTriangle, AlertCircle, RefreshCw, ChevronDown, ChevronUp, Skull, ShieldCheck, X, SkipForward } from 'lucide-react';
 import { getRoleCapacity } from '../utils/deckUtils';
 import { getPlayerRole } from '../utils/roleUtils';
 
@@ -8,23 +8,31 @@ export default function RoleHolderBanner({
   players,
   deckRoleIds = [],
   onAssignRole,
+  onSkipRole,
   isWolfStep,
   isWolfPlayer
 }) {
-  const [showAssignDropdown, setShowAssignDropdown] = useState(false);
-
-  if (!currentRole) return null;
-
   // For wolf pack step: show all living wolves
   const holders = isWolfStep 
     ? players.filter(p => isWolfPlayer(p))
-    : players.filter(p => (p.currentRoleId || p.roleId) === currentRole.id);
+    : players.filter(p => (p.currentRoleId || p.roleId) === currentRole?.id);
+
+  const hasHolders = holders.length > 0;
+  
+  // MẶC ĐỊNH: Nếu chưa có ai giữ vai thì TỰ ĐỘNG MỞ SẴN lưới gán vai (Hình 4)
+  const [showAssignDropdown, setShowAssignDropdown] = useState(!hasHolders);
+
+  // Khi chuyển sang vai mới, tự động mở nếu chưa có ai giữ vai
+  useEffect(() => {
+    setShowAssignDropdown(!hasHolders);
+  }, [currentRole?.id]);
+
+  if (!currentRole) return null;
 
   const capacity = isWolfStep 
     ? (deckRoleIds.filter(id => ['soi-thuong', 'soi-con', 'soi-lon-xau-xa', 'soi-trang'].includes(id)).length || 2)
     : getRoleCapacity(currentRole.id, deckRoleIds);
 
-  const hasHolders = holders.length > 0;
   const aliveHolders = holders.filter(p => p.isAlive);
   const allDead = hasHolders && aliveHolders.length === 0;
   const isOverCapacity = !isWolfStep && holders.length > capacity;
@@ -97,6 +105,18 @@ export default function RoleHolderBanner({
 
         {/* Right: Quick action buttons */}
         <div className="flex items-center gap-1.5 shrink-0">
+          {!isWolfStep && !hasHolders && onSkipRole && (
+            <button
+              type="button"
+              onClick={() => onSkipRole(currentRole.id)}
+              className="text-xs px-2 py-1 rounded-xl border border-slate-700 bg-slate-900/80 hover:bg-slate-800 text-slate-400 hover:text-slate-200 transition-all flex items-center gap-1 cursor-pointer"
+              title="Bỏ qua nếu vai này không có trong làng hoặc không ai giơ tay"
+            >
+              <SkipForward className="w-3 h-3" />
+              <span className="hidden sm:inline">Bỏ qua</span>
+            </button>
+          )}
+
           {!isWolfStep && (
             <button
               type="button"

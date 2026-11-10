@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Layers, ChevronDown, ChevronUp, Sparkles, CheckCircle2, UserCheck, HelpCircle } from 'lucide-react';
 import { ROLES } from '../data/roles';
 import GothicButton from './ui/GothicButton';
+import WolfIcon from './ui/WolfIcon';
 
 export default function DeckInventoryRadar({
   players,
@@ -130,7 +131,7 @@ export default function DeckInventoryRadar({
                         : 'bg-purple-950/70 text-purple-200 border-purple-700/70'
                     }`}
                   >
-                    <span>{isWolf ? '🐺' : '✨'} {r.name}</span>
+                    <span className="flex items-center gap-1">{isWolf ? <WolfIcon className="w-3.5 h-3.5 shrink-0" /> : '✨'} {r.name}</span>
                     <span className="text-[10px] bg-black/50 px-1.5 py-0.2 rounded-full border border-white/10 text-white font-mono">
                       x{r.count}
                     </span>

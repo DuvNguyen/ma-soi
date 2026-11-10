@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Shield, Eye, Skull, Sparkles, Heart, Crosshair, AlertTriangle, Check, X, User } from 'lucide-react';
 import GothicButton from './ui/GothicButton';
 import GothicBadge from './ui/GothicBadge';
+import WolfIcon from './ui/WolfIcon';
 import { isWolfPlayer, getPlayerRole } from '../utils/roleUtils';
 
 export default function ActionModal({
@@ -77,8 +78,8 @@ export default function ActionModal({
                         <div className="font-bold text-sm flex items-center gap-2">
                           <span className={isWolf ? 'text-rose-200 font-black' : 'text-slate-100'}>{p.name}</span>
                           {isWolf && (
-                            <span className="text-[10px] px-2 py-0.2 rounded-md font-bold uppercase bg-rose-950 text-rose-300 border border-rose-600 shadow-[0_0_8px_rgba(225,29,72,0.6)]">
-                              🐺 Phe Sói
+                            <span className="text-[10px] px-2 py-0.2 rounded-md font-bold uppercase bg-rose-950 text-rose-300 border border-rose-600 shadow-[0_0_8px_rgba(225,29,72,0.6)] flex items-center gap-1">
+                              <WolfIcon className="w-3 h-3" /> Phe Sói
                             </span>
                           )}
                           {isCurrentProtected && (
@@ -137,8 +138,15 @@ export default function ActionModal({
                 <div className="text-xs uppercase tracking-widest font-black opacity-80 mb-1">
                   KẾT QUẢ SOI
                 </div>
-                <div className="text-3xl font-black font-cinzel tracking-wider">
-                  {seerResult.isWolf ? '🐺 LÀ MA SÓI !' : '👨‍🌾 LÀ DÂN LÀNG (Lương thiện)'}
+                <div className="text-3xl font-black font-cinzel tracking-wider flex items-center justify-center gap-2">
+                  {seerResult.isWolf ? (
+                    <>
+                      <WolfIcon className="w-8 h-8" />
+                      <span>LÀ MA SÓI !</span>
+                    </>
+                  ) : (
+                    <span>👨‍🌾 LÀ DÂN LÀNG (Lương thiện)</span>
+                  )}
                 </div>
                 <p className="text-xs mt-2 opacity-90">
                   Mục tiêu: <strong>{seerResult.player.name}</strong> ({getPlayerRole(seerResult.player)?.name || 'Chưa lộ vai'})
@@ -172,8 +180,8 @@ export default function ActionModal({
                         <div className="font-bold text-sm flex items-center gap-2">
                           <span className={isWolf ? 'text-rose-200 font-bold' : 'text-slate-100'}>{p.name}</span>
                           {isWolf && (
-                            <span className="text-[10px] px-2 py-0.2 rounded-md font-bold uppercase bg-rose-950 text-rose-300 border border-rose-600 shadow-[0_0_8px_rgba(225,29,72,0.6)]">
-                              🐺 Phe Sói
+                            <span className="text-[10px] px-2 py-0.2 rounded-md font-bold uppercase bg-rose-950 text-rose-300 border border-rose-600 shadow-[0_0_8px_rgba(225,29,72,0.6)] flex items-center gap-1">
+                              <WolfIcon className="w-3 h-3" /> Phe Sói
                             </span>
                           )}
                         </div>
@@ -239,8 +247,8 @@ export default function ActionModal({
                         <div className="font-bold text-sm flex items-center gap-2">
                           <span className={isWolf ? 'text-rose-200 font-black' : 'text-slate-100'}>{p.name}</span>
                           {isWolf && (
-                            <span className="text-[10px] px-2 py-0.2 rounded-md font-bold uppercase bg-rose-950 text-rose-300 border border-rose-600 shadow-[0_0_8px_rgba(225,29,72,0.6)]">
-                              🐺 Đồng bọn
+                            <span className="text-[10px] px-2 py-0.2 rounded-md font-bold uppercase bg-rose-950 text-rose-300 border border-rose-600 shadow-[0_0_8px_rgba(225,29,72,0.6)] flex items-center gap-1">
+                              <WolfIcon className="w-3 h-3" /> Đồng bọn
                             </span>
                           )}
                         </div>
@@ -454,8 +462,8 @@ export default function ActionModal({
                             {p.name}
                           </span>
                           {isWolf && (
-                            <span className="text-[9px] px-1.5 py-0.2 rounded font-black uppercase bg-rose-950 text-rose-300 border border-rose-600 shadow-[0_0_8px_rgba(225,29,72,0.5)]">
-                              🐺 Sói
+                            <span className="text-[9px] px-1.5 py-0.2 rounded font-black uppercase bg-rose-950 text-rose-300 border border-rose-600 shadow-[0_0_8px_rgba(225,29,72,0.5)] flex items-center gap-1">
+                              <WolfIcon className="w-2.5 h-2.5" /> Sói
                             </span>
                           )}
                         </div>
@@ -526,8 +534,8 @@ export default function ActionModal({
                       <div className="font-bold text-sm flex items-center gap-2">
                         <span>{p.name}</span>
                         {isWolf && (
-                          <span className="text-[10px] px-2 py-0.2 rounded-md font-bold uppercase bg-rose-950 text-rose-300 border border-rose-600 shadow-[0_0_8px_rgba(225,29,72,0.5)]">
-                            🐺 Phe Sói
+                          <span className="text-[10px] px-2 py-0.5 rounded-md font-bold uppercase bg-rose-950 text-rose-300 border border-rose-600 shadow-[0_0_8px_rgba(225,29,72,0.5)] flex items-center gap-1">
+                            <WolfIcon className="w-2.5 h-2.5 shrink-0" /> Phe Sói
                           </span>
                         )}
                       </div>
@@ -602,8 +610,8 @@ export default function ActionModal({
                             {p.name}
                           </span>
                           {isWolf && (
-                            <span className="text-[9px] px-1.5 py-0.2 rounded font-bold uppercase bg-rose-950 text-rose-300 border border-rose-600">
-                              🐺 Sói
+                            <span className="text-[9px] px-1.5 py-0.2 rounded font-bold uppercase bg-rose-950 text-rose-300 border border-rose-600 flex items-center gap-1">
+                              <WolfIcon className="w-2.5 h-2.5" /> Sói
                             </span>
                           )}
                         </div>
@@ -642,8 +650,8 @@ export default function ActionModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 md:p-4 bg-black/90 backdrop-blur-md animate-fade-in">
-      <div className="bg-[#0b0c14] border border-purple-900/60 rounded-3xl w-full max-w-lg overflow-hidden shadow-[0_0_60px_rgba(46,16,101,0.5)] flex flex-col max-h-[92vh]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 md:p-4 bg-black/65 backdrop-blur-sm animate-fade-in">
+      <div className="bg-[#0b0c14]/90 border border-purple-900/60 rounded-3xl w-full max-w-lg overflow-hidden shadow-[0_0_60px_rgba(46,16,101,0.5)] backdrop-blur-md flex flex-col max-h-[92vh]">
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-purple-900/40 bg-[#0d0e1a]">
           <div className="flex items-center gap-2">

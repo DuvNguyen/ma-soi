@@ -3,6 +3,7 @@ import { ROLES, PRESETS } from '../data/roles';
 import { Users, Sparkles, Check, Play, RefreshCw, X } from 'lucide-react';
 import GothicButton from './ui/GothicButton';
 import GothicBadge from './ui/GothicBadge';
+import WolfIcon from './ui/WolfIcon';
 
 export default function SetupGameModal({ isOpen, onClose, onStartGame }) {
   if (!isOpen) return null;
@@ -66,8 +67,8 @@ export default function SetupGameModal({ isOpen, onClose, onStartGame }) {
   }).length;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-fade-in">
-      <div className="bg-[#12141f] border border-slate-800 rounded-3xl w-full max-w-2xl overflow-hidden shadow-2xl flex flex-col max-h-[92vh]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/65 backdrop-blur-sm animate-fade-in">
+      <div className="bg-[#12141f]/90 border border-slate-800 rounded-3xl w-full max-w-2xl overflow-hidden shadow-2xl backdrop-blur-md flex flex-col max-h-[92vh]">
         {/* Header */}
         <div className="p-5 border-b border-slate-800 flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -159,7 +160,7 @@ export default function SetupGameModal({ isOpen, onClose, onStartGame }) {
                 3. Danh Sách Thẻ Bài ({selectedRoleIds.length}/{playerCount}):
               </span>
               <div className="text-xs flex items-center gap-2">
-                <span className="text-rose-400 font-bold">🐺 {wolfRolesCount} Sói</span>
+                <span className="text-rose-400 font-bold flex items-center gap-1"><WolfIcon className="w-3.5 h-3.5" /> {wolfRolesCount} Sói</span>
                 <span className="text-slate-600">•</span>
                 <span className="text-blue-400 font-bold">👨‍🌾 {villagerRolesCount} Dân</span>
               </div>

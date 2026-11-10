@@ -30,10 +30,10 @@ export default function GothicModalContainer({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-black/85 backdrop-blur-md animate-fade-in overflow-y-auto">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-black/65 backdrop-blur-sm animate-fade-in overflow-y-auto">
       {/* Outer Glow & Shadow Container */}
       <div 
-        className={`relative w-full ${maxWidth} rounded-3xl bg-gradient-to-b from-[#180407] via-[#0d0204] to-[#070102] border-2 border-rose-600/90 shadow-[0_0_50px_rgba(225,29,72,0.5)] ring-1 ring-rose-500/50 overflow-hidden my-auto`}
+        className={`relative w-full ${maxWidth} rounded-3xl bg-gradient-to-b from-[#180407]/90 via-[#0d0204]/85 to-[#070102]/90 backdrop-blur-md border-2 border-rose-600/90 shadow-[0_0_50px_rgba(225,29,72,0.5)] ring-1 ring-rose-500/50 overflow-hidden my-auto`}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Background Ambient Red Moon Spotlight */}

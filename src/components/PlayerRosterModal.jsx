@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { fetchRosters, saveRosterApi, deleteRosterApi } from '../services/api';
-import { Users, Plus, Trash2, Check, X, ArrowRight, Clipboard, UserCheck } from 'lucide-react';
+import { Users, Plus, Trash2, Check, X, ArrowRight, Clipboard, UserCheck, Edit3, AlertCircle } from 'lucide-react';
 import GothicButton from './ui/GothicButton';
 import GothicBadge from './ui/GothicBadge';
 import ClawMarks from './ui/ClawMarks';
@@ -10,6 +10,7 @@ export default function PlayerRosterModal({
   isOpen,
   onClose,
   currentPlayers,
+  deckSize = 0,
   onApplyRoster
 }) {
   const { showConfirm, showAlert } = useGothicDialog();
@@ -18,6 +19,7 @@ export default function PlayerRosterModal({
   const [rosters, setRosters] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isCreating, setIsCreating] = useState(false);
+  const [editingRosterId, setEditingRosterId] = useState(null);
 
   // Form state
   const [rosterName, setRosterName] = useState('');
@@ -39,7 +41,22 @@ export default function PlayerRosterModal({
     .map(s => s.trim())
     .filter(Boolean);
 
-  const handleCreateRoster = async (e) => {
+  const handleOpenCreate = () => {
+    setEditingRosterId(null);
+    setRosterName('');
+    setRawNamesText('');
+    setIsCreating(true);
+  };
+
+  const handleStartEdit = (roster, e) => {
+    if (e) e.stopPropagation();
+    setEditingRosterId(roster.id);
+    setRosterName(roster.name || '');
+    setRawNamesText((roster.playerNames || []).join('\n'));
+    setIsCreating(true);
+  };
+
+  const handleSaveRoster = async (e) => {
     e.preventDefault();
     if (!rosterName.trim()) {
       showAlert({
@@ -52,22 +69,33 @@ export default function PlayerRosterModal({
     if (parsedNames.length === 0) {
       showAlert({
         title: 'DANH SÁCH TRỐNG',
-        message: 'Vui lòng nhập ít nhất 1 tên người chơi.',
+        message: 'Vui lòng nhập danh sách tên người chơi.',
         variant: 'warning'
       });
       return;
     }
 
-    const newRoster = {
-      id: `roster-${Date.now()}`,
+    // User Rule: số tên điền phải ăn theo số thẻ bài
+    if (deckSize > 0 && parsedNames.length !== deckSize) {
+      showAlert({
+        title: 'SỐ LƯỢNG NGƯỜI CHƠI KHÔNG KHỚP',
+        message: `Số tên bạn đã điền là ${parsedNames.length} người, nhưng bộ bài hiện tại có đúng ${deckSize} lá bài!\nVui lòng điền đủ ${deckSize} người chơi để khớp với bộ bài.`,
+        variant: 'warning'
+      });
+      return;
+    }
+
+    const rosterData = {
+      id: editingRosterId || `roster-${Date.now()}`,
       name: rosterName.trim(),
       playerNames: parsedNames
     };
 
     try {
-      await saveRosterApi(newRoster);
+      await saveRosterApi(rosterData);
       await loadRosters();
       setIsCreating(false);
+      setEditingRosterId(null);
       setRosterName('');
       setRawNamesText('');
     } catch (err) {
@@ -77,6 +105,19 @@ export default function PlayerRosterModal({
         variant: 'blood'
       });
     }
+  };
+
+  const handleApply = (roster) => {
+    if (deckSize > 0 && roster.playerNames.length !== deckSize) {
+      showAlert({
+        title: 'SỐ LƯỢNG KHÔNG KHỚP VỚI BỘ BÀI',
+        message: `Nhóm "${roster.name}" có ${roster.playerNames.length} người, trong khi bộ bài hiện tại yêu cầu đúng ${deckSize} lá bài!\nVui lòng bấm nút "Sửa" ở nhóm này để chỉnh cho đủ ${deckSize} người trước khi áp dụng.`,
+        variant: 'warning'
+      });
+      return;
+    }
+    onApplyRoster(roster);
+    onClose();
   };
 
   const handleDeleteRoster = async (id, e) => {
@@ -108,8 +149,8 @@ export default function PlayerRosterModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 md:p-6 bg-black/90 backdrop-blur-md animate-fade-in">
-      <div className="relative bg-gradient-to-b from-[#180407] via-[#0d0204] to-[#070102] border-2 border-rose-600/90 rounded-3xl w-full max-w-3xl overflow-hidden shadow-[0_0_60px_rgba(225,29,72,0.5)] ring-1 ring-rose-500/50 flex flex-col h-[85vh]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 md:p-6 bg-black/65 backdrop-blur-sm animate-fade-in">
+      <div className="relative bg-gradient-to-b from-[#180407]/90 via-[#0d0204]/85 to-[#070102]/90 backdrop-blur-md border-2 border-rose-600/90 rounded-3xl w-full max-w-3xl overflow-hidden shadow-[0_0_60px_rgba(225,29,72,0.5)] ring-1 ring-rose-500/50 flex flex-col h-[85vh]">
         {/* Werewolf Claw Marks on Corners */}
         <div className="absolute -top-5 -right-5 rotate-12 opacity-80 pointer-events-none">
           <ClawMarks size={120} color="#e11d48" />
@@ -120,29 +161,24 @@ export default function PlayerRosterModal({
 
         {/* Header */}
         <div className="relative z-10 p-4 md:p-5 border-b border-rose-950/80 flex items-center justify-between bg-gradient-to-r from-[#200508]/90 via-[#100204]/80 to-transparent">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-rose-950/90 border border-rose-600/80 flex items-center justify-center text-rose-200 shadow-[0_0_15px_rgba(225,29,72,0.6)]">
-              <Users className="w-5 h-5" />
-            </div>
-            <div>
-              <h2 className="font-cinzel font-black text-lg md:text-xl text-rose-100 tracking-wider drop-shadow-[0_2px_10px_rgba(225,29,72,0.8)]">
-                LƯU TRỮ DANH SÁCH NGƯỜI CHƠI (NEON CLOUD)
-              </h2>
-              <p className="text-xs text-rose-300/80">
-                Ghi nhớ tên người chơi theo nhóm để không cần nhập lại mỗi lần chơi
-              </p>
-            </div>
+          <div className="min-w-0">
+            <h2 className="font-cinzel font-black text-lg md:text-xl text-rose-100 tracking-wider drop-shadow-[0_2px_10px_rgba(225,29,72,0.8)] truncate">
+              LƯU TRỮ DANH SÁCH NGƯỜI CHƠI
+            </h2>
+            <p className="text-xs text-rose-300/80 truncate">
+              Ghi nhớ tên người chơi theo nhóm để không cần nhập lại mỗi lần chơi
+            </p>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 shrink-0">
             {!isCreating && (
               <GothicButton
                 variant="witch"
                 size="sm"
-                icon={Plus}
-                onClick={() => setIsCreating(true)}
+                onClick={handleOpenCreate}
+                className="px-3 text-xs whitespace-nowrap"
               >
-                Thêm Nhóm Mới
+                <span>Thêm Nhóm</span>
               </GothicButton>
             )}
             <button onClick={onClose} className="p-2 text-slate-400 hover:text-white rounded-lg cursor-pointer">
@@ -152,18 +188,21 @@ export default function PlayerRosterModal({
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto p-4 md:p-6">
+        <div className="flex-1 overflow-y-auto p-4 md:p-6 custom-scrollbar">
           {isCreating ? (
-            /* CREATE ROSTER FORM */
-            <form onSubmit={handleCreateRoster} className="space-y-4">
+            /* CREATE / EDIT ROSTER FORM */
+            <form onSubmit={handleSaveRoster} className="space-y-4">
               <div className="flex items-center justify-between border-b border-slate-800 pb-2">
                 <h3 className="font-bold text-sm text-slate-200">
-                  Nhập Danh Sách Người Chơi Mới
+                  {editingRosterId ? 'Chỉnh Sửa Nhóm Người Chơi' : 'Nhập Danh Sách Người Chơi Mới'}
                 </h3>
                 <button
                   type="button"
-                  onClick={() => setIsCreating(false)}
-                  className="text-xs text-slate-400 hover:text-white underline"
+                  onClick={() => {
+                    setIsCreating(false);
+                    setEditingRosterId(null);
+                  }}
+                  className="text-xs text-slate-400 hover:text-white underline cursor-pointer"
                 >
                   Quay lại danh sách
                 </button>
@@ -176,7 +215,7 @@ export default function PlayerRosterModal({
                 <input
                   type="text"
                   required
-                  placeholder="VD: Hội chơi Ma Sói 14 người Thứ Bảy, Team Dev..."
+                  placeholder="VD: Hội chơi Ma Sói Thứ Bảy, Nhóm Bạn Đại Học..."
                   value={rosterName}
                   onChange={(e) => setRosterName(e.target.value)}
                   className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-indigo-500"
@@ -185,13 +224,20 @@ export default function PlayerRosterModal({
 
               <div>
                 <div className="flex items-center justify-between mb-1">
-                  <label className="text-xs font-bold uppercase text-slate-400">
-                    Danh Sách Tên Người Chơi ({parsedNames.length} người):
-                  </label>
+                  <div>
+                    <label className="text-xs font-bold uppercase text-slate-400 block">
+                      Danh Sách Tên Người Chơi ({parsedNames.length} người):
+                    </label>
+                    {deckSize > 0 && (
+                      <span className="text-[11px] text-amber-400 font-medium">
+                        (Bộ bài hiện tại yêu cầu đúng {deckSize} người chơi)
+                      </span>
+                    )}
+                  </div>
                   <button
                     type="button"
                     onClick={handleCopyCurrentGameNames}
-                    className="text-[11px] text-indigo-400 hover:text-indigo-300 flex items-center gap-1 underline font-medium"
+                    className="text-[11px] text-indigo-400 hover:text-indigo-300 flex items-center gap-1 underline font-medium cursor-pointer"
                   >
                     <Clipboard className="w-3.5 h-3.5" />
                     Lấy tên từ ván chơi hiện tại
@@ -215,9 +261,22 @@ Ngọc, Hoàng, Minh, Linh, Tuấn, Hương, Đạt, Phương, Quân, Trang, Vi�
               {/* Preview Chips */}
               {parsedNames.length > 0 && (
                 <div>
-                  <span className="text-xs font-bold text-slate-400 block mb-1.5">
-                    Xem trước ({parsedNames.length} người):
-                  </span>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-xs font-bold text-slate-400">
+                      Xem trước ({parsedNames.length} người):
+                    </span>
+                    {deckSize > 0 && (
+                      parsedNames.length === deckSize ? (
+                        <span className="text-[11px] font-bold text-emerald-400 bg-emerald-950/80 px-2 py-0.5 rounded border border-emerald-800">
+                          ✓ Khớp đúng {deckSize} lá bài
+                        </span>
+                      ) : (
+                        <span className="text-[11px] font-bold text-rose-400 bg-rose-950/80 px-2 py-0.5 rounded border border-rose-800">
+                          ⚠️ Đang lệch {Math.abs(parsedNames.length - deckSize)} người (cần đúng {deckSize})
+                        </span>
+                      )
+                    )}
+                  </div>
                   <div className="flex flex-wrap gap-1.5 p-3 rounded-xl bg-slate-900/60 border border-slate-800 max-h-28 overflow-y-auto">
                     {parsedNames.map((name, idx) => (
                       <span
@@ -236,7 +295,10 @@ Ngọc, Hoàng, Minh, Linh, Tuấn, Hương, Đạt, Phương, Quân, Trang, Vi�
                   variant="dark"
                   size="sm"
                   type="button"
-                  onClick={() => setIsCreating(false)}
+                  onClick={() => {
+                    setIsCreating(false);
+                    setEditingRosterId(null);
+                  }}
                 >
                   Hủy
                 </GothicButton>
@@ -245,20 +307,23 @@ Ngọc, Hoàng, Minh, Linh, Tuấn, Hương, Đạt, Phương, Quân, Trang, Vi�
                   size="sm"
                   type="submit"
                 >
-                  Lưu Danh Sách Vào Neon DB
+                  <Check className="w-4 h-4 mr-1 inline" />
+                  <span>{editingRosterId ? 'Lưu Thay Đổi Nhóm' : 'Lưu Danh Sách Vào Neon DB'}</span>
                 </GothicButton>
               </div>
             </form>
           ) : (
             /* ROSTERS LIST */
             <div className="space-y-4">
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
                 <p className="text-xs text-slate-400">
                   Chọn một nhóm người chơi đã lưu để tự động gán tên vào bàn:
                 </p>
-                <span className="text-xs text-indigo-400 font-semibold">
-                  {rosters.length} nhóm đã lưu
-                </span>
+                {deckSize > 0 && (
+                  <span className="text-xs text-amber-400 font-medium">
+                    (Bộ bài hiện tại: <strong>{deckSize} lá</strong>)
+                  </span>
+                )}
               </div>
 
               {loading ? (
@@ -271,57 +336,84 @@ Ngọc, Hoàng, Minh, Linh, Tuấn, Hương, Đạt, Phương, Quân, Trang, Vi�
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
-                  {rosters.map(r => (
-                    <div
-                      key={r.id}
-                      className="p-4 rounded-2xl bg-[#141624] border border-slate-800 hover:border-slate-700 transition-all flex flex-col justify-between shadow-lg"
-                    >
-                      <div>
-                        <div className="flex items-start justify-between gap-2 mb-2">
-                          <h4 className="font-bold text-sm text-slate-100">
-                            {r.name}
-                          </h4>
-                          <span className="text-xs font-bold text-indigo-400 bg-indigo-950/80 px-2 py-0.5 rounded-lg border border-indigo-800/40">
-                            {r.playerNames.length} người
-                          </span>
-                        </div>
+                  {rosters.map(r => {
+                    const isMatched = deckSize === 0 || r.playerNames.length === deckSize;
 
-                        {/* Names preview */}
-                        <div className="flex flex-wrap gap-1 max-h-24 overflow-y-auto pr-1">
-                          {r.playerNames.map((name, i) => (
-                            <span
-                              key={i}
-                              className="text-[11px] px-2 py-0.5 rounded-md bg-slate-900 border border-slate-800 text-slate-300"
-                            >
-                              {name}
+                    return (
+                      <div
+                        key={r.id}
+                        className={`p-4 rounded-2xl bg-[#141624] border transition-all flex flex-col justify-between shadow-lg ${
+                          isMatched ? 'border-slate-800 hover:border-slate-700' : 'border-amber-900/60'
+                        }`}
+                      >
+                        <div>
+                          <div className="flex items-start justify-between gap-2 mb-2">
+                            <h4 className="font-bold text-sm text-slate-100">
+                              {r.name}
+                            </h4>
+                            <span className={`text-xs font-bold px-2 py-0.5 rounded-lg border ${
+                              isMatched 
+                                ? 'text-indigo-400 bg-indigo-950/80 border-indigo-800/40' 
+                                : 'text-amber-400 bg-amber-950/80 border-amber-800/60'
+                            }`}>
+                              {r.playerNames.length} người
                             </span>
-                          ))}
+                          </div>
+
+                          {/* Names preview */}
+                          <div className="flex flex-wrap gap-1 max-h-24 overflow-y-auto pr-1 mb-2">
+                            {r.playerNames.map((name, i) => (
+                              <span
+                                key={i}
+                                className="text-[11px] px-2 py-0.5 rounded-md bg-slate-900 border border-slate-800 text-slate-300"
+                              >
+                                {name}
+                              </span>
+                            ))}
+                          </div>
+
+                          {!isMatched && (
+                            <p className="text-[11px] text-amber-400/90 flex items-center gap-1 font-medium">
+                              <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                              <span>Cần {deckSize} người cho bộ bài này. Bấm "Sửa" để khớp.</span>
+                            </p>
+                          )}
+                        </div>
+
+                        <div className="mt-4 pt-3 border-t border-purple-950/60 flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={(e) => handleDeleteRoster(r.id, e)}
+                              className="text-xs px-2.5 py-1 rounded-lg bg-slate-900 hover:bg-rose-950/80 border border-slate-800 hover:border-rose-700 text-slate-400 hover:text-rose-300 flex items-center gap-1 transition-all cursor-pointer"
+                              title="Xóa nhóm này"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                              <span>Xóa</span>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={(e) => handleStartEdit(r, e)}
+                              className="text-xs px-2.5 py-1 rounded-lg bg-purple-950/80 hover:bg-purple-900 border border-purple-600 hover:border-purple-400 text-purple-200 hover:text-white flex items-center gap-1.5 transition-all cursor-pointer font-bold shadow-sm"
+                              title="Chỉnh sửa tên và thành viên của nhóm người chơi này"
+                            >
+                              <Edit3 className="w-3.5 h-3.5 text-purple-300" />
+                              <span>Sửa Nhóm</span>
+                            </button>
+                          </div>
+
+                          <GothicButton
+                            variant={isMatched ? "witch" : "dark"}
+                            size="sm"
+                            icon={UserCheck}
+                            onClick={() => handleApply(r)}
+                          >
+                            <span>Dùng Nhóm Này</span>
+                          </GothicButton>
                         </div>
                       </div>
-
-                      <div className="mt-4 pt-3 border-t border-purple-950/60 flex items-center justify-between">
-                        <button
-                          onClick={(e) => handleDeleteRoster(r.id, e)}
-                          className="text-xs text-slate-500 hover:text-rose-400 flex items-center gap-1 transition-colors cursor-pointer"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                          Xóa
-                        </button>
-
-                        <GothicButton
-                          variant="witch"
-                          size="sm"
-                          icon={UserCheck}
-                          onClick={() => {
-                            onApplyRoster(r);
-                            onClose();
-                          }}
-                        >
-                          <span>Dùng Nhóm Này ({r.playerNames.length} Người)</span>
-                        </GothicButton>
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>

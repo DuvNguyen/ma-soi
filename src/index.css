@@ -44,7 +44,67 @@ button, a, input, select, textarea, [role="button"] {
   font-family: 'JetBrains Mono', monospace;
 }
 
+@font-face {
+  font-family: 'TH Kinhdi 1';
+  src: local('TH Kinhdi 1'), local('TH Kinh di 1'), local('THKinhdi1');
+}
+
+.font-kinhdi {
+  font-family: 'TH Kinhdi 1', 'Nosifer', 'Creepster', 'Cinzel', cursive, fantasy, serif;
+}
+
+@keyframes bannerDrop {
+  0% {
+    opacity: 0;
+    transform: translateY(-50px) scale(0.92);
+  }
+  65% {
+    opacity: 1;
+    transform: translateY(8px) scale(1.02);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.animate-banner-drop {
+  animation: bannerDrop 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes stampIn {
+  0% {
+    opacity: 0;
+    transform: scale(2.2) rotate(-4deg);
+    filter: blur(8px);
+  }
+  40% {
+    opacity: 0.7;
+    transform: scale(1.2) rotate(-2deg);
+    filter: blur(2px);
+  }
+  75% {
+    opacity: 1;
+    transform: scale(0.96) rotate(1deg);
+    filter: blur(0);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) rotate(-1deg);
+    filter: blur(0);
+  }
+}
+
+.animate-stamp-in {
+  animation: stampIn 0.85s cubic-bezier(0.19, 1, 0.22, 1) forwards;
+}
+
 /* Custom occult dark scrollbars */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #3b185f #090a12;
+}
+
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -53,9 +113,29 @@ button, a, input, select, textarea, [role="button"] {
   background: #090a12;
 }
 ::-webkit-scrollbar-thumb {
-  background: #23183d;
-  border-radius: 4px;
+  background: #2b144d;
+  border-radius: 9999px;
+  border: 1px solid rgba(168, 85, 247, 0.2);
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #4c1d95;
+  background: #6b21a8;
+}
+
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: #3b185f transparent;
+}
+.custom-scrollbar::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #3b185f;
+  border-radius: 9999px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #7e22ce;
 }
