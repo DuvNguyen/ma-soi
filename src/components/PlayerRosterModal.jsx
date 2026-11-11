@@ -160,28 +160,34 @@ export default function PlayerRosterModal({
         </div>
 
         {/* Header */}
-        <div className="relative z-10 p-4 md:p-5 border-b border-rose-950/80 flex items-center justify-between bg-gradient-to-r from-[#200508]/90 via-[#100204]/80 to-transparent">
-          <div className="min-w-0">
-            <h2 className="font-cinzel font-black text-lg md:text-xl text-rose-100 tracking-wider drop-shadow-[0_2px_10px_rgba(225,29,72,0.8)] truncate">
-              LƯU TRỮ DANH SÁCH NGƯỜI CHƠI
-            </h2>
-            <p className="text-xs text-rose-300/80 truncate">
-              Ghi nhớ tên người chơi theo nhóm để không cần nhập lại mỗi lần chơi
-            </p>
+        <div className="relative z-10 p-3 sm:p-4 md:p-5 border-b border-rose-950/80 flex items-center justify-between gap-2 bg-gradient-to-r from-[#200508]/90 via-[#100204]/80 to-transparent">
+          <div className="flex items-center gap-2.5 min-w-0 flex-1">
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-rose-950/90 border border-rose-600/80 flex items-center justify-center text-rose-200 shadow-[0_0_15px_rgba(225,29,72,0.6)] shrink-0">
+              <Users className="w-5 h-5" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <h2 className="font-cinzel font-black text-sm sm:text-base md:text-xl text-rose-100 tracking-wider drop-shadow-[0_2px_10px_rgba(225,29,72,0.8)] truncate">
+                QUẢN LÝ NHÓM NGƯỜI CHƠI
+              </h2>
+              <p className="text-[11px] sm:text-xs text-rose-300/80 truncate hidden sm:block">
+                Ghi nhớ tên người chơi theo nhóm để không cần nhập lại mỗi lần chơi
+              </p>
+            </div>
           </div>
 
-          <div className="flex items-center gap-2 shrink-0">
+          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
             {!isCreating && (
               <GothicButton
                 variant="witch"
                 size="sm"
+                icon={Plus}
                 onClick={handleOpenCreate}
-                className="px-3 text-xs whitespace-nowrap"
+                className="h-8.5 px-2.5 sm:px-3 text-xs whitespace-nowrap shrink-0"
               >
                 <span>Thêm Nhóm</span>
               </GothicButton>
             )}
-            <button onClick={onClose} className="p-2 text-slate-400 hover:text-white rounded-lg cursor-pointer">
+            <button onClick={onClose} className="p-1.5 sm:p-2 text-slate-400 hover:text-white rounded-lg cursor-pointer shrink-0">
               <X className="w-5 h-5" />
             </button>
           </div>
@@ -381,12 +387,12 @@ Ngọc, Hoàng, Minh, Linh, Tuấn, Hương, Đạt, Phương, Quân, Trang, Vi�
                         </div>
 
                         <div className="mt-4 pt-3 border-t border-purple-950/60 flex items-center justify-between">
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-3">
                             <button
                               type="button"
                               onClick={(e) => handleDeleteRoster(r.id, e)}
-                              className="text-xs px-2.5 py-1 rounded-lg bg-slate-900 hover:bg-rose-950/80 border border-slate-800 hover:border-rose-700 text-slate-400 hover:text-rose-300 flex items-center gap-1 transition-all cursor-pointer"
-                              title="Xóa nhóm này"
+                              className="text-xs text-slate-500 hover:text-rose-400 flex items-center gap-1 transition-colors cursor-pointer"
+                              title="Xóa nhóm này khỏi Neon DB"
                             >
                               <Trash2 className="w-3.5 h-3.5" />
                               <span>Xóa</span>
@@ -394,21 +400,21 @@ Ngọc, Hoàng, Minh, Linh, Tuấn, Hương, Đạt, Phương, Quân, Trang, Vi�
                             <button
                               type="button"
                               onClick={(e) => handleStartEdit(r, e)}
-                              className="text-xs px-2.5 py-1 rounded-lg bg-purple-950/80 hover:bg-purple-900 border border-purple-600 hover:border-purple-400 text-purple-200 hover:text-white flex items-center gap-1.5 transition-all cursor-pointer font-bold shadow-sm"
-                              title="Chỉnh sửa tên và thành viên của nhóm người chơi này"
+                              className="text-xs text-purple-400 hover:text-purple-300 flex items-center gap-1 transition-colors cursor-pointer"
+                              title="Chỉnh sửa danh sách nhóm này"
                             >
-                              <Edit3 className="w-3.5 h-3.5 text-purple-300" />
-                              <span>Sửa Nhóm</span>
+                              <Edit3 className="w-3.5 h-3.5" />
+                              <span>Sửa</span>
                             </button>
                           </div>
 
                           <GothicButton
                             variant={isMatched ? "witch" : "dark"}
                             size="sm"
-                            icon={UserCheck}
                             onClick={() => handleApply(r)}
                           >
                             <span>Dùng Nhóm Này</span>
+                            <ArrowRight className="w-3.5 h-3.5 ml-1 inline" />
                           </GothicButton>
                         </div>
                       </div>

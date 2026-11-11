@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { 
-  Shield, Eye, Skull, Sparkles, Heart, ChevronRight, ChevronLeft, 
+  Shield, Eye, Skull, Sparkles, Heart, ChevronRight, ChevronLeft, ArrowRight,
   Sun, Moon, Check, UserCheck, AlertTriangle, AlertCircle, Wand2, Ghost, Flame, MoonStar, X 
 } from 'lucide-react';
 import GothicButton from './ui/GothicButton';
@@ -36,6 +36,8 @@ export default function NightPhaseView({
   const { showConfirm, showAlert } = useGothicDialog();
   const topContainerRef = useRef(null);
   const cardRef = useRef(null);
+  const originalFooterRef = useRef(null);
+  const [isOriginalFooterVisible, setIsOriginalFooterVisible] = useState(false);
 
   // Sort roles according to canonical night wake-up order
   const getOrderedNightRoles = () => {
@@ -418,6 +420,27 @@ export default function NightPhaseView({
     }
   }, [safeStepIdx]);
 
+  // Observer to track if the bottom original navigation footer is in viewport
+  useEffect(() => {
+    const el = originalFooterRef.current;
+    if (!el || typeof IntersectionObserver === 'undefined') return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        setIsOriginalFooterVisible(entry.isIntersecting);
+      },
+      { threshold: 0.15 }
+    );
+
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [safeStepIdx]);
+
+  const showFloatingAdvanceButton = 
+    !isSummaryStep && 
+    stepValidation.isValid && 
+    !isOriginalFooterVisible;
+
   // Victim of wolves tonight
   const wolfVictim = players.find(p => p.id === nightState.wolfTargetId);
   const protectedPlayer = players.find(p => p.id === nightState.protectedPlayerId);
@@ -425,11 +448,8 @@ export default function NightPhaseView({
   return (
     <div 
       ref={topContainerRef}
-      className={`space-y-6 max-w-5xl w-full mx-auto transition-colors duration-500 rounded-3xl p-4 md:p-6 border shadow-2xl overflow-x-clip backdrop-blur-md ${
-      isWolfStep
-        ? 'bg-gradient-to-b from-[#2a080c]/60 via-[#150406]/55 to-[#090203]/60 border-rose-900/60 shadow-rose-950/50'
-        : 'bg-[#10121d]/60 border-slate-700/60 shadow-slate-950/60'
-    }`}>
+      className="space-y-6 max-w-5xl w-full mx-auto"
+    >
       {/* Top Header & Round Indicator */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-3 border-b border-white/10 pb-3 sm:pb-4">
         <div>
@@ -650,7 +670,7 @@ export default function NightPhaseView({
           )}
 
           {/* STEP SPECIFIC ACTION INTERFACE */}
-          <div className="p-5 rounded-3xl bg-[#0f111c] border border-purple-950/80 shadow-[0_4px_25px_rgba(0,0,0,0.6)] space-y-4">
+          <div className="space-y-4">
             
             {/* LỜI NGUYỀN GIÀ LÀNG BANNER NẾU BỊ PHE DÂN HẠI */}
             {isVillageCursed && ['bao-ve', 'tien-tri', 'phu-thuy'].includes(currentRole.id) && (
@@ -762,12 +782,27 @@ export default function NightPhaseView({
                       <button
                         type="button"
                         onClick={() => onSaveAction('protect', null, { protectSkipped: false })}
-                        className="text-xs text-slate-400 hover:text-teal-300 underline font-medium cursor-pointer"
+                        className="text-xs text-slate-400 hover:text-teal-300 flex items-center gap-1 font-medium cursor-pointer transition-colors"
                       >
                         ✕ Xóa chọn lại
                       </button>
                     )}
                   </div>
+
+                  {/* Inline Quick Advance Button when chosen */}
+                  {(nightState.protectedPlayerId || nightState.protectSkipped) && (
+                    <div className="pt-2 animate-fade-in">
+                      <GothicButton
+                        variant="witch"
+                        size="md"
+                        onClick={() => handleNextStep(false)}
+                        className="w-full h-11 text-xs font-black shadow-lg flex items-center justify-center gap-1.5"
+                      >
+                        <span>Xác Nhận & Đi Ngủ 💤</span>
+                        <ChevronRight className="w-4 h-4 ml-0.5 inline shrink-0" />
+                      </GothicButton>
+                    </div>
+                  )}
                 </div>
               );
             })()}
@@ -964,7 +999,7 @@ export default function NightPhaseView({
                           onSaveAction('wolves', null, { wolfSkipped: false });
                           onSaveAction('wolves_second', null);
                         }}
-                        className="text-xs text-slate-400 hover:text-rose-300 underline font-medium cursor-pointer"
+                        className="text-xs text-slate-400 hover:text-rose-300 flex items-center gap-1 font-medium cursor-pointer transition-colors"
                       >
                         ✕ Xóa chọn lại
                       </button>
@@ -1003,6 +1038,21 @@ export default function NightPhaseView({
                         </button>
                       </div>
                     </div>
+                  </div>
+                )}
+
+                {/* Inline Quick Advance for Wolves */}
+                {(nightState.wolfTargetId || nightState.wolfSkipped) && (
+                  <div className="pt-2 animate-fade-in">
+                    <GothicButton
+                      variant="blood"
+                      size="md"
+                      onClick={() => handleNextStep(false)}
+                      className="w-full h-11 text-xs font-black shadow-lg flex items-center justify-center gap-1.5"
+                    >
+                      <span>Xác Nhận & Đi Ngủ 💤</span>
+                      <ChevronRight className="w-4 h-4 ml-0.5 inline shrink-0" />
+                    </GothicButton>
                   </div>
                 )}
               </div>
@@ -1112,6 +1162,21 @@ export default function NightPhaseView({
                   variant="seer"
                   isWolfPlayer={isWolfPlayer}
                 />
+
+                {/* Inline Quick Advance for Seer */}
+                {selectedSeerTarget && (
+                  <div className="pt-2 animate-fade-in">
+                    <GothicButton
+                      variant="witch"
+                      size="md"
+                      onClick={() => handleNextStep(false)}
+                      className="w-full h-11 text-xs font-black shadow-lg flex items-center justify-center gap-1.5"
+                    >
+                      <span>Đã Soi Bài & Đi Ngủ 💤</span>
+                      <ChevronRight className="w-4 h-4 ml-0.5 inline shrink-0" />
+                    </GothicButton>
+                  </div>
+                )}
               </div>
             )}
 
@@ -1339,10 +1404,25 @@ export default function NightPhaseView({
                       <button
                         type="button"
                         onClick={() => onSaveAction('cupid', [])}
-                        className="text-xs text-slate-400 hover:text-pink-300 underline font-medium cursor-pointer"
+                        className="text-xs text-slate-400 hover:text-pink-300 flex items-center gap-1 font-medium cursor-pointer transition-colors"
                       >
                         ✕ Xóa chọn lại
                       </button>
+                    </div>
+                  )}
+
+                  {/* Inline Quick Advance for Cupid */}
+                  {chosen.length === 2 && (
+                    <div className="pt-2 animate-fade-in">
+                      <GothicButton
+                        variant="witch"
+                        size="md"
+                        onClick={() => handleNextStep(false)}
+                        className="w-full h-11 text-xs font-black shadow-lg flex items-center justify-center gap-1.5"
+                      >
+                        <span>Đã Ghép Đôi & Đi Ngủ 💤</span>
+                        <ChevronRight className="w-4 h-4 ml-0.5 inline shrink-0" />
+                      </GothicButton>
                     </div>
                   )}
                 </div>
@@ -1530,22 +1610,28 @@ export default function NightPhaseView({
           <div className="space-y-3 pt-2 pb-24 sm:pb-6">
             {/* Gatekeeper Status Bar */}
             {!stepValidation.isValid ? (
-              <div className="p-3 rounded-2xl bg-amber-950/80 border border-amber-600/80 text-amber-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2 shadow-lg animate-fade-in">
-                <div className="flex items-center gap-2 text-xs font-semibold">
-                  <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0" />
-                  <span>{stepValidation.message}</span>
+              <div className="p-3 sm:p-3.5 rounded-2xl bg-[#141624]/90 backdrop-blur-md border border-amber-500/40 text-amber-200/90 shadow-xl flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 animate-fade-in">
+                <div className="flex items-center gap-2.5 text-xs font-semibold">
+                  <div className="w-7 h-7 rounded-xl bg-amber-950/80 border border-amber-600/60 flex items-center justify-center shrink-0 shadow-[0_0_12px_rgba(245,158,11,0.25)]">
+                    <AlertTriangle className="w-3.5 h-3.5 text-amber-400" />
+                  </div>
+                  <span className="leading-relaxed">{stepValidation.message}</span>
                 </div>
-                <button
-                  type="button"
+                <GothicButton
+                  variant="gold"
+                  size="sm"
                   onClick={() => handleNextStep(true)}
-                  className="text-[11px] underline text-amber-400 hover:text-amber-300 font-bold self-end sm:self-auto cursor-pointer"
+                  className="h-8 px-3 text-xs whitespace-nowrap self-end sm:self-auto shrink-0"
                 >
-                  Bỏ qua bắt buộc (Quản trò ghi đè) ➔
-                </button>
+                  <span>Bỏ qua bắt buộc</span>
+                  <ArrowRight className="w-3.5 h-3.5 ml-1 inline" />
+                </GothicButton>
               </div>
             ) : (
-              <div className="p-2.5 rounded-xl bg-emerald-950/60 border border-emerald-800/80 text-emerald-200 flex items-center gap-2 text-xs">
-                <Check className="w-4 h-4 text-emerald-400 shrink-0" />
+              <div className="p-2.5 sm:p-3 rounded-2xl bg-[#141624]/90 backdrop-blur-md border border-emerald-600/40 text-emerald-200/90 flex items-center gap-2.5 text-xs shadow-lg">
+                <div className="w-6 h-6 rounded-lg bg-emerald-950/80 border border-emerald-600/60 flex items-center justify-center shrink-0 shadow-[0_0_10px_rgba(16,185,129,0.2)]">
+                  <Check className="w-3.5 h-3.5 text-emerald-400" />
+                </div>
                 <span>{stepValidation.message || 'Hành động hợp lệ. Sẵn sàng tiếp tục.'}</span>
               </div>
             )}
@@ -1645,7 +1731,7 @@ export default function NightPhaseView({
 
       {/* STICKY BOTTOM ACTION BAR - ONE-SCREEN MOBILE VIEWPORT */}
       {!isSummaryStep && (
-        <div className="sticky bottom-0 z-30 -mx-4 -mb-4 sm:-mx-6 sm:-mb-6 p-2.5 sm:p-3 bg-[#0a0c16]/95 backdrop-blur-md border-t border-purple-900/80 shadow-[0_-8px_25px_rgba(0,0,0,0.8)] flex items-center justify-between gap-2">
+        <div ref={originalFooterRef} className="sticky bottom-0 z-30 -mx-4 -mb-4 sm:-mx-6 sm:-mb-6 p-2.5 sm:p-3 bg-[#0a0c16]/95 backdrop-blur-md border-t border-purple-900/80 shadow-[0_-8px_25px_rgba(0,0,0,0.8)] flex items-center justify-between gap-2">
           <GothicButton
             variant="dark"
             size="sm"
@@ -1685,6 +1771,27 @@ export default function NightPhaseView({
             className="h-10 px-3 sm:px-4 text-xs font-black shrink-0 shadow-lg"
           >
             <span className="truncate">Đi Ngủ 💤</span>
+            <ChevronRight className="w-4 h-4 ml-0.5 inline shrink-0" />
+          </GothicButton>
+        </div>
+      )}
+
+      {/* SMART FLOATING ADVANCE BUTTON (Only shows when selection is valid AND user hasn't scrolled down to original footer) */}
+      {!isSummaryStep && (
+        <div
+          className={`md:hidden fixed bottom-4 right-4 z-40 transition-all duration-300 transform ${
+            showFloatingAdvanceButton
+              ? 'opacity-100 translate-y-0 scale-100 pointer-events-auto'
+              : 'opacity-0 translate-y-4 scale-95 pointer-events-none'
+          }`}
+        >
+          <GothicButton
+            variant={isWolfStep ? 'blood' : 'witch'}
+            size="md"
+            onClick={() => handleNextStep(false)}
+            className="h-11 px-4 text-xs font-black shadow-[0_4px_25px_rgba(0,0,0,0.85)] border border-purple-400/60 ring-2 ring-purple-500/40 rounded-full flex items-center gap-1.5 animate-pulse"
+          >
+            <span>Đi Ngủ 💤</span>
             <ChevronRight className="w-4 h-4 ml-0.5 inline shrink-0" />
           </GothicButton>
         </div>

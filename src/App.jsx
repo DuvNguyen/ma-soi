@@ -1296,135 +1296,151 @@ export default function App() {
             </div>
           </div>
 
-          {/* Quick Actions & Modals Triggers - EXACTLY ONE LINE ON ALL SCREENS */}
+          {/* Quick Actions & Modals Triggers */}
           <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
             {/* RESET GAME BUTTON */}
             <button
               type="button"
               onClick={handleResetGame}
               title="Reset toàn bộ ván chơi về 0 để chơi lại từ đầu"
-              className="h-7 w-7 sm:h-8 sm:w-auto sm:px-2.5 rounded-lg sm:rounded-xl bg-rose-950/80 hover:bg-rose-900 border border-rose-600/80 hover:border-rose-400 text-rose-200 text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-sm active:scale-95 shrink-0"
+              className="h-7 px-2 sm:h-8 sm:px-2.5 rounded-lg sm:rounded-xl bg-rose-950/70 hover:bg-rose-900 border border-rose-700/80 hover:border-rose-400 text-rose-200 text-xs font-bold transition-all flex items-center justify-center gap-1 cursor-pointer shadow-sm active:scale-95 shrink-0"
             >
-              <RefreshCw className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0 text-rose-300" />
+              <RefreshCw className="w-3.5 h-3.5 shrink-0 text-rose-300" />
               <span className="hidden sm:inline">Reset Về 0</span>
             </button>
 
-            {/* Bộ Bài */}
-            <button
-              type="button"
-              onClick={() => setIsTemplatesOpen(true)}
-              title="Chọn hoặc tạo template bộ bài"
-              className="h-7 w-7 sm:h-8 sm:w-auto sm:px-2.5 rounded-lg sm:rounded-xl bg-purple-950/70 hover:bg-purple-900 border border-purple-700/80 hover:border-purple-500 text-purple-200 text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-sm active:scale-95 shrink-0"
-            >
-              <Layers className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0 text-purple-300" />
-              <span className="hidden sm:inline">Bộ Bài</span>
-            </button>
+            {/* Management Group: Bộ Bài & Nhóm Người */}
+            <div className="flex items-center gap-0.5 bg-[#101220]/80 p-0.5 rounded-lg sm:rounded-xl border border-purple-950/80">
+              {/* Bộ Bài */}
+              <button
+                type="button"
+                onClick={() => setIsTemplatesOpen(true)}
+                title="Chọn hoặc tạo template bộ bài"
+                className="h-6 w-6.5 sm:h-7 sm:w-auto sm:px-2 rounded-md sm:rounded-lg hover:bg-purple-950/80 text-purple-200 text-xs font-bold transition-all flex items-center justify-center gap-1 cursor-pointer"
+              >
+                <Layers className="w-3.5 h-3.5 text-purple-300 shrink-0" />
+                <span className="hidden sm:inline">Bộ Bài</span>
+              </button>
 
-            {/* Nhóm Người Chơi */}
-            <button
-              type="button"
-              onClick={() => setIsRostersOpen(true)}
-              title="Quản lý danh sách nhóm người chơi đã lưu (sửa hoặc áp dụng vào bàn)"
-              className="h-7 w-7 sm:h-8 sm:w-auto sm:px-2.5 rounded-lg sm:rounded-xl bg-purple-950/70 hover:bg-purple-900 border border-purple-700/80 hover:border-purple-500 text-purple-200 text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-sm active:scale-95 shrink-0"
-            >
-              <Users className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0 text-purple-300" />
-              <span className="hidden sm:inline">Nhóm Người</span>
-            </button>
+              {/* Nhóm Người Chơi */}
+              <button
+                type="button"
+                onClick={() => setIsRostersOpen(true)}
+                title="Quản lý danh sách nhóm người chơi đã lưu (sửa hoặc áp dụng vào bàn)"
+                className="h-6 w-6.5 sm:h-7 sm:w-auto sm:px-2 rounded-md sm:rounded-lg hover:bg-purple-950/80 text-purple-200 text-xs font-bold transition-all flex items-center justify-center gap-1 cursor-pointer"
+              >
+                <Users className="w-3.5 h-3.5 text-purple-300 shrink-0" />
+                <span className="hidden sm:inline">Nhóm Người</span>
+              </button>
+            </div>
 
-            {/* Cài Đặt Luật Chơi */}
-            <button
-              type="button"
-              onClick={() => setIsSettingsOpen(true)}
-              title="Cài đặt luật chơi (Bật/tắt Sói cắn đồng loại, lưu state game...)"
-              className="h-7 w-7 sm:h-8 sm:w-auto sm:px-2.5 rounded-lg sm:rounded-xl bg-[#141628] hover:bg-[#1e2038] border border-slate-800 hover:border-purple-600 text-purple-200 text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-sm active:scale-95 shrink-0"
-            >
-              <Settings className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0 text-purple-300" />
-              <span className="hidden sm:inline">Cài Đặt</span>
-            </button>
+            {/* Tools Group: Cài Đặt, Lịch Sử, Thư Viện */}
+            <div className="flex items-center gap-0.5 bg-[#101220]/80 p-0.5 rounded-lg sm:rounded-xl border border-slate-800">
+              {/* Cài Đặt Luật Chơi */}
+              <button
+                type="button"
+                onClick={() => setIsSettingsOpen(true)}
+                title="Cài đặt luật chơi (Bật/tắt Sói cắn đồng loại, lưu state game...)"
+                className="h-6 w-6.5 sm:h-7 sm:w-auto sm:px-2 rounded-md sm:rounded-lg hover:bg-slate-800 text-purple-200 text-xs font-bold transition-all flex items-center justify-center gap-1 cursor-pointer"
+              >
+                <Settings className="w-3.5 h-3.5 text-purple-300 shrink-0" />
+                <span className="hidden md:inline">Cài Đặt</span>
+              </button>
 
-            {/* Lịch Sử */}
-            <button
-              type="button"
-              onClick={() => setIsHistoryOpen(true)}
-              title="Xem lịch sử các trận đấu đã lưu trên Neon DB"
-              className="h-7 w-7 sm:h-8 sm:w-auto sm:px-2.5 rounded-lg sm:rounded-xl bg-[#141628] hover:bg-[#1e2038] border border-slate-800 hover:border-purple-600 text-slate-300 text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-sm active:scale-95 shrink-0"
-            >
-              <History className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0 text-slate-300" />
-              <span className="hidden md:inline">Lịch Sử</span>
-            </button>
+              {/* Lịch Sử */}
+              <button
+                type="button"
+                onClick={() => setIsHistoryOpen(true)}
+                title="Xem lịch sử các trận đấu đã lưu trên Neon DB"
+                className="h-6 w-6.5 sm:h-7 sm:w-auto sm:px-2 rounded-md sm:rounded-lg hover:bg-slate-800 text-slate-300 text-xs font-bold transition-all flex items-center justify-center gap-1 cursor-pointer"
+              >
+                <History className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                <span className="hidden md:inline">Lịch Sử</span>
+              </button>
 
-            {/* Thư viện */}
-            <button
-              type="button"
-              onClick={() => setIsLibraryOpen(true)}
-              title="Thư viện hướng dẫn 48 vai trò Ma Sói"
-              className="h-7 w-7 sm:h-8 sm:w-auto sm:px-2.5 rounded-lg sm:rounded-xl bg-[#141628] hover:bg-[#1e2038] border border-slate-800 hover:border-purple-600 text-slate-300 text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-sm active:scale-95 shrink-0"
-            >
-              <BookOpen className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0 text-slate-300" />
-              <span className="hidden md:inline">Thư Viện</span>
-            </button>
+              {/* Thư viện */}
+              <button
+                type="button"
+                onClick={() => setIsLibraryOpen(true)}
+                title="Thư viện hướng dẫn 48 vai trò Ma Sói"
+                className="h-6 w-6.5 sm:h-7 sm:w-auto sm:px-2 rounded-md sm:rounded-lg hover:bg-slate-800 text-slate-300 text-xs font-bold transition-all flex items-center justify-center gap-1 cursor-pointer"
+              >
+                <BookOpen className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                <span className="hidden md:inline">Thư Viện</span>
+              </button>
+            </div>
           </div>
         </div>
 
-        {/* Row 2: Unified Segmented Tabs & Live Game Stats */}
-        <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-1.5 sm:gap-2 mt-1.5 pt-1.5 border-t border-purple-950/50">
-          {/* Left: Tab Switcher (Unified 32px height) */}
-          <div className="flex items-center gap-1.5 bg-[#0a0c16] p-0.5 rounded-xl border border-purple-950/80">
+        {/* Row 2: Unified Segmented Tabs & Live Game Stats (STRICTLY ONE ROW, NO WRAP) */}
+        <div className="max-w-7xl mx-auto flex items-center justify-between gap-1 sm:gap-2 mt-1 sm:mt-1.5 pt-1 sm:pt-1.5 border-t border-purple-950/50">
+          {/* Left: Tab Switcher (Unified 28px/32px height) */}
+          <div className="flex items-center gap-0.5 sm:gap-1 bg-[#0a0c16] p-0.5 rounded-lg sm:rounded-xl border border-purple-950/80 shrink-0">
             <button
               type="button"
               onClick={() => setActiveTab(isNight ? 'night' : 'day')}
-              className={`h-8 px-3 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 border cursor-pointer ${
+              className={`h-7 sm:h-8 px-2 sm:px-3 rounded-md sm:rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 border cursor-pointer ${
                 activeTab === 'night' || activeTab === 'day'
                   ? 'bg-gradient-to-r from-purple-900 to-[#2c084d] border-purple-500 text-white shadow-md'
                   : 'border-transparent text-slate-400 hover:text-slate-200'
               }`}
             >
-              {isNight ? <Moon className="w-3.5 h-3.5 fill-purple-400 text-purple-400" /> : <Sun className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />}
-              <span>{isNight ? `Kịch Bản Đêm ${roundNumber}` : `Ban Ngày ${roundNumber}`}</span>
+              {isNight ? <Moon className="w-3.5 h-3.5 fill-purple-400 text-purple-400 shrink-0" /> : <Sun className="w-3.5 h-3.5 fill-amber-400 text-amber-400 shrink-0" />}
+              <span>
+                <span className="sm:hidden">{isNight ? `Đêm ${roundNumber}` : `Ngày ${roundNumber}`}</span>
+                <span className="hidden sm:inline">{isNight ? `Kịch Bản Đêm ${roundNumber}` : `Ban Ngày ${roundNumber}`}</span>
+              </span>
             </button>
 
             <button
               type="button"
               onClick={() => setActiveTab('table')}
-              className={`h-8 px-3 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 border cursor-pointer ${
+              className={`h-7 sm:h-8 px-2 sm:px-3 rounded-md sm:rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 border cursor-pointer ${
                 activeTab === 'table'
                   ? 'bg-gradient-to-r from-purple-900 to-[#2c084d] border-purple-500 text-white shadow-md'
                   : 'border-transparent text-slate-400 hover:text-slate-200'
               }`}
             >
-              <Users className="w-3.5 h-3.5 text-slate-300" />
-              <span>Sơ Đồ Bàn</span>
+              <Users className="w-3.5 h-3.5 text-slate-300 shrink-0" />
+              <span>
+                <span className="sm:hidden">Sơ Đồ</span>
+                <span className="hidden sm:inline">Sơ Đồ Bàn</span>
+              </span>
             </button>
           </div>
 
-          {/* Right: Unified Live Game Stats (All exactly 32px height) */}
-          <div className="flex items-center gap-1.5">
+          {/* Right: Unified Live Game Stats (Matching height, strictly one line) */}
+          <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
             {/* Werewolf count out of total alive */}
             <div 
-              className="h-8 px-2.5 rounded-xl bg-gradient-to-r from-[#240609] to-[#160204] border border-rose-600/90 text-rose-200 text-xs font-black flex items-center gap-1.5 shadow-[0_0_12px_rgba(225,29,72,0.4)]"
+              className="h-7 sm:h-8 px-2 sm:px-2.5 rounded-lg sm:rounded-xl bg-gradient-to-r from-[#240609] to-[#160204] border border-rose-600/80 text-rose-200 text-xs font-black flex items-center gap-1 shadow-[0_0_10px_rgba(225,29,72,0.3)] shrink-0"
               title={`Số Ma Sói còn sống: ${aliveWolves} / ${totalWolvesInGame} Sói`}
             >
-              <WolfIcon className="w-3.5 h-3.5 text-rose-400" />
-              <span>{aliveWolves}/{totalWolvesInGame} Sói</span>
+              <WolfIcon className="w-3.5 h-3.5 text-rose-400 shrink-0" />
+              <span>{aliveWolves}/{totalWolvesInGame}</span>
+              <span className="hidden sm:inline text-rose-300 font-semibold ml-0.5">Sói</span>
             </div>
 
             {/* Villagers alive */}
             <div 
-              className="h-8 px-2.5 rounded-xl bg-[#09152a] border border-blue-700/80 text-blue-200 text-xs font-bold flex items-center gap-1.5"
+              className="h-7 sm:h-8 px-2 sm:px-2.5 rounded-lg sm:rounded-xl bg-[#09152a] border border-blue-700/80 text-blue-200 text-xs font-bold flex items-center gap-1 shrink-0"
               title="Số Dân Làng còn sống"
             >
-              <span>👨‍🌾 {aliveVillagers} Dân</span>
+              <span>👨‍🌾 {aliveVillagers}</span>
+              <span className="hidden sm:inline text-blue-300 ml-0.5">Dân</span>
             </div>
 
             {/* Dead Players (Clickable to view who are they and when) */}
             <button
               type="button"
               onClick={() => setIsCemeteryOpen(true)}
-              className="h-8 px-2.5 rounded-xl bg-[#1b0826] hover:bg-[#280c38] border border-purple-700/80 hover:border-purple-400 text-purple-200 text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-all shadow-sm"
+              className="h-7 sm:h-8 px-2 sm:px-2.5 rounded-lg sm:rounded-xl bg-[#1b0826] hover:bg-[#280c38] border border-purple-700/80 hover:border-purple-400 text-purple-200 text-xs font-bold flex items-center gap-1 cursor-pointer transition-all shadow-sm shrink-0"
               title="Bấm để xem danh sách ai đã chết, chết vì sao và khi nào"
             >
-              <Skull className="w-3.5 h-3.5 text-rose-400" />
-              <span>{players.length - alivePlayers.length} Chết ➔</span>
+              <Skull className="w-3.5 h-3.5 text-rose-400 shrink-0" />
+              <span>{players.length - alivePlayers.length}</span>
+              <span className="hidden sm:inline ml-0.5">Chết</span>
+              <span className="text-[10px] text-purple-400">➔</span>
             </button>
           </div>
         </div>

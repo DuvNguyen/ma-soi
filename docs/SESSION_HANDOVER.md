@@ -357,5 +357,46 @@ Theo quy chuẩn [docs/game-rules.md](file:///home/levi/Desktop/Projects/werewol
   - Đổi nút `Tên` trên Header thành `Nhóm Người` trực quan.
   - Thêm nút hành động nhanh `[✏️ Sửa Nhóm Người]` nổi bật ngay trên thanh Sân Khấu Quản Trò tại tab `Sơ Đồ Bàn` (`PlayersGridView.jsx`).
   - Trong `PlayerRosterModal.jsx`, nút `[✏️ Sửa Nhóm]` được thiết kế dạng button tím viền sáng (`bg-purple-950/80 border-purple-600 font-bold`) để người dùng desktop bấm sửa tức thì.
+- **Loại Bỏ Khung Thẻ Viền Ngoài Khổng Lồ Của Kịch Bản Đêm (`NightPhaseView.jsx`)**:
+  - Bỏ toàn bộ lớp viền ngoài hộp card khổng lồ (`border-purple-900/60`, `rounded-3xl`, `shadow-2xl`, `p-4 md:p-6`, background gradient mờ), giúp giao diện Kịch Bản Đêm hiển thị thoáng đãng, đồng bộ hoàn toàn với phong cách phẳng trực tiếp của Ban Ngày (`DayPhaseView.jsx`).
+
+## 18. Đồng Bộ Chuẩn Thiết Kế Cho Modal Quản Lý Nhóm & Khung Cảnh Báo Bước Đêm
+- **Đồng Bộ Hoàn Toàn Giao Diện Modal Nhóm Người Chơi Với Quản Lý Bộ Bài (`PlayerRosterModal.jsx`)**:
+  - **Header Modal**: Thêm icon hộp chứa `Users`, tiêu đề rút gọn `QUẢN LÝ NHÓM NGƯỜI CHƠI` co giãn theo kích thước màn hình tránh bị cắt chữ (`LƯU TRỮ DANH SÁ...`), nút thêm mới dùng chuẩn `GothicButton` với `icon={Plus}` và label `Thêm Nhóm`.
+  - **Hành động thẻ nhóm**: Thay thế nút tím thô kệch `[ ✏️ Sửa Nhóm ]` bằng cặp nút hành động tinh tế đồng bộ tuyệt đối với `DeckTemplateModal`:
+    - `[ 🗑 Xóa ]`: Text mờ nhạt, hover đỏ `text-slate-500 hover:text-rose-400`.
+    - `[ ✏️ Sửa ]`: Text tím thanh lịch `text-purple-400 hover:text-purple-300`.
+    - `[ Dùng Nhóm Này ➔ ]`: Dùng chuẩn `GothicButton` cỡ nhỏ (`size="sm"`), có mũi tên `ArrowRight` sang trọng.
+- **Chuẩn Hóa Khung Cảnh Báo Kiểm Tra Bước Đêm (`NightPhaseView.jsx`)**:
+  - Loại bỏ khối cảnh báo màu cam cháy (`bg-amber-950/80 border-amber-600/80`) và liên kết gạch chân thô sơ (`underline`).
+  - Chuyển sang thẻ tối Gothic mờ sang trọng (`bg-[#141624]/90 backdrop-blur-md border border-amber-500/40`), có hộp icon cảnh báo chuyên dụng.
+  - Nút **"Bỏ qua bắt buộc ➔"** được chuyển sang dùng chuẩn **`GothicButton` (variant `gold`, size `sm`)** ăn khớp 100% với hệ thống nút của Quản lý bộ bài.
+  - Chuẩn hóa các nút "✕ Xóa chọn lại" bỏ text underline, dùng text button mượt mà.
+- **Loại Bỏ Khung Viền To Bao Quanh Khu Vực Thao Tác Hành Động Đêm (`NightPhaseView.jsx`)**:
+  - Đã loại bỏ hoàn toàn thẻ viền hộp bao bọc thứ hai (`p-5 rounded-3xl bg-[#0f111c] border border-purple-950/80 shadow-[0_4px_25px_rgba(0,0,0,0.6)]`) ở khu vực hành động của từng vai trò (Cupid, Bảo Vệ, Sói săn mồi, Tiên Tri...).
+  - Giúp các phần tử (Ma trận ghế, hộp tóm tắt ghép đôi, bộ chọn người) hiển thị thẳng ra không gian trang thoáng đãng, loại bỏ hiện tượng đóng hộp kép (nested boxes) và tối ưu 100% diện tích chiều ngang cho thiết bị di động.
+
+## 19. Tái Cấu Trúc Header Cố Định Tinh Gọn (Sticky Header Refinement)
+- **Xóa Bỏ Triệt Để Hiện Tượng Xuống Dòng Vỡ Hàng Ở Header Mobile (`App.jsx`)**:
+  - **Hàng 1 (Nhóm chức năng)**: Gom 6 nút rời rạc thành 3 cụm logic rõ ràng:
+    - Nút an toàn `[ Reset Về 0 ]` (đỏ rose).
+    - Cụm cấu hình `[ Bộ Bài | Nhóm Người ]` trong capsule tím obsidian sang trọng.
+    - Cụm tiện ích `[ Cài Đặt | Lịch Sử | Thư Viện ]` trong capsule slate tối giản.
+  - **Hàng 2 (Tabs & Chỉ số chiến trường)**: Loại bỏ `flex-wrap`, cố định **100% TRÊN 1 HÀNG DUY NHẤT**:
+    - Tab Switcher: Co giãn thông minh (`Đêm 1` / `Sơ Đồ` trên mobile; `Kịch Bản Đêm 1` / `Sơ Đồ Bàn` trên desktop).
+    - Bộ 3 chỉ số HUD (Sói, Dân, Chết): Đồng bộ chiều cao chuẩn (`h-7` mobile, `h-8` desktop), label tự co ngắn (`0/2`, `14`, `0 ➔` trên mobile) giúp toàn bộ chiều rộng chỉ ~285px, không bao giờ bị tràn xuống hàng thứ 3.
+  - Tiết kiệm hơn 60px chiều cao màn hình di động, tạo cảm giác tinh gọn, hiện đại và cao cấp.
+
+## 20. Tối Ưu Nút "Đi Ngủ" Tức Thì & Smart Scroll Hiding
+- **Nút "Đi Ngủ" Ngay Tại Chỗ Khi Đã Chọn Xong (`NightPhaseView.jsx`)**:
+  - Khi Quản trò hoàn thành thao tác chọn (Bảo vệ chọn 1 người, Sói chọn cắn mồi, Cupid ghép đủ 2 người, Tiên tri soi 1 người), nút hành động `[ Xác Nhận & Đi Ngủ 💤 ➔ ]` xuất hiện ngay bên dưới Ma trận ghế / bộ chọn mà không cần cuộn màn hình.
+- **Smart Floating Advance Button Với IntersectionObserver (`NightPhaseView.jsx`)**:
+  - Khi đã chọn xong (`stepValidation.isValid === true`), nếu người dùng đang ở trên cao (chưa cuộn tới thanh điều hướng gốc ở chân trang), một nút tròn nổi `[ Đi Ngủ 💤 ➔ ]` sẽ nổi ở góc dưới bên phải màn hình di động.
+  - Sử dụng `IntersectionObserver` giám sát `originalFooterRef`: Ngay khi người dùng cuộn xuống dưới đáy trang và thanh điều hướng gốc xuất hiện trong tầm nhìn (`entry.isIntersecting === true`), nút nổi sẽ tự động mờ dần và ẩn đi (`opacity-0 pointer-events-none`) để chỉ hiển thị thanh điều hướng gốc duy nhất, hoàn toàn loại bỏ hiện tượng trùng lặp nút.
+
+
+
+
+
 
 
