@@ -134,6 +134,7 @@ export function resolveNightPhase(players, nightActions, roundNumber) {
     protectedPlayerId,
     witchSaved,
     witchPoisonTargetId,
+    whiteWolfVictimId,
     isCursedInfect,
     lastCursedVictimId
   } = nightActions;
@@ -146,6 +147,16 @@ export function resolveNightPhase(players, nightActions, roundNumber) {
       logs.push(`🔮 SÓI NGUYỀN ĐÃ LÂY NHIỄM: ${cursedTarget.name} (vốn giữ vai ${origRole?.name || 'Chưa lộ vai'}) không bị cắn chết mà đã được Sói Nguyền lây nhiễm, gia nhập bầy Ma Sói của làng!`);
     }
   }
+
+  // 0.1 Process Rusty Sword Poison from previous night
+  updatedPlayers.forEach(p => {
+    if (p.isAlive && p.poisonedByRustySword && roundNumber >= (p.rustySwordPoisonRound || 1)) {
+      killedPlayerIds.add(p.id);
+      deathReasons[p.id] = 'Chết vì vết thương nhiễm trùng từ thanh kiếm gỉ của Hiệp Sĩ';
+      logs.push(`🗡️ VẾT THƯƠNG PHÁT TÁC: Ma Sói ${p.name} (#${p.id}) đã gục chết trong đêm do nhát chém gỉ sét của Hiệp Sĩ từ trước!`);
+      p.poisonedByRustySword = false;
+    }
+  });
 
   // Helper to process wolf bite on a target
   const processWolfBite = (targetId, isSecondTarget = false) => {
@@ -204,6 +215,22 @@ export function resolveNightPhase(players, nightActions, roundNumber) {
       deathReasons[target.id] = isSecondTarget 
         ? 'Bị Ma Sói cuồng nộ (Sói Con chết) cắn chết trong đêm'
         : 'Bị Ma Sói cắn chết trong đêm';
+
+      // Hiệp Sĩ Kiếm Gỉ: Nhiễm độc con Ma Sói sống gần nhất bên trái
+      if (targetRole?.id === 'hiep-si-kiem-gi') {
+        const aliveWolves = updatedPlayers.filter(p => p.isAlive && isWolfPlayer(p) && p.id !== target.id);
+        if (aliveWolves.length > 0) {
+          aliveWolves.sort((a, b) => {
+            const distA = (a.id - target.id + updatedPlayers.length) % updatedPlayers.length;
+            const distB = (b.id - target.id + updatedPlayers.length) % updatedPlayers.length;
+            return distA - distB;
+          });
+          const targetWolf = aliveWolves[0];
+          targetWolf.poisonedByRustySword = true;
+          targetWolf.rustySwordPoisonRound = roundNumber + 1;
+          logs.push(`🗡️ KIẾM GỈ NHIỄM ĐỘC: Hiệp Sĩ Kiếm Gỉ (${target.name}) bị Sói cắn chết, nhưng thanh kiếm gỉ đã chém nhiễm độc con Sói ngồi gần nhất bên trái (${targetWolf.name} #${targetWolf.id})! Con Sói này sẽ phát độc chết vào đêm tiếp theo!`);
+        }
+      }
     }
   };
 
@@ -230,6 +257,16 @@ export function resolveNightPhase(players, nightActions, roundNumber) {
       if (poisonRole?.id === 'gia-lang') {
         elderKilledByWitch = true;
       }
+    }
+  }
+
+  // 2.1 Process White Werewolf Kill (Sói Trắng giết đồng bọn cứ 2 đêm 1 lần)
+  if (whiteWolfVictimId) {
+    const whiteWolfTarget = updatedPlayers.find(p => p.id === whiteWolfVictimId);
+    if (whiteWolfTarget && whiteWolfTarget.isAlive) {
+      killedPlayerIds.add(whiteWolfTarget.id);
+      deathReasons[whiteWolfTarget.id] = 'Bị Sói Trắng bí mật sát hại trong đêm để độc chiếm ngôi làng';
+      logs.push(`🐺 SÓI TRẮNG TÀN SÁT: Sói Trắng đã bí mật xé xác Ma Sói ${whiteWolfTarget.name} (#${whiteWolfTarget.id}) trong đêm!`);
     }
   }
 
@@ -276,6 +313,25 @@ export function resolveNightPhase(players, nightActions, roundNumber) {
         delete p.role;
         delete p.originalRole;
         logs.push(`Thần tượng (${idol.name}) của Đứa Trẻ Hoang Dã (${p.name}) đã chết! Đứa Trẻ nổi giận biến thành Ma Sói!`);
+      }
+    }
+  });
+
+  // 6. Check Shadow (Ảnh Tử) host death
+  updatedPlayers.forEach(p => {
+    if (p.isAlive && (p.currentRoleId === 'anh-tu' || p.roleId === 'anh-tu' || getPlayerRole(p)?.id === 'anh-tu') && p.shadowHostId) {
+      if (killedPlayerIds.has(p.shadowHostId)) {
+        const host = updatedPlayers.find(x => x.id === p.shadowHostId);
+        if (host) {
+          const inheritRoleId = host.originalRoleId || host.currentRoleId || host.roleId || 'dan-lang';
+          p.originalRoleId = 'anh-tu';
+          p.currentRoleId = inheritRoleId;
+          p.roleId = inheritRoleId;
+          delete p.role;
+          delete p.originalRole;
+          const newRole = getRole(inheritRoleId);
+          logs.push(`👻 ẢNH TỬ THỨC TỈNH: Bản thể (${host.name}) của Ảnh Tử (${p.name}) đã qua đời! Ảnh Tử hấp thu linh hồn và trở thành ${newRole?.name || inheritRoleId}!`);
+        }
       }
     }
   });

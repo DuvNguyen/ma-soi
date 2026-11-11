@@ -416,6 +416,42 @@ Theo quy chuẩn [docs/game-rules.md](file:///home/levi/Desktop/Projects/werewol
   - Các người chơi còn sống khác được xếp tiếp theo sau theo thứ tự số ghế thông thường.
   - Giúp Quản trò thao tác cực nhanh khi Bảo Vệ muốn tự bảo vệ chính mình (Self-protect) mà không cần phải tìm kiếm vị trí ghế của họ trong bàn.
 
+## 23. Hệ Thống Phản Hồi Rung Haptic & Logic Toàn Diện Các Vai Đặc Biệt
+- **Hệ Thống Phản Hồi Rung Xúc Giác & Web Audio Chime (`src/utils/haptics.js`)**:
+  - Tích hợp `triggerHaptic(type)` đa nền tảng: phần cứng `navigator.vibrate` kết hợp cùng bộ âm tổng hợp Web Audio API (tactile audio clicks & chimes), bảo đảm hoạt động 100% trên iPhone / iOS WebKit và Android PWA.
+  - **Hết giờ thảo luận 3-5 phút ban ngày**: Khi đồng hồ đếm ngược chạm 0, kích hoạt rung cảnh báo nhịp ba cấp thiết (`[350, 150, 350, 150, 600, 200, 600]`) và phát chuông báo Gothic, đồng thời hiển thị banner phát sáng *"HẾT GIỜ THẢO LUẬN! (RUNG & CHUÔNG BÁO)"* kèm nút rung lại.
+  - Đếm ngược 5 giây cuối (5, 4, 3, 2, 1) có rung nhẹ `timer-tick`.
+  - Thao tác chạm ghế (`PlayerSeatPicker.jsx`) rung xúc giác `tap`, bấm chuyển bước đêm (`NightPhaseView.jsx`) rung `confirm`.
+- **Kị Sĩ Thách Đấu Quyết Đấu Ban Ngày (`ki-si`, `DayPhaseView.jsx`, `App.jsx`)**:
+  - Kị Sĩ lật bài duy nhất 1 lần trong ván vào ban ngày trước giờ vote để thách đấu 1 người.
+  - **Nếu mục tiêu là Ma Sói**: Sói lập tức bị chém chết tại chỗ, ngày kết thúc không cần biểu quyết treo cổ tiếp.
+  - **Nếu mục tiêu là Dân Làng/Phe thiện**: Kị Sĩ ngã gục tử trận tại chỗ vì thách đấu sai lầm, làng tiếp tục biểu quyết bình thường.
+- **Ảnh Tử (Bóng Ma) Thừa Kế Linh Hồn (`anh-tu`, `NightPhaseView.jsx`, `gameLogic.js`, `App.jsx`)**:
+  - Đêm 1: Ảnh Tử thức dậy chọn 1 người chơi làm Bản Thể (`shadowHostId`).
+  - Khi người Bản Thể bị chết (trong đêm bởi Sói/Phù Thủy hoặc ban ngày do Treo cổ/Quyết đấu): Ảnh Tử lập tức kế thừa lá bài và vai trò của người chết đó!
+- **Hiệp Sĩ Kiếm Gỉ Nhiễm Độc Phục Thù (`hiep-si-kiem-gi`, `gameLogic.js`)**:
+  - Khi Hiệp Sĩ Kiếm Gỉ bị Ma Sói cắn chết trong đêm, thanh kiếm gỉ làm nhiễm độc con Ma Sói sống gần nhất bên tay trái. Con Sói này sẽ phát độc chết vào đêm tiếp theo!
+- **Người Thuần Phục Gấu Báo Động Ban Ngày (`nguoi-thuan-phuc-gau` / `than-gau`, `DayPhaseView.jsx`)**:
+  - Tự động quét 2 người chơi còn sống ngồi sát bên trái và bên phải Thần Gấu theo vòng tròn bàn. Nếu có ít nhất 1 Ma Sói kề bên, hiển thị banner báo động nhấp nháy *"GẤU GẦM GỪZZZZ! CÓ MA SÓI NGỒI SÁT CẠNH!"*.
+
+## 24. Audit Chuyên Sâu & Hoàn Thiện Logic Kỹ Năng Toàn Bộ Nhân Vật
+- **Cáo (`cao`, `NightPhaseView.jsx`, `App.jsx`)**:
+  - Mỗi đêm thức dậy chọn 1 tâm điểm. Hệ thống tự động tính nhóm 3 người liền kề theo vòng tròn bàn (trái, tâm điểm, phải).
+  - Tự động kiểm tra: Nếu có Sói -> thông báo *"CÓ MA SÓI (Quản trò gật đầu)"* và Cáo giữ năng lực. Nếu không có Sói -> thông báo *"KHÔNG CÓ MA SÓI (Quản trò lắc đầu)"* và Cáo **mất vĩnh viễn năng lực** (`foxLostPower = true`, các đêm sau không gọi dậy nữa).
+- **Sói Trắng (`soi-trang`, `NightPhaseView.jsx`, `gameLogic.js`)**:
+  - Cứ 2 đêm 1 lần (Đêm chẵn: 2, 4, 6...), Sói Trắng thức dậy riêng một mình sau bầy Sói.
+  - Có thể chọn cắn chết 1 con Ma Sói khác trong bầy hoặc bỏ qua. Nạn nhân chết trong đêm cùng đợt giải quyết thương vong.
+- **Nguyệt Nữ (`nguyet-nu`, `NightPhaseView.jsx`, `App.jsx`)**:
+  - Đầu mỗi đêm (Wake Order 0.5), Nguyệt Nữ thức dậy chọn 1 người chơi để khóa toàn bộ năng lực sử dụng ban đêm.
+- **Con Quạ (`con-qua`, `DayPhaseView.jsx`)**:
+  - Người bị Quạ gieo 2 phiếu phạt trong đêm được hiển thị huy hiệu tím nổi bật `🪶 Quạ phạt (+2)` ngay trên thẻ biểu quyết ban ngày.
+- **Người Thế Thân (`nguoi-the-than`, `DayPhaseView.jsx`)**:
+  - Bổ sung nút xử lý khi biểu quyết ban ngày hòa phiếu (Tie-vote): Người Thế Thân lập tức bị đưa lên giàn treo cổ chết thay theo luật chuẩn quốc tế.
+- **Thiên Sứ / Thiên Thần (`thien-su`, `App.jsx`)**:
+  - Kích hoạt chiến thắng ngay lập tức nếu bị Ma Sói cắn chết ở Đêm 1 hoặc bị biểu quyết treo cổ ở Ngày 1.
+
+
+
 
 
 

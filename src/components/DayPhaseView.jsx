@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Sun, Skull, Flame, ShieldAlert, Clock, Moon, AlertTriangle, Check, UserX, RotateCcw, Gavel, Play, Pause, Star, Award, ChevronDown, ChevronUp } from 'lucide-react';
+import { Sun, Skull, Flame, ShieldAlert, Clock, Moon, AlertTriangle, Check, UserX, RotateCcw, Gavel, Play, Pause, Star, Award, ChevronDown, ChevronUp, Swords, Bell, Volume2 } from 'lucide-react';
 import GothicButton from './ui/GothicButton';
 import GothicBadge from './ui/GothicBadge';
 import WolfIcon from './ui/WolfIcon';
 import { isWolfPlayer, getPlayerRole, getPlayerOriginalRole } from '../utils/roleUtils';
+import triggerHaptic from '../utils/haptics';
+import { useGothicDialog } from '../context/GothicDialogContext';
 
 export default function DayPhaseView({
   roundNumber,
@@ -13,20 +15,34 @@ export default function DayPhaseView({
   onUndoLynch,
   onAdvanceToNight,
   onToggleSheriff,
+  onKnightDuel,
+  nightState,
   lynchedTodayPlayerId
 }) {
+  const { showConfirm, showAlert } = useGothicDialog();
   const [timeLeft, setTimeLeft] = useState(180); // 3 minutes discussion
   const [isTimerRunning, setIsTimerRunning] = useState(false);
   const [selectedLynchId, setSelectedLynchId] = useState(null);
   const [extraLynchAllowed, setExtraLynchAllowed] = useState(false);
   const [showSheriffSelector, setShowSheriffSelector] = useState(false);
+  const [showKnightDuelModal, setShowKnightDuelModal] = useState(false);
+  const [selectedKnightTargetId, setSelectedKnightTargetId] = useState(null);
 
-  // Timer effect
+  // Timer effect with Haptic & Audio feedback
   useEffect(() => {
     let interval = null;
     if (isTimerRunning && timeLeft > 0) {
       interval = setInterval(() => {
-        setTimeLeft(t => t - 1);
+        setTimeLeft(t => {
+          if (t <= 5 && t > 1) {
+            triggerHaptic('timer-tick');
+          }
+          if (t === 1) {
+            // Trigger haptic alarm when timer hits 0
+            triggerHaptic('timer-end');
+          }
+          return t - 1;
+        });
       }, 1000);
     } else if (timeLeft === 0) {
       setIsTimerRunning(false);
@@ -263,6 +279,16 @@ export default function DayPhaseView({
             size="sm"
             onClick={() => {
               setIsTimerRunning(false);
+              setTimeLeft(60);
+            }}
+          >
+            1 Phút
+          </GothicButton>
+          <GothicButton
+            variant="dark"
+            size="sm"
+            onClick={() => {
+              setIsTimerRunning(false);
               setTimeLeft(180);
             }}
           >
@@ -280,6 +306,180 @@ export default function DayPhaseView({
           </GothicButton>
         </div>
       </div>
+
+      {/* Timer Expired Haptic Alarm Banner */}
+      {timeLeft === 0 && (
+        <div className="p-3.5 rounded-2xl bg-gradient-to-r from-rose-950/90 via-[#33080e] to-rose-950/90 border border-rose-500 text-rose-200 shadow-[0_0_25px_rgba(225,29,72,0.4)] flex items-center justify-between gap-3 animate-pulse">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-rose-900 border border-rose-500 flex items-center justify-center text-rose-300 shrink-0">
+              <Bell className="w-5 h-5 animate-bounce" />
+            </div>
+            <div>
+              <h4 className="font-bold text-rose-100 text-sm font-cinzel">HẾT GIỜ THẢO LUẬN! (RUNG & CHUÔNG BÁO)</h4>
+              <p className="text-xs text-rose-300/80">Làng dừng tranh cãi và chuyển sang giai đoạn biểu quyết giơ tay!</p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => triggerHaptic('timer-end')}
+            className="px-3 py-1.5 rounded-xl bg-rose-900/80 hover:bg-rose-800 border border-rose-500 text-xs font-bold text-rose-100 flex items-center gap-1.5 shrink-0 cursor-pointer shadow-md"
+          >
+            <Volume2 className="w-3.5 h-3.5" />
+            Rung Lại 🔔
+          </button>
+        </div>
+      )}
+
+      {/* BEAR TAMER (NGƯỜI THUẦN PHỤC GẤU - GẤU GẦM BAN NGÀY) */}
+      {(() => {
+        const bearTamer = players.find(p => p.isAlive && ((p.currentRoleId || p.roleId) === 'nguoi-thuan-phuc-gau' || getPlayerRole(p)?.id === 'nguoi-thuan-phuc-gau' || (p.currentRoleId || p.roleId) === 'than-gau'));
+        if (!bearTamer || alivePlayers.length <= 2) return null;
+
+        const sortedAlive = [...alivePlayers].sort((a, b) => a.id - b.id);
+        const idx = sortedAlive.findIndex(p => p.id === bearTamer.id);
+        if (idx === -1) return null;
+
+        const leftNeighbor = sortedAlive[(idx - 1 + sortedAlive.length) % sortedAlive.length];
+        const rightNeighbor = sortedAlive[(idx + 1) % sortedAlive.length];
+        const bearHasWolf = isWolfPlayer(leftNeighbor) || isWolfPlayer(rightNeighbor);
+
+        return (
+          <div className={`p-4 rounded-2xl border backdrop-blur-md transition-all ${
+            bearHasWolf
+              ? 'bg-gradient-to-r from-amber-950/80 via-[#261508] to-amber-950/80 border-amber-500 text-amber-200 shadow-[0_0_20px_rgba(245,158,11,0.35)] animate-pulse'
+              : 'bg-slate-900/60 border-slate-700/60 text-slate-300'
+          }`}>
+            <div className="flex items-center gap-3">
+              <span className="text-2xl shrink-0">🐻</span>
+              <div className="flex-1">
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] uppercase font-black tracking-widest text-amber-400">
+                    Kỹ Năng Ban Ngày: Người Thuần Phục Gấu
+                  </span>
+                  <span className="text-[10px] px-1.5 py-0.2 rounded bg-amber-950/80 border border-amber-700/80 text-amber-300 font-bold">
+                    Ghế #{bearTamer.id} ({bearTamer.name})
+                  </span>
+                </div>
+                {bearHasWolf ? (
+                  <div className="mt-1">
+                    <h4 className="font-cinzel font-black text-amber-200 text-sm sm:text-base">
+                      GẤU GẦM GỪZZZZ! CÓ MA SÓI NGỒI SÁT CẠNH!
+                    </h4>
+                    <p className="text-xs text-amber-300/80 mt-0.5">
+                      Quản trò hãy gầm lớn: Gấu phát hiện ít nhất 1 Ma Sói đang ngồi kề bên ({leftNeighbor.name} #{leftNeighbor.id} hoặc {rightNeighbor.name} #{rightNeighbor.id})!
+                    </p>
+                  </div>
+                ) : (
+                  <div className="mt-1">
+                    <h4 className="font-cinzel font-bold text-slate-200 text-sm">
+                      Gấu nằm im ngoan ngoãn.
+                    </h4>
+                    <p className="text-xs text-slate-400 mt-0.5">
+                      Hai người chơi ngồi cạnh ({leftNeighbor.name} #{leftNeighbor.id} và {rightNeighbor.name} #{rightNeighbor.id}) đều không phải Ma Sói.
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* KNIGHT DUEL (KỊ SĨ LẬT BÀI THÁCH ĐẤU) */}
+      {(() => {
+        const knight = players.find(p => p.isAlive && ((p.currentRoleId || p.roleId) === 'ki-si' || getPlayerRole(p)?.id === 'ki-si'));
+        if (!knight || knight.hasUsedKnightDuel || hasLynchedToday) return null;
+
+        const validTargets = alivePlayers.filter(p => p.id !== knight.id);
+
+        const handleConfirmKnightDuel = () => {
+          if (!selectedKnightTargetId) {
+            showAlert({
+              title: 'CHƯA CHỌN MỤC TIÊU!',
+              message: 'Vui lòng chọn 1 người chơi để Kị Sĩ thách đấu.',
+              variant: 'warning'
+            });
+            return;
+          }
+          const target = players.find(p => p.id === selectedKnightTargetId);
+          showConfirm({
+            title: '⚔️ KỊ SĨ QUYẾT ĐẤU?',
+            message: `Kị Sĩ ${knight.name} (#${knight.id}) sẽ lật bài thách đấu ${target.name} (#${target.id})!\n\n• Nếu là MA SÓI: Sói chết ngay lập tức, ngày kết thúc không cần vote tiếp.\n• Nếu là DÂN LÀNG: Kị Sĩ tự sát tại chỗ vì thách đấu sai!\n\nBạn có chắc muốn tiến hành?`,
+            variant: 'blood',
+            confirmText: 'Lật Bài Quyết Đấu ⚔️',
+            onConfirm: () => {
+              if (onKnightDuel) {
+                onKnightDuel(knight.id, selectedKnightTargetId);
+                setSelectedKnightTargetId(null);
+              }
+            }
+          });
+        };
+
+        return (
+          <div className="p-4 rounded-2xl bg-gradient-to-r from-blue-950/80 via-[#0d1629] to-blue-950/80 border border-blue-500/80 shadow-[0_0_20px_rgba(59,130,246,0.3)] space-y-3">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-blue-900/60 pb-2.5">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-blue-900 border border-blue-500 flex items-center justify-center text-blue-300 shadow-[0_0_12px_rgba(59,130,246,0.5)] shrink-0">
+                  <Swords className="w-5 h-5" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] uppercase font-black tracking-widest text-blue-300">
+                      Kỹ Năng Đặc Biệt Ban Ngày
+                    </span>
+                    <span className="text-[10px] px-1.5 py-0.2 rounded bg-blue-900 border border-blue-600 text-blue-200 font-bold">
+                      1 lần duy nhất
+                    </span>
+                  </div>
+                  <h4 className="font-cinzel font-black text-white text-sm sm:text-base">
+                    KỊ SĨ LẬT BÀI THÁCH ĐẤU: {knight.name} (#{knight.id})
+                  </h4>
+                </div>
+              </div>
+              <GothicButton
+                variant="blood"
+                size="sm"
+                disabled={!selectedKnightTargetId}
+                onClick={handleConfirmKnightDuel}
+                icon={Swords}
+              >
+                Quyết Đấu Ngay ⚔️
+              </GothicButton>
+            </div>
+
+            <p className="text-xs text-blue-200/80">
+              Chọn 1 người chơi để Kị Sĩ lật bài chỉ mặt điểm tên trước giờ biểu quyết:
+            </p>
+
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+              {validTargets.map(p => {
+                const isSelected = selectedKnightTargetId === p.id;
+                return (
+                  <button
+                    key={p.id}
+                    type="button"
+                    onClick={() => setSelectedKnightTargetId(p.id)}
+                    className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer flex items-center justify-between ${
+                      isSelected
+                        ? 'bg-blue-900/90 border-blue-400 text-white shadow-[0_0_15px_rgba(59,130,246,0.5)] ring-1 ring-blue-400'
+                        : 'bg-[#101424] hover:bg-[#181e35] border-slate-800 text-slate-300'
+                    }`}
+                  >
+                    <div className="truncate">
+                      <div className="font-bold text-xs truncate">#{p.id} {p.name}</div>
+                      <div className="text-[10px] text-slate-400 truncate">
+                        {getPlayerRole(p)?.name || 'Chưa lộ'}
+                      </div>
+                    </div>
+                    {isSelected && <span className="text-xs text-blue-300 font-bold">⚔️</span>}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Voting & Lynching Section - STRICT SINGLE LYNCH RULE */}
       <div className="p-5 rounded-2xl bg-[#0f111c]/60 backdrop-blur-md border border-purple-900/60 shadow-[0_4px_25px_rgba(0,0,0,0.6)] space-y-4">
@@ -391,6 +591,11 @@ export default function DayPhaseView({
                               <WolfIcon className="w-2.5 h-2.5" /> Sói
                             </span>
                           )}
+                          {nightState?.ravenTargetId === p.id && !nightState?.ravenSkipped && (
+                            <span className="text-[9px] px-1.5 py-0.2 rounded font-black bg-purple-950 text-purple-300 border border-purple-600 shadow-[0_0_8px_rgba(168,85,247,0.5)] flex items-center gap-0.5">
+                              🪶 Quạ phạt (+2)
+                            </span>
+                          )}
                         </div>
                         <div className="text-[11px] text-slate-400">
                           Vai: {p.isCursedWolf && origRole ? (
@@ -413,6 +618,37 @@ export default function DayPhaseView({
                 );
               })}
             </div>
+
+            {/* TIE VOTE ACTION FOR SCAPEGOAT (NGƯỜI THẾ THÂN CHẾT THAY KHI HÒA PHIẾU) */}
+            {(() => {
+              const scapegoat = alivePlayers.find(p => (p.currentRoleId || p.roleId) === 'nguoi-the-than' || getPlayerRole(p)?.id === 'nguoi-the-than');
+              if (!scapegoat) return null;
+
+              return (
+                <div className="pt-2 flex flex-wrap items-center justify-between gap-2 border-t border-slate-800">
+                  <div className="text-xs text-slate-400">
+                    ⚖️ Trong bàn có <strong className="text-amber-300">Người Thế Thân</strong>: Nếu biểu quyết giơ tay hòa phiếu, Người Thế Thân sẽ chết thay.
+                  </div>
+                  <GothicButton
+                    variant="witch"
+                    size="sm"
+                    onClick={() => {
+                      showConfirm({
+                        title: '⚖️ BỎ PHIẾU HÒA (NGƯỜI THẾ THÂN CHẾT THAY)?',
+                        message: `Khi số phiếu biểu quyết cao nhất bị hòa nhau:\n\nNgười Thế Thân (${scapegoat.name} #${scapegoat.id}) bị đưa lên giàn treo cổ chết thay ngay lập tức!\n\nBạn có muốn thực hiện án phạt này?`,
+                        variant: 'blood',
+                        confirmText: 'Xử Tử Người Thế Thân ⚖️',
+                        onConfirm: () => {
+                          onLynchPlayer(scapegoat.id);
+                        }
+                      });
+                    }}
+                  >
+                    Hòa Phiếu: Người Thế Thân Chết Thay ⚖️
+                  </GothicButton>
+                </div>
+              );
+            })()}
 
             {selectedLynchId && (
               <div className="pt-2 flex justify-end">

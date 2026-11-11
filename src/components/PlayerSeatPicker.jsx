@@ -2,6 +2,7 @@ import React, { useState, useRef } from 'react';
 import { ChevronLeft, ChevronRight, Heart, Skull, Shield, Eye, Flame, Check } from 'lucide-react';
 import WolfIcon from './ui/WolfIcon';
 import { getPlayerRole } from '../utils/roleUtils';
+import triggerHaptic from '../utils/haptics';
 
 export default function PlayerSeatPicker({
   players = [],
@@ -68,7 +69,10 @@ export default function PlayerSeatPicker({
         key={p.id}
         type="button"
         disabled={isDisabled}
-        onClick={() => onSelect(p.id)}
+        onClick={() => {
+          triggerHaptic('tap');
+          onSelect(p.id);
+        }}
         className={`p-2 rounded-xl border text-left transition-all duration-75 select-none touch-manipulation active:scale-95 cursor-pointer flex flex-col justify-between min-h-[64px] sm:min-h-[72px] relative overflow-hidden ${getVariantStyles(
           isSelected,
           isWolf,

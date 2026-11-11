@@ -5,6 +5,7 @@ import { getRole, getPlayerRole, getPlayerOriginalRole, isWolfPlayer, WOLF_ROLE_
 import { DEFAULT_PLAYER_NAMES, getDefaultPlayerNames } from './data/defaultPlayers';
 import { useGothicDialog } from './context/GothicDialogContext';
 import { checkGameEnd, resolveNightPhase } from './utils/gameLogic';
+import triggerHaptic from './utils/haptics';
 import { checkNeonConnection, syncGameStateApi, loadGameStateApi, saveMatchRecordApi } from './services/api';
 import NightPhaseView from './components/NightPhaseView';
 import DayPhaseView from './components/DayPhaseView';
@@ -676,11 +677,29 @@ export default function App() {
         }));
       } else if (type === 'wildChild') {
         next.wildChildIdolId = payload;
+      } else if (type === 'shadowHost') {
+        next.shadowHostId = payload;
+        setPlayers(current => current.map(p => {
+          if ((p.currentRoleId || p.roleId) === 'anh-tu' || getPlayerRole(p)?.id === 'anh-tu') {
+            return { ...p, shadowHostId: payload };
+          }
+          return p;
+        }));
       } else if (type === 'piper') {
         next.piperChosenIds = payload;
       } else if (type === 'raven') {
         next.ravenTargetId = payload;
         next.ravenSkipped = !!extra.ravenSkipped;
+      } else if (type === 'fox') {
+        next.foxTargetId = payload;
+        next.foxLostPower = !!extra.foxLostPower;
+        next.foxCheckedThisNight = true;
+      } else if (type === 'whiteWolf') {
+        next.whiteWolfVictimId = payload;
+        next.whiteWolfSkipped = !!extra.whiteWolfSkipped;
+      } else if (type === 'moonPriestess') {
+        next.silencedPlayerId = payload;
+        next.moonPriestessSkipped = !!extra.moonPriestessSkipped;
       } else if (type === 'hunter') {
         setPlayers(current => {
           const updated = current.map(p => {
@@ -958,6 +977,21 @@ export default function App() {
       }));
     }
 
+    // RULE THIÊN SỨ: Thiên Sứ bị Ma Sói cắn chết ở Đêm 1 -> THẮNG NGAY LẬP TỨC
+    if (roundNumber === 1) {
+      const deadAngel = updatedPlayers.find(p => killedPlayerIds.includes(p.id) && getPlayerRole(p)?.id === 'thien-su');
+      if (deadAngel && nightState.wolfTargetId === deadAngel.id) {
+        setGameEndResult({
+          isEnded: true,
+          winner: 'Angel',
+          winnerTitle: 'Thiên Sứ Chiến Thắng! 🪽',
+          teamCode: '3',
+          description: `${deadAngel.name} (Thiên Sứ) đã bị Ma Sói cắn chết vào Đêm 1 đúng như tâm nguyện, đắc đạo thăng thiên và một mình giành chiến thắng trò chơi!`
+        });
+        return;
+      }
+    }
+
     const end = evaluateGameEnd(updatedPlayers);
 
     // RULE CONFLICT FIX #1: Thợ Săn chết do Thuốc Độc Phù Thủy hoặc chết theo người yêu KHÔNG ĐƯỢC BẮN
@@ -1147,6 +1181,9 @@ export default function App() {
       }
     }
 
+    // Kiểm tra Ảnh Tử kế thừa linh hồn nếu chủ thể bị treo cổ hoặc chết theo người yêu
+    updated = checkShadowTransformation(updated, target);
+
     setPlayers(updated);
     setLynchedTodayPlayerId(playerId);
     const end = evaluateGameEnd(updated);
@@ -1159,6 +1196,84 @@ export default function App() {
         player: target
       });
     }
+  };
+
+  // Helper kiểm tra và chuyển đổi linh hồn cho Ảnh Tử
+  const checkShadowTransformation = (playerList, deadPlayer) => {
+    if (!deadPlayer) return playerList;
+    let hasTransform = false;
+    const transformed = playerList.map(p => {
+      if (p.isAlive && (p.currentRoleId === 'anh-tu' || p.roleId === 'anh-tu' || getPlayerRole(p)?.id === 'anh-tu') && p.shadowHostId === deadPlayer.id) {
+        hasTransform = true;
+        const inheritRoleId = deadPlayer.originalRoleId || deadPlayer.currentRoleId || deadPlayer.roleId || 'dan-lang';
+        const newRole = getRole(inheritRoleId);
+        triggerHaptic('confirm');
+        showAlert({
+          title: '👻 ẢNH TỬ KẾ THỪA LINH HỒN!',
+          message: `Chủ thể của Ảnh Tử (${deadPlayer.name} #${deadPlayer.id}) đã qua đời!\n\nẢnh Tử (${p.name} #${p.id}) lập tức hấp thu linh hồn và chính thức trở thành: ${newRole?.name || inheritRoleId}!`,
+          variant: 'purple'
+        });
+        return {
+          ...p,
+          originalRoleId: 'anh-tu',
+          currentRoleId: inheritRoleId,
+          roleId: inheritRoleId,
+          role: null,
+          originalRole: null
+        };
+      }
+      return p;
+    });
+    return hasTransform ? transformed : playerList;
+  };
+
+  // Kị Sĩ Thách Đấu Quyết Đấu Ban Ngày (Kị Sĩ lật bài 1 lần duy nhất)
+  const handleKnightDuel = (knightId, targetId) => {
+    const knight = players.find(p => p.id === knightId);
+    const target = players.find(p => p.id === targetId);
+    if (!knight || !target) return;
+
+    const isWolf = isWolfPlayer(target);
+    const targetRole = getPlayerRole(target);
+    let updated = players.map(p => ({ ...p }));
+
+    const updatedKnight = updated.find(p => p.id === knightId);
+    const updatedTarget = updated.find(p => p.id === targetId);
+    if (updatedKnight) updatedKnight.hasUsedKnightDuel = true;
+
+    if (isWolf) {
+      // Sói chết tại chỗ, ngày kết thúc không cần vote
+      updatedTarget.isAlive = false;
+      updatedTarget.deathReason = 'Bị Kị Sĩ lật bài chém chết tại chỗ vì là Ma Sói';
+      updatedTarget.deathPhase = `Ngày ${roundNumber}`;
+      setLynchedTodayPlayerId(targetId);
+      triggerHaptic('danger');
+
+      showAlert({
+        title: '⚔️ KỊ SĨ CHÉM CHẾT MA SÓI!',
+        message: `Kị Sĩ ${knight.name} dũng cảm lật bài thách đấu ${target.name}!\n\nKết quả: ${target.name} ĐÚNG LÀ MA SÓI (${targetRole?.name || 'Ma Sói'}) và đã bị Kị Sĩ chém gục tại chỗ!\n\nLàng hoàn thành công lý hôm nay, không cần biểu quyết treo cổ nữa!`,
+        variant: 'blood'
+      });
+      setNightLogs(prev => [...prev, `⚔️ Kị Sĩ ${knight.name} lật bài thách đấu thành công: Đã chém chết Ma Sói ${target.name} (#${target.id})!`]);
+      updated = checkShadowTransformation(updated, updatedTarget);
+    } else {
+      // Thách đấu nhầm người lương thiện -> Kị Sĩ chết!
+      updatedKnight.isAlive = false;
+      updatedKnight.deathReason = 'Chết gục tại chỗ vì phán đoán sai lầm khi thách đấu người lương thiện';
+      updatedKnight.deathPhase = `Ngày ${roundNumber}`;
+      triggerHaptic('danger');
+
+      showAlert({
+        title: '💀 KỊ SĨ PHÁN ĐOÁN SAI LẦM & TỬ TRẬN!',
+        message: `Kị Sĩ ${knight.name} lật bài thách đấu ${target.name}!\n\nKết quả: ${target.name} KHÔNG PHẢI MA SÓI (${targetRole?.name || 'Dân Làng'})!\n\nKị Sĩ ${knight.name} ngã gục tử trận vì nông nổi! Làng tiếp tục tiến hành tranh luận và biểu quyết treo cổ như thường lệ.`,
+        variant: 'destructive'
+      });
+      setNightLogs(prev => [...prev, `💀 Kị Sĩ ${knight.name} thách đấu sai lầm: ${target.name} vô tội. Kị Sĩ tử trận!`]);
+      updated = checkShadowTransformation(updated, updatedKnight);
+    }
+
+    setPlayers(updated);
+    evaluateGameEnd(updated);
   };
 
   const handleUndoLynch = (playerId) => {
@@ -1483,6 +1598,8 @@ export default function App() {
             onUndoLynch={handleUndoLynch}
             onAdvanceToNight={handleAdvanceToNight}
             onToggleSheriff={handleToggleSheriff}
+            onKnightDuel={handleKnightDuel}
+            nightState={nightState}
             lynchedTodayPlayerId={lynchedTodayPlayerId}
           />
         )}
