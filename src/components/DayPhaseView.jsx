@@ -71,31 +71,23 @@ export default function DayPhaseView({
           <Sun className="w-4 h-4 text-amber-400" />
           Ban Ngày - Ngày Thứ {roundNumber}
         </div>
-        <h2 className="text-3xl font-cinzel font-black tracking-wider text-slate-100">
+        <h2 className="text-2xl sm:text-3xl font-cinzel font-black tracking-wider text-slate-100">
           LÀNG THỨC GIẤC & BIỂU QUYẾT
         </h2>
-        <p className="text-sm text-slate-400 mt-1">
-          Quản trò công bố thương vong đêm qua, mở thảo luận và tiến hành bỏ phiếu (Quy tắc: tối đa 1 người bị treo cổ mỗi ngày).
-        </p>
       </div>
 
-      {/* Night Casualty Announcement Card */}
+      {/* Night Casualty Announcement Card - Streamlined */}
       {(() => {
         const deadTonight = players.filter(p => !p.isAlive && p.deathPhase === `Đêm ${roundNumber}`);
         const detailLogs = (nightLogs || []).filter(log => !log.startsWith('Đêm qua có ') && !log.startsWith('Đêm qua bình yên'));
 
         return (
-          <div className="p-4 rounded-2xl bg-[#141624]/60 backdrop-blur-md border border-slate-700/60 shadow-xl space-y-3">
-            <h3 className="font-bold text-sm text-slate-200 flex items-center gap-2">
-              <Skull className="w-4 h-4 text-rose-400" />
-              Bản Tin Thương Vong Trong Đêm:
-            </h3>
-
-            {/* DÒNG ĐẦU TIÊN BẮT BUỘC: SỐ LƯỢNG NGƯỜI CHẾT VÀ TÊN TỪNG NGƯỜI */}
-            <div className={`p-3.5 rounded-xl border flex items-center gap-3 font-cinzel text-sm sm:text-base font-black ${
+          <div className="space-y-2">
+            {/* DÒNG ĐẦU TIÊN: SỐ LƯỢNG NGƯỜI CHẾT VÀ TÊN TỪNG NGƯỜI */}
+            <div className={`p-3.5 sm:p-4 rounded-2xl border flex items-center gap-3 font-cinzel text-sm sm:text-base font-black ${
               deadTonight.length > 0
-                ? 'bg-rose-950/80 border-rose-500 text-rose-100 shadow-[0_0_15px_rgba(225,29,72,0.4)]'
-                : 'bg-emerald-950/70 border-emerald-500/80 text-emerald-200'
+                ? 'bg-rose-950/80 border-rose-500 text-rose-100 shadow-[0_0_20px_rgba(225,29,72,0.35)]'
+                : 'bg-emerald-950/70 border-emerald-500/80 text-emerald-200 shadow-md'
             }`}>
               <Skull className={`w-5 h-5 shrink-0 ${deadTonight.length > 0 ? 'text-rose-400 animate-pulse' : 'text-emerald-400'}`} />
               <div className="flex-1">
@@ -111,18 +103,15 @@ export default function DayPhaseView({
               </div>
             </div>
 
-            {/* CÁC MÔ TẢ CHI TIẾT NẰM Ở DƯỚI */}
+            {/* CÁC MÔ TẢ CHI TIẾT NẰM Ở DƯỚI NẾU CÓ */}
             {detailLogs.length > 0 && (
-              <div className="space-y-2 pt-1">
-                <span className="text-[11px] uppercase tracking-wider font-bold text-slate-400 block">
-                  Chi tiết diễn biến đêm:
-                </span>
+              <div className="space-y-1.5 pt-1">
                 {detailLogs.map((log, index) => (
                   <div 
                     key={index}
-                    className="p-3 rounded-xl bg-slate-900/60 backdrop-blur-sm border border-slate-700/70 text-slate-200 text-xs sm:text-sm flex items-start gap-2.5"
+                    className="p-2.5 rounded-xl bg-slate-900/60 backdrop-blur-sm border border-slate-700/60 text-slate-200 text-xs sm:text-sm flex items-start gap-2"
                   >
-                    <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+                    <AlertTriangle className="w-3.5 h-3.5 text-amber-400 shrink-0 mt-0.5" />
                     <span>{log}</span>
                   </div>
                 ))}
@@ -489,9 +478,6 @@ export default function DayPhaseView({
               <Flame className="w-5 h-5 text-orange-400" />
               BIỂU QUYẾT TREO CỔ (BỎ PHIẾU BAN NGÀY)
             </h3>
-            <p className="text-xs text-slate-400 mt-1">
-              Mỗi sáng dân làng chỉ được biểu quyết treo cổ <strong className="text-amber-300 font-bold">tối đa 1 người</strong>.
-            </p>
           </div>
 
           {hasLynchedToday && (
@@ -515,9 +501,6 @@ export default function DayPhaseView({
               <div className="text-xl font-black font-cinzel text-white">
                 Nạn nhân: {lynchedPlayer?.name || 'Người chơi'} ({getPlayerRole(lynchedPlayer)?.name || 'Chưa lộ vai'})
               </div>
-              <p className="text-xs text-slate-300 mt-1">
-                Làng đã hoàn tất xử tử 1 người trong ngày hôm nay. Không thể treo cổ thêm người nào khác!
-              </p>
             </div>
 
             <div className="pt-2 flex flex-wrap items-center justify-center gap-2">

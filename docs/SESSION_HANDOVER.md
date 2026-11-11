@@ -450,6 +450,21 @@ Theo quy chuẩn [docs/game-rules.md](file:///home/levi/Desktop/Projects/werewol
 - **Thiên Sứ / Thiên Thần (`thien-su`, `App.jsx`)**:
   - Kích hoạt chiến thắng ngay lập tức nếu bị Ma Sói cắn chết ở Đêm 1 hoặc bị biểu quyết treo cổ ở Ngày 1.
 
+## 25. Tinh Giản Toàn Diện UI/UX & Loại Bỏ Thiết Kế Thừa (UI De-clutter)
+- **Compact Hero Banner (`NightPhaseView.jsx`)**:
+  - Thay thế thẻ Tarot to dọc 220px choán nửa màn hình bằng **Thanh Hero ngang tinh giản (~70px)**: Thumbnail thẻ bài (`w-12 h-16`), tên vai Cinzel, badge phe phái và câu hô quản trò trong 1 hàng duy nhất.
+  - **Kết quả vượt trội**: Toàn bộ ma trận ghế ngồi (`PlayerSeatPicker`) hiện ngay trên màn hình đầu tiên (Above the fold), Quản trò không cần vuốt cuộn màn hình trên iPhone.
+- **Xóa Sạch Đoạn Văn Hướng Dẫn Dài Dòng (Instructional Meta-Text)**:
+  - Loại bỏ hoàn toàn các đoạn văn giải thích luật chơi ở từng bước vai (Bảo Vệ, Sói, Cupid, Đứa Trẻ Hoang Dã, Ảnh Tử, Thổi Sáo, Cáo, Sói Trắng, Nguyệt Nữ, Ban Ngày).
+  - Giữ lại nhãn mục tiêu ngắn gọn, súc tích và trực quan.
+- **Tự Động Ẩn Kho Bài (Deck Radar) Khi Đã Gán Đủ (`NightPhaseView.jsx`)**:
+  - Khi tất cả người chơi đã được gán vai, thanh Kho Bài tự động ẩn khỏi giao diện gọi đêm, trả lại khoảng trống đỉnh màn hình.
+- **Xóa Bỏ Thanh Trạng Thái Trùng Lặp Chân Trang (`NightPhaseView.jsx`)**:
+  - Gỡ bỏ khối cảnh báo cố định lặp lại phía trên footer. Chỉ giữ lại nút bấm *"Bỏ qua bước này (Quản trò ghi đè)"* tối giản khi cần thiết.
+- **Gọt Bớt Khối Bản Tin Thương Vong Ban Ngày (`DayPhaseView.jsx`)**:
+  - Hợp nhất các hộp lồng nhau thành 1 banner thống nhất, xóa bỏ các câu văn thừa ở phần tiêu đề và biểu quyết.
+
+
 
 
 

@@ -546,9 +546,6 @@ export default function NightPhaseView({
               Bước {safeStepIdx + 1} / {nightSteps.length}
             </span>
           </div>
-          <h2 className="text-base sm:text-xl md:text-2xl font-cinzel font-black tracking-wide text-slate-100 mt-1 hidden sm:block">
-            QUY TRÌNH QUẢN TRÒ GỌI ĐÊM (LẦN LƯỢT)
-          </h2>
         </div>
 
         {/* Navigation buttons - Hidden on mobile because of sticky bottom nav bar */}
@@ -576,13 +573,15 @@ export default function NightPhaseView({
         </div>
       </div>
 
-      {/* DECK INVENTORY RADAR (TRACK REMAINING CARDS IN DECK) */}
-      <DeckInventoryRadar
-        players={players}
-        deckRoleIds={deckRoleIds}
-        onAutoAssignVillagers={onAutoAssignVillagers}
-        onAssignRole={onAssignRole}
-      />
+      {/* DECK INVENTORY RADAR (TRACK REMAINING CARDS IN DECK - AUTO HIDES ONCE ALL ROLES ARE ASSIGNED) */}
+      {!players.every(p => (p.currentRoleId || p.roleId)) && (
+        <DeckInventoryRadar
+          players={players}
+          deckRoleIds={deckRoleIds}
+          onAutoAssignVillagers={onAutoAssignVillagers}
+          onAssignRole={onAssignRole}
+        />
+      )}
 
       {/* Stepper Progress Bar (Breadcrumbs) */}
       <div className="overflow-x-auto pb-2 scrollbar-none">
@@ -645,21 +644,16 @@ export default function NightPhaseView({
       {/* MAIN GUIDED CARD HERO AREA */}
       {!isSummaryStep ? (
         <div className="space-y-4 sm:space-y-6">
-          {/* Hero Banner for current role - Card as Main Center, Name Underneath */}
-          <div className={`p-4 sm:p-5 rounded-2xl sm:rounded-3xl border transition-all relative overflow-hidden flex flex-col items-center justify-center text-center backdrop-blur-sm ${
+          {/* Compact Hero Banner for current role */}
+          <div className={`p-3 sm:p-4 rounded-2xl border transition-all relative overflow-hidden flex items-center justify-between gap-3 backdrop-blur-sm ${
             isWolfStep
-              ? 'bg-gradient-to-b from-[#2a0509]/80 via-[#150204]/75 to-[#250408]/80 border-rose-600/90 shadow-[0_0_35px_rgba(225,29,72,0.4)] ring-1 ring-rose-500/50'
-              : 'bg-gradient-to-b from-[#170a2c]/75 via-[#0d0e19]/70 to-[#120822]/75 border-purple-900/70 shadow-[0_4px_25px_rgba(0,0,0,0.7)]'
+              ? 'bg-gradient-to-r from-[#2a0509]/85 via-[#150204]/80 to-[#250408]/85 border-rose-600/90 shadow-[0_0_25px_rgba(225,29,72,0.35)] ring-1 ring-rose-500/50'
+              : 'bg-gradient-to-r from-[#170a2c]/80 via-[#0d0e19]/75 to-[#120822]/80 border-purple-900/70 shadow-[0_4px_20px_rgba(0,0,0,0.6)]'
           }`}>
-            {/* Ambient Background Glow */}
-            {isWolfStep && (
-              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-72 h-72 bg-rose-600/20 rounded-full blur-3xl pointer-events-none"></div>
-            )}
-
-            {/* The Main Center Card */}
-            <div ref={cardRef} className="relative shrink-0 scroll-mt-24">
-              <div className={`w-28 h-40 sm:w-36 sm:h-50 md:w-40 md:h-56 rounded-2xl overflow-hidden border-2 p-1.5 shadow-2xl flex items-center justify-center bg-black/80 transition-transform duration-300 hover:scale-105 ${
-                isWolfStep ? 'border-rose-500 shadow-[0_0_30px_rgba(225,29,72,0.7)] animate-pulse' : 'border-purple-500/80 shadow-[0_0_25px_rgba(147,51,234,0.45)]'
+            <div className="flex items-center gap-3 min-w-0 flex-1">
+              {/* Compact Card Thumbnail */}
+              <div ref={cardRef} className={`w-12 h-16 sm:w-14 sm:h-20 rounded-xl overflow-hidden border p-1 shadow-lg flex items-center justify-center bg-black/80 shrink-0 ${
+                isWolfStep ? 'border-rose-500 shadow-[0_0_15px_rgba(225,29,72,0.5)]' : 'border-purple-500/80 shadow-[0_0_12px_rgba(147,51,234,0.4)]'
               }`}>
                 {currentRole.image ? (
                   <img
@@ -668,59 +662,31 @@ export default function NightPhaseView({
                     className="w-full h-full object-contain"
                   />
                 ) : (
-                  <div className="text-5xl flex items-center justify-center">
-                    {isWolfStep ? <WolfIcon className="w-16 h-16 text-rose-500" /> : '✨'}
+                  <div className="text-2xl flex items-center justify-center">
+                    {isWolfStep ? <WolfIcon className="w-8 h-8 text-rose-500" /> : '✨'}
                   </div>
                 )}
               </div>
 
-              {/* Tactical Badges on artwork */}
-              {currentRole.id === 'thang-ngoc' && (
-                <>
-                  <span className="absolute -top-3 -left-3 text-3xl filter drop-shadow animate-bounce select-none pointer-events-none z-20">🤡</span>
-                  <span className="absolute -top-4 -right-3 text-3xl filter drop-shadow animate-pulse select-none pointer-events-none z-20">🎈</span>
-                  <span className="absolute -bottom-3 -left-3 text-2xl filter drop-shadow select-none pointer-events-none z-20">🤹</span>
-                  <span className="absolute -bottom-3 -right-3 text-2xl filter drop-shadow select-none pointer-events-none z-20">🎉</span>
-                </>
-              )}
-              {currentRole.id === 'bao-ve' && (
-                <div className="absolute -bottom-2 -right-2 w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-teal-500 text-slate-950 flex items-center justify-center shadow-lg border-2 border-slate-900 animate-bounce">
-                  <Shield className="w-5 h-5 fill-slate-950" />
+              {/* Role Title + Team Badge + GM Prompt */}
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h3 className={`text-base sm:text-lg md:text-xl font-black font-cinzel leading-tight tracking-wider truncate ${
+                    isWolfStep ? 'text-rose-100 drop-shadow-[0_1px_10px_rgba(225,29,72,0.7)]' : 'text-slate-100'
+                  }`}>
+                    {currentRole.name}
+                  </h3>
+                  <span className={`text-[10px] font-bold px-2 py-0.2 rounded-md border uppercase tracking-wider shrink-0 ${
+                    isWolfStep ? 'bg-rose-950 text-rose-300 border-rose-700' : 'bg-purple-950 text-purple-300 border-purple-700'
+                  }`}>
+                    [{currentRole.teamCode}] {currentRole.team}
+                  </span>
                 </div>
-              )}
-              {currentRole.id === 'tien-tri' && (
-                <div className="absolute -bottom-2 -right-2 w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-purple-500 text-white flex items-center justify-center shadow-lg border-2 border-slate-900 animate-pulse">
-                  <Eye className="w-5 h-5" />
-                </div>
-              )}
-              {isWolfStep && (
-                <div className="absolute -bottom-2 -right-2 w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-rose-600 text-white flex items-center justify-center shadow-[0_0_12px_rgba(225,29,72,0.8)] border-2 border-slate-900 animate-pulse">
-                  <Skull className="w-5 h-5" />
-                </div>
-              )}
-              {currentRole.id === 'phu-thuy' && (
-                <div className="absolute -bottom-2 -right-2 w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-purple-500 text-white flex items-center justify-center shadow-lg border-2 border-slate-900">
-                  <Sparkles className="w-5 h-5" />
-                </div>
-              )}
-            </div>
-
-            {/* Name Under the Card */}
-            <div className="mt-3.5 space-y-1.5 max-w-md mx-auto">
-              {/* Prominent Role Name */}
-              <h3 className={`text-xl sm:text-2xl md:text-3xl font-black font-cinzel leading-tight tracking-wider ${
-                isWolfStep ? 'text-rose-100 drop-shadow-[0_2px_15px_rgba(225,29,72,0.8)]' : 'text-slate-100'
-              }`}>
-                {currentRole.name}
-              </h3>
-
-              {/* Compact Badge: Team */}
-              <div className="flex items-center justify-center pt-0.5">
-                <span className={`text-[10px] sm:text-[11px] font-bold px-2.5 py-0.5 rounded-lg border uppercase tracking-wider ${
-                  isWolfStep ? 'bg-rose-950 text-rose-300 border-rose-700' : 'bg-purple-950 text-purple-300 border-purple-700'
-                }`}>
-                  [{currentRole.teamCode}] {currentRole.team}
-                </span>
+                {currentRole.gmCall && (
+                  <p className="text-[11px] sm:text-xs text-slate-400 italic line-clamp-1 mt-0.5">
+                    "{currentRole.gmCall}"
+                  </p>
+                )}
               </div>
             </div>
           </div>
@@ -783,10 +749,6 @@ export default function NightPhaseView({
                       CHỌN 1 NGƯỜI ĐỂ BẢO VỆ ĐÊM NAY:
                     </h4>
                   </div>
-
-                  <p className="text-xs text-slate-400">
-                    Chọn 1 người chơi để che chở khỏi móng vuốt Ma Sói đêm nay. Lưu ý: Không được bảo vệ cùng một người trong 2 đêm liên tiếp!
-                  </p>
 
                   {/* Summary Box of Protection */}
                   <div className="p-3.5 rounded-2xl bg-gradient-to-r from-teal-950/80 via-[#0e2a26] to-[#0a1816] border border-teal-600/70 shadow-lg">
@@ -909,10 +871,6 @@ export default function NightPhaseView({
                       QUẢN TRÒ CHỌN MỤC TIÊU BẦY SÓI CẮN:
                     </h4>
                   </div>
-
-                  <p className="text-xs text-slate-400">
-                    Bầy Sói thống nhất chọn con mồi để cắn đêm nay (không thể cắn đồng bọn Sói).
-                  </p>
 
                   {/* Summary Box of Wolf Hunt - Red Rose Theme */}
                   {(() => {
@@ -1419,10 +1377,6 @@ export default function NightPhaseView({
                     </h4>
                   </div>
 
-                  <p className="text-xs text-slate-400">
-                    Chọn đúng 2 người chơi bất kỳ trong danh sách bên dưới để kết duyên. Hai người yêu nhau sẽ cùng sống cùng chết!
-                  </p>
-
                   {/* SUMMARY COUPLE BOX (Fixed Geometry - Zero Layout Shift) */}
                   <div className="p-3.5 rounded-2xl bg-[#120d20] border border-pink-900/60 space-y-2">
                     <div className="flex items-center justify-between text-xs">
@@ -1523,9 +1477,6 @@ export default function NightPhaseView({
                     ĐỨA TRẺ HOANG DÃ CHỌN 1 THẦN TƯỢNG (IDOL):
                   </h4>
                 </div>
-                <p className="text-xs text-slate-400">
-                  Chọn 1 người chơi làm Thần Tượng. Nếu người này chết trong ván đấu, Đứa Trẻ Hoang Dã sẽ lập tức hóa thành <span className="text-rose-400 font-bold uppercase">MA SÓI</span>!
-                </p>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5">
                   {alivePlayers.map(p => {
@@ -1586,9 +1537,6 @@ export default function NightPhaseView({
                     ẢNH TỬ CHỌN 1 BẢN THỂ (CHỦ THỂ LIÊN KẾT):
                   </h4>
                 </div>
-                <p className="text-xs text-slate-400">
-                  Chọn 1 người chơi làm Bản Thể. Nếu người này bị giết trong ván đấu, Ảnh Tử sẽ lập tức <span className="text-purple-300 font-bold uppercase">KẾ THỪA VAI TRÒ</span> của họ!
-                </p>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5">
                   {alivePlayers.map(p => {
@@ -1653,9 +1601,6 @@ export default function NightPhaseView({
                       </h4>
                     </div>
                   </div>
-                  <p className="text-xs text-slate-400">
-                    Người Thổi Sáo thôi miên 2 người sống đêm nay. Khi toàn bộ người sống đều bị thôi miên, Người Thổi Sáo thắng đơn độc!
-                  </p>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5">
                     {alivePlayers.map(p => {
@@ -1862,10 +1807,6 @@ export default function NightPhaseView({
                     </button>
                   </div>
 
-                  <p className="text-xs text-slate-400">
-                    Cứ 2 đêm 1 lần, Sói Trắng thức dậy riêng và có thể chọn cắn chết 1 con Ma Sói khác để độc chiếm thắng đơn độc!
-                  </p>
-
                   {otherWolves.length === 0 ? (
                     <div className="p-4 rounded-2xl bg-slate-900/60 border border-slate-800 text-slate-400 text-xs text-center">
                       Không còn con Ma Sói đồng bọn nào khác còn sống trong bầy!
@@ -1927,10 +1868,6 @@ export default function NightPhaseView({
                   </button>
                 </div>
 
-                <p className="text-xs text-slate-400">
-                  Người bị Nguyệt Nữ chọn sẽ bị tước đoạt toàn bộ năng lực sử dụng trong đêm nay (Quản trò không cho dùng phép khi tới lượt).
-                </p>
-
                 <PlayerSeatPicker
                   players={alivePlayers}
                   selectedIds={nightState.silencedPlayerId && !nightState.moonPriestessSkipped ? [nightState.silencedPlayerId] : []}
@@ -1946,31 +1883,17 @@ export default function NightPhaseView({
 
           {/* STRICT VALIDATION BANNER & STEPPER FOOTER NAV (pb-28 on mobile ensures banner is NEVER cut off by sticky bottom bar) */}
           <div className="space-y-3 pt-2 pb-24 sm:pb-6">
-            {/* Gatekeeper Status Bar */}
-            {!stepValidation.isValid ? (
-              <div className="p-3 sm:p-3.5 rounded-2xl bg-[#141624]/90 backdrop-blur-md border border-amber-500/40 text-amber-200/90 shadow-xl flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 animate-fade-in">
-                <div className="flex items-center gap-2.5 text-xs font-semibold">
-                  <div className="w-7 h-7 rounded-xl bg-amber-950/80 border border-amber-600/60 flex items-center justify-center shrink-0 shadow-[0_0_12px_rgba(245,158,11,0.25)]">
-                    <AlertTriangle className="w-3.5 h-3.5 text-amber-400" />
-                  </div>
-                  <span className="leading-relaxed">{stepValidation.message}</span>
-                </div>
-                <GothicButton
-                  variant="gold"
-                  size="sm"
+            {/* Optional GM Override button (clean & non-intrusive) */}
+            {!stepValidation.isValid && !stepValidation.isStrictBlock && (
+              <div className="flex items-center justify-end animate-fade-in pr-1">
+                <button
+                  type="button"
                   onClick={() => handleNextStep(true)}
-                  className="h-8 px-3 text-xs whitespace-nowrap self-end sm:self-auto shrink-0"
+                  className="text-xs font-bold text-amber-400/90 hover:text-amber-300 flex items-center gap-1 cursor-pointer transition-colors px-2 py-1 rounded-lg bg-amber-950/40 border border-amber-800/50"
                 >
-                  <span>Bỏ qua bắt buộc</span>
-                  <ArrowRight className="w-3.5 h-3.5 ml-1 inline" />
-                </GothicButton>
-              </div>
-            ) : (
-              <div className="p-2.5 sm:p-3 rounded-2xl bg-[#141624]/90 backdrop-blur-md border border-emerald-600/40 text-emerald-200/90 flex items-center gap-2.5 text-xs shadow-lg">
-                <div className="w-6 h-6 rounded-lg bg-emerald-950/80 border border-emerald-600/60 flex items-center justify-center shrink-0 shadow-[0_0_10px_rgba(16,185,129,0.2)]">
-                  <Check className="w-3.5 h-3.5 text-emerald-400" />
-                </div>
-                <span>{stepValidation.message || 'Hành động hợp lệ. Sẵn sàng tiếp tục.'}</span>
+                  <span>Bỏ qua bước này (Quản trò ghi đè)</span>
+                  <ArrowRight className="w-3 h-3" />
+                </button>
               </div>
             )}
 
