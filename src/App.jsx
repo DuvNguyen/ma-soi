@@ -13,6 +13,7 @@ import PlayersGridView from './components/PlayersGridView';
 import ActionModal from './components/ActionModal';
 import SetupGameModal from './components/SetupGameModal';
 import GameOverModal from './components/GameOverModal';
+import SheriffSuccessionModal from './components/SheriffSuccessionModal';
 import RoleLibraryModal from './components/RoleLibraryModal';
 import DeckTemplateModal from './components/DeckTemplateModal';
 import PlayerRosterModal from './components/PlayerRosterModal';
@@ -149,6 +150,11 @@ export default function App() {
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [isCemeteryOpen, setIsCemeteryOpen] = useState(false);
   const [isRostersOpen, setIsRostersOpen] = useState(false);
+  const [sheriffModalState, setSheriffModalState] = useState({
+    isOpen: false,
+    deadSheriff: null,
+    isMandatory: false
+  });
   const [actionModal, setActionModal] = useState({
     isOpen: false,
     actionType: null,
@@ -526,6 +532,37 @@ export default function App() {
     }));
   };
 
+  // Reactive Game End Evaluator: Tự động kiểm tra điều kiện kết thúc ván đấu ngay khi players thay đổi
+  useEffect(() => {
+    if (!players || players.length === 0) return;
+    if (gameEndResult?.isEnded) return;
+
+    const hasActiveGame = players.some(p => p.roleId || p.currentRoleId || p.isCursedWolf || !p.isAlive);
+    if (!hasActiveGame) return;
+
+    const result = checkGameEnd(players);
+    if (result.isEnded) {
+      setGameEndResult(result);
+    }
+  }, [players, gameEndResult]);
+
+  const handleOpenSheriffModal = (deadSheriff = null, isMandatory = false) => {
+    setSheriffModalState({
+      isOpen: true,
+      deadSheriff: deadSheriff || players.find(p => p.isSheriff) || null,
+      isMandatory: !!isMandatory
+    });
+  };
+
+  const handleCloseSheriffModal = () => {
+    setSheriffModalState(prev => ({ ...prev, isOpen: false }));
+  };
+
+  const handleSelectSheriffSuccessor = (newSheriffId) => {
+    handleToggleSheriff(newSheriffId);
+    handleCloseSheriffModal();
+  };
+
   const evaluateGameEnd = (currentPlayers) => {
     const result = checkGameEnd(currentPlayers);
     if (result.isEnded) {
@@ -625,21 +662,25 @@ export default function App() {
         next.cursedUsed = true;
         next.lastCursedVictimId = victimId;
 
-        setPlayers(current => current.map(p => {
-          if (p.id === victimId) {
-            const origId = p.originalRoleId || p.currentRoleId || p.roleId || 'dan-lang';
-            return {
-              ...p,
-              originalRoleId: origId,
-              currentRoleId: 'soi-thuong',
-              roleId: 'soi-thuong',
-              role: null,
-              isCursedWolf: true,
-              curseNight: roundNumber
-            };
-          }
-          return p;
-        }));
+        setPlayers(current => {
+          const updated = current.map(p => {
+            if (p.id === victimId) {
+              const origId = p.originalRoleId || p.currentRoleId || p.roleId || 'dan-lang';
+              return {
+                ...p,
+                originalRoleId: origId,
+                currentRoleId: 'soi-thuong',
+                roleId: 'soi-thuong',
+                role: null,
+                isCursedWolf: true,
+                curseNight: roundNumber
+              };
+            }
+            return p;
+          });
+          evaluateGameEnd(updated);
+          return updated;
+        });
       } else if (type === 'undo_curse_convert') {
         // Revert cursed werewolf back to original role
         const victimId = payload || prev.lastCursedVictimId;
@@ -723,6 +764,19 @@ export default function App() {
 
   const handleAssignRole = (playerId, role) => {
     if (!role) return;
+
+    // Rule: Nếu vai này đã có người giữ và người đó bị Sói Nguyền lây nhiễm thành Sói -> vai đã bị loại khỏi làng, không gán cho người khác
+    const isCursedOut = players.some(p => p.isCursedWolf && p.originalRoleId === role.id);
+    const hasActiveHolders = players.some(p => (p.currentRoleId || p.roleId) === role.id);
+    if (isCursedOut && !hasActiveHolders) {
+      showAlert({
+        title: 'VAI TRÒ ĐÃ BỊ LOẠI!',
+        message: `Vai trò "${role.name}" đã bị loại khỏi làng vì người giữ vai ban đầu đã bị Sói Nguyền đồng hóa thành Ma Sói. Theo luật chơi, lá bài này không được gán cho người khác!`,
+        variant: 'warning'
+      });
+      return;
+    }
+
     const capacity = getRoleCapacity(role.id, deckRoleIds);
 
     setPlayers(prev => {
@@ -957,15 +1011,10 @@ export default function App() {
       setNightLogs([...logs]);
     }
 
-    // RULE CONFLICT FIX #8: Nếu Cảnh Sát Trưởng tử trận trong đêm
+    // RULE CONFLICT FIX #8: Nếu Cảnh Sát Trưởng tử trận trong đêm -> Mở modal 1-chạm di chúc kế nhiệm
     const deadSheriff = updatedPlayers.find(p => killedPlayerIds.includes(p.id) && p.isSheriff);
     if (deadSheriff) {
-      showAlert({
-        title: 'CẢNH SÁT TRƯỞNG ĐÃ QUA ĐỜI! ⭐',
-        message: `${deadSheriff.name} (Cảnh Sát Trưởng) đã hy sinh trong đêm qua!\n\nTrước khi nhắm mắt, Cảnh Sát Trưởng hãy chỉ định 1 người chơi còn sống bất kỳ làm Cảnh Sát Trưởng kế nhiệm qua Sơ Đồ Bàn.`,
-        variant: 'warning',
-        confirmText: 'Đã Hiểu & Chuyển Giao Sao ⭐'
-      });
+      handleOpenSheriffModal(deadSheriff, false);
     }
 
     // If Cursed Wolf infected someone this night, mark cursedUsed = true
@@ -1065,14 +1114,9 @@ export default function App() {
       });
     }
 
-    // RULE CONFLICT FIX #8: Cảnh Sát Trưởng bị treo cổ
+    // RULE CONFLICT FIX #8: Cảnh Sát Trưởng bị treo cổ -> Mở modal 1-chạm di chúc kế nhiệm
     if (target.isSheriff) {
-      showAlert({
-        title: 'CẢNH SÁT TRƯỞNG BỊ XỬ TỬ! ⭐',
-        message: `${target.name} (Cảnh Sát Trưởng) đã qua đời!\n\nTrước khi trút hơi thở cuối cùng, Cảnh Sát Trưởng hãy chỉ định 1 người chơi còn sống bất kỳ để di chúc trao lại huy hiệu.`,
-        variant: 'warning',
-        confirmText: 'Chỉ Định Kế Nhiệm ⭐'
-      });
+      handleOpenSheriffModal(target, false);
     }
 
     // USER RULE: Thằng Ngố bị dân làng treo cổ thì THẮNG LUÔN!
@@ -1287,8 +1331,16 @@ export default function App() {
   };
 
   const handleAdvanceToNight = () => {
-    // Ghi nhận nhật ký Ban Ngày vừa qua vào quyển nhật ký
+    // Chặn nếu Cảnh Sát Trưởng đã hy sinh mà chưa chỉ định người kế nhiệm
     const sheriff = players.find(p => p.isSheriff);
+    const sheriffDead = sheriff && !sheriff.isAlive;
+    if (sheriffDead) {
+      triggerHaptic('error');
+      handleOpenSheriffModal(sheriff, true);
+      return;
+    }
+
+    // Ghi nhận nhật ký Ban Ngày vừa qua vào quyển nhật ký
     const lynchedP = players.find(p => p.id === lynchedTodayPlayerId);
     const dayEvents = [];
     if (sheriff) {
@@ -1601,6 +1653,7 @@ export default function App() {
             onKnightDuel={handleKnightDuel}
             nightState={nightState}
             lynchedTodayPlayerId={lynchedTodayPlayerId}
+            onOpenSheriffModal={handleOpenSheriffModal}
           />
         )}
 
@@ -1619,6 +1672,16 @@ export default function App() {
           />
         )}
       </main>
+
+      {/* 1-Step Sheriff Succession Modal */}
+      <SheriffSuccessionModal
+        isOpen={sheriffModalState.isOpen}
+        onClose={handleCloseSheriffModal}
+        deadSheriff={sheriffModalState.deadSheriff}
+        alivePlayers={players.filter(p => p.isAlive)}
+        onSelectSuccessor={handleSelectSheriffSuccessor}
+        isMandatory={sheriffModalState.isMandatory}
+      />
 
       {/* Action Modal */}
       <ActionModal

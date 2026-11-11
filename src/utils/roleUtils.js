@@ -31,7 +31,25 @@ export const getRole = (roleId) => {
 export const getPlayerRole = (player) => {
   if (!player) return null;
   const roleId = player.currentRoleId || player.roleId;
-  return getRole(roleId);
+  const role = getRole(roleId);
+  if (!role) return null;
+
+  // Nếu người chơi bị nguyền thành Sói (bởi Sói Nguyền / Sói Quỷ)
+  if (player.isCursedWolf) {
+    const origRole = getPlayerOriginalRole(player);
+    if (origRole && origRole.id !== role.id) {
+      const cleanOrigName = (origRole.name || '').split(' (')[0].trim();
+      return {
+        ...role,
+        name: `Sói (${cleanOrigName} bị nguyền)`,
+        teamCode: 'W',
+        team: 'Phe Sói',
+        originalRole: origRole
+      };
+    }
+  }
+
+  return role;
 };
 
 /**

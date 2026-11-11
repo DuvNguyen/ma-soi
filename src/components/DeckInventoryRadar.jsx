@@ -27,12 +27,13 @@ export default function DeckInventoryRadar({
     deckRoleCounts[id] = (deckRoleCounts[id] || 0) + 1;
   });
 
-  // Count already assigned roles
+  // Count already assigned roles (including cards whose original holders were cursed into werewolves)
   const assignedRoleCounts = {};
   players.forEach(p => {
-    const pCurrentId = p.currentRoleId || p.roleId;
-    if (pCurrentId) {
-      assignedRoleCounts[pCurrentId] = (assignedRoleCounts[pCurrentId] || 0) + 1;
+    // If cursed wolf, their physical card drawn from the deck was p.originalRoleId
+    const deckCardId = (p.isCursedWolf && p.originalRoleId) ? p.originalRoleId : (p.currentRoleId || p.roleId);
+    if (deckCardId) {
+      assignedRoleCounts[deckCardId] = (assignedRoleCounts[deckCardId] || 0) + 1;
     }
   });
 

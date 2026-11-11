@@ -464,6 +464,42 @@ Theo quy chuẩn [docs/game-rules.md](file:///home/levi/Desktop/Projects/werewol
 - **Gọt Bớt Khối Bản Tin Thương Vong Ban Ngày (`DayPhaseView.jsx`)**:
   - Hợp nhất các hộp lồng nhau thành 1 banner thống nhất, xóa bỏ các câu văn thừa ở phần tiêu đề và biểu quyết.
 
+## 26. Xử Lý Chuẩn Xác Vai Chức Năng Bị Nguyền Thành Sói (Cursed Functional Roles)
+- **Chuẩn Hóa Danh Xưng & Vai Trò Khi Bị Nguyền (`src/utils/roleUtils.js`)**:
+  - Khi một người chơi có vai chức năng (Tiên Tri, Bảo Vệ, Phù Thủy, Kị Sĩ, Cáo, Con Quạ, Dân Làng...) bị Sói Nguyền / Sói Quỷ đồng hóa lây nhiễm (`isCursedWolf: true`):
+  - Hàm `getPlayerRole(player)` tự động sinh tên vai trò hiển thị chuẩn: **`Sói (<Tên vai gốc> bị nguyền)`** (ví dụ: `Sói (Tiên Tri bị nguyền)`, `Sói (Bảo Vệ bị nguyền)`, `Sói (Cáo bị nguyền)`).
+- **Loại Bỏ Hoàn Toàn Logic Gán Lại Cho Người Khác (`src/components/RoleHolderBanner.jsx`, `src/App.jsx`)**:
+  - Khi vai trò bị loại do người giữ bài ban đầu đã biến thành Sói:
+  - `RoleHolderBanner`: Nhận diện vai đã bị loại khỏi làng (`isRoleCursedOut = true`), hiển thị badge tím `Vai bị loại: Tên (#Ghế) ● Đã hóa Sói 🐺🔮` và huy hiệu `Trúng Lời Nguyền`.
+  - Tuyệt đối không cho phép gán lại vai này cho người khác.
+- **Giữ Lượt Gọi Ban Đêm Giả Vờ Cho Quản Trò (`src/components/NightPhaseView.jsx`)**:
+  - Quản trò vẫn gọi tên vai trò ban đêm theo kịch bản để che giấu danh tính, hiển thị banner hướng dẫn và nút bấm lớn **`Đã Gọi Xong & Cho Đi Ngủ 💤`**.
+
+## 27. Sửa Lỗi Bán Sói Bị Cắn Trước Tiên Tri, Tối Ưu Modal Cài Đặt Mobile & Đơn Giản Hóa Hộp Chuyền Máy Sói
+- **Xử Lý Bán Sói (Nửa Người Nửa Sói) Bị Cắn Trước Khi Gọi Tiên Tri (`NightPhaseView.jsx`, `gameLogic.js`)**:
+  - Ngay trong đêm đó, khi Tiên Tri soi Bán Sói đã bị cắn, hệ thống lập tức hiển thị nhãn đỏ: **`🐺 Là Ma Sói`** kèm dòng ghi chú rõ: *(Bán Sói đã bị bầy Sói cắn đêm nay ➔ Đã thức tỉnh thành Ma Sói!)*.
+  - Khi hết đêm (`resolveNightPhase`), Bán Sói sống sót và chuyển hóa hoàn toàn thành Ma Sói (`isCursedWolf: true`).
+- **Khắc Phục Lỗi Modal Cài Đặt Tràn Màn Hình Mobile (`GameSettingsModal.jsx`)**:
+  - Giới hạn chiều cao an toàn trên di động: `max-h-[88dvh] flex flex-col my-auto`.
+  - Header và Footer cố định (`shrink-0`), nội dung thân modal cuộn mượt mà (`overflow-y-auto overscroll-contain`).
+  - Hướng dẫn PWA iOS mặc định thu gọn, đóng modal nhanh bằng cách chạm ngoài backdrop.
+- **Tinh Giản Triệt Để Hộp Chuyền Máy Của Bầy Sói (`WolfWhisperBox.jsx`, `NightPhaseView.jsx`)**:
+  - Thu gọn mặc định thành thanh nhỏ gọn ~38px. Xóa bỏ ô gõ chữ phức tạp, chuyển sang 1-chạm: Chọn con mồi ➔ Bấm *"Chuyền Cho Sói Kế Tiếp ➔"* hoặc *"Chốt Con Mồi Này Cho Cả Bầy 🩸"*.
+
+## 28. Di Chúc Cảnh Sát Trưởng 1 Bước, Audit Các Vai Chết Gọi Có Lệ & Fix Sói Bằng Người Thắng Cuộc
+- **Gộp Di Chúc Kế Nhiệm Cảnh Sát Trưởng Vào 1 Modal Duy Nhất (`SheriffSuccessionModal.jsx`, `App.jsx`, `DayPhaseView.jsx`)**:
+  - **Khử bỏ modal alert 2 bước phiền phức**: Xóa bỏ hoàn toàn popup xác nhận rườm rà. Khi Cảnh Sát Trưởng hy sinh (bị treo cổ ban ngày hoặc bị cắn trong đêm), hệ thống lập tức mở thẳng modal **`SheriffSuccessionModal`** hiển thị trực tiếp danh sách tất cả người chơi còn sống.
+  - **1-Chạm trao huy hiệu tức thì**: Quản trò chỉ cần chạm 1 lần vào thẻ người chơi mong muốn để chuyển giao huy hiệu Cảnh Sát Trưởng (phiếu x2) và tự động đóng modal.
+  - **Chặn tuyệt đối không cho đi ngủ nếu chưa gán CST kế nhiệm**: Nút *"HẾT NGÀY ➔ BAN ĐÊM"* tự động kiểm tra: Nếu Cảnh Sát Trưởng cũ đã qua đời mà chưa trao lại huy hiệu cho người sống khác, hệ thống sẽ rung haptic cảnh báo và bung modal bắt buộc (`isMandatory: true`), yêu cầu di chúc trao huy hiệu trước khi cả làng đi ngủ.
+- **Audit Toàn Diện Các Vai Đã Chết Gọi Có Lệ Ban Đêm (`NightPhaseView.jsx`)**:
+  - Khi người chơi giữ vai chức năng (Bảo Vệ, Tiên Tri, Phù Thủy, Cáo, Con Quạ, Nguyệt Nữ, Sói Trắng, Người Thổi Sáo...) đã chết (`isDeadRole: true`):
+  - **Ẩn sạch toàn bộ ma trận chọn mục tiêu / thuốc cứu / thuốc độc**: Không còn hiển thị ma trận ghế ngồi hay nút bấm dùng bình gây hiểu lầm cho Quản trò.
+  - **Hiển thị Banner "NGƯỜI GIỮ VAI ĐÃ HY SINH (GỌI CÓ LỆ THEO KỊCH BẢN) 💀💤"**: Nhắc Quản trò đọc to câu gọi `{currentRole.gmCall}` và đếm thầm 3-5 giây để giữ kín bí mật cho thế trận, kèm nút bấm duy nhất **`Đã Gọi Xong & Cho Đi Ngủ 💤`** để lướt qua nhanh chóng.
+- **Khắc Phục Lỗi Sói Bằng Người Nhưng Chưa Kết Thúc Game (`App.jsx`, `gameLogic.js`)**:
+  - Bổ sung **Reactive Game End Evaluator** (`useEffect` trong `App.jsx` theo dõi `players`): Tự động đánh giá ngay lập tức điều kiện thắng thua bất cứ khi nào danh sách người chơi thay đổi (nguyền, chết, hồi sinh, đổi vai, gán vai).
+  - Trong nhánh `curse_convert`: Kích hoạt ngay `evaluateGameEnd` khi một người bị Sói Nguyền lây nhiễm thành Ma Sói, đảm bảo nếu số Sói đạt ngưỡng cân bằng hoặc áp đảo Dân Làng (`aliveWolves >= aliveVillagers`), modal **Phe Ma Sói Chiến Thắng** nổ ra ngay tức khắc.
+  - Đảm bảo 100% test case logic (Sói bằng Người 2v2, Nguyền thêm Sói 2v2, Bán Sói thức tỉnh 2v1) đều chạy PASS.
+
 
 
 

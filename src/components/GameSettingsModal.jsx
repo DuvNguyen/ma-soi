@@ -41,15 +41,20 @@ export default function GameSettingsModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-black/65 backdrop-blur-sm animate-fade-in">
-      <div className="relative bg-gradient-to-b from-[#180407]/95 via-[#0d0204]/90 to-[#070102]/95 backdrop-blur-md border-2 border-purple-600/90 rounded-3xl w-full max-w-xl shadow-[0_0_60px_rgba(168,85,247,0.4)] ring-1 ring-purple-500/50 overflow-hidden">
+    <div 
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-black/75 backdrop-blur-sm animate-fade-in"
+    >
+      <div className="relative bg-gradient-to-b from-[#180407]/95 via-[#0d0204]/90 to-[#070102]/95 backdrop-blur-md border-2 border-purple-600/90 rounded-3xl w-full max-w-xl max-h-[88dvh] flex flex-col shadow-[0_0_60px_rgba(168,85,247,0.4)] ring-1 ring-purple-500/50 overflow-hidden my-auto">
         {/* Werewolf Claw Marks */}
         <div className="absolute -top-6 -right-6 rotate-12 opacity-80 pointer-events-none">
           <ClawMarks size={120} color="#a855f7" />
         </div>
 
         {/* Modal Header */}
-        <div className="p-4 sm:p-5 border-b border-purple-950/80 flex items-center justify-between bg-gradient-to-r from-purple-950/40 via-transparent to-transparent">
+        <div className="p-4 sm:p-5 border-b border-purple-950/80 flex items-center justify-between bg-gradient-to-r from-purple-950/40 via-transparent to-transparent shrink-0">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-2xl bg-purple-900/60 border border-purple-500 flex items-center justify-center text-purple-200 shadow-md">
               <Settings className="w-5 h-5 text-purple-300" />
@@ -65,15 +70,17 @@ export default function GameSettingsModal({
           </div>
 
           <button
+            type="button"
             onClick={onClose}
             className="p-2 rounded-xl text-slate-400 hover:text-white bg-slate-900/80 border border-slate-800 hover:border-slate-700 cursor-pointer transition-all"
+            title="Đóng (Esc)"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        {/* Modal Content */}
-        <div className="p-4 sm:p-6 space-y-4">
+        {/* Modal Content - Scrollable */}
+        <div className="p-4 sm:p-6 space-y-4 overflow-y-auto flex-1 overscroll-contain pr-2 sm:pr-4">
           {/* RULE TOGGLE: WEREWOLVES CAN BITE TEAMMATES */}
           <div className="p-4 rounded-2xl bg-[#141624] border border-purple-900/70 shadow-lg space-y-3">
             <div className="flex items-start justify-between gap-3">
@@ -179,13 +186,13 @@ export default function GameSettingsModal({
                   onClick={() => setShowIosGuide(!showIosGuide)}
                   className="px-2.5 py-1 rounded-lg text-xs font-bold bg-purple-950/80 hover:bg-purple-900 border border-purple-600 text-purple-200 transition-all cursor-pointer"
                 >
-                  {showIosGuide ? 'Thu Gọn' : 'Xem Hướng Dẫn'}
+                  {showIosGuide ? 'Thu Gọn ▲' : 'Xem Hướng Dẫn ▼'}
                 </button>
               )}
             </div>
 
-            {(!isStandalone || showIosGuide) && (
-              <div className="pt-2 border-t border-purple-950/60 space-y-2 text-xs text-slate-300">
+            {showIosGuide && (
+              <div className="pt-2 border-t border-purple-950/60 space-y-2 text-xs text-slate-300 animate-fade-in">
                 <div className="p-3 rounded-xl bg-purple-950/30 border border-purple-900/50 space-y-2">
                   <div className="font-bold text-purple-200 flex items-center gap-1.5">
                     <span>Cách thêm vào màn hình chính iPhone (3 bước):</span>
@@ -214,9 +221,12 @@ export default function GameSettingsModal({
           </div>
         </div>
 
-        {/* Modal Footer */}
-        <div className="p-4 border-t border-purple-950 bg-[#0d0e19] flex justify-end">
-          <GothicButton variant="witch" size="sm" onClick={onClose}>
+        {/* Modal Footer - Fixed & Visible on Mobile */}
+        <div className="p-3 sm:p-4 border-t border-purple-950 bg-[#0d0e19] flex items-center justify-between shrink-0">
+          <span className="text-[11px] text-slate-500 italic hidden sm:inline">
+            Chạm ra ngoài để đóng
+          </span>
+          <GothicButton variant="witch" size="sm" onClick={onClose} className="w-full sm:w-auto h-9">
             Đóng Cài Đặt
           </GothicButton>
         </div>

@@ -17,7 +17,8 @@ export default function DayPhaseView({
   onToggleSheriff,
   onKnightDuel,
   nightState,
-  lynchedTodayPlayerId
+  lynchedTodayPlayerId,
+  onOpenSheriffModal
 }) {
   const { showConfirm, showAlert } = useGothicDialog();
   const [timeLeft, setTimeLeft] = useState(180); // 3 minutes discussion
@@ -179,10 +180,16 @@ export default function DayPhaseView({
                   variant={sheriffDead ? 'blood' : sheriff ? 'gold' : 'witch'}
                   size="sm"
                   icon={sheriffDead ? RotateCcw : Award}
-                  onClick={() => setShowSheriffSelector(!showSheriffSelector)}
+                  onClick={() => {
+                    if (onOpenSheriffModal) {
+                      onOpenSheriffModal(sheriffDead ? sheriff : null, false);
+                    } else {
+                      setShowSheriffSelector(!showSheriffSelector);
+                    }
+                  }}
                 >
                   {sheriffDead ? 'Chỉ Định Kế Nhiệm' : sheriff ? 'Đổi Người Giữ' : 'Bầu Cảnh Sát Trưởng'}
-                  {showSheriffSelector ? <ChevronUp className="w-3 h-3 ml-1" /> : <ChevronDown className="w-3 h-3 ml-1" />}
+                  {!onOpenSheriffModal && (showSheriffSelector ? <ChevronUp className="w-3 h-3 ml-1" /> : <ChevronDown className="w-3 h-3 ml-1" />)}
                 </GothicButton>
               </div>
             </div>
@@ -583,7 +590,7 @@ export default function DayPhaseView({
                         <div className="text-[11px] text-slate-400">
                           Vai: {p.isCursedWolf && origRole ? (
                             <span className="text-rose-300 font-bold">
-                              {pRole?.name} <span className="text-amber-300 font-medium">(Gốc: {origRole.name})</span>
+                              {pRole?.name}
                             </span>
                           ) : (
                             <span className="text-slate-300 font-medium">{pRole?.name || 'Chưa lộ vai'}</span>
@@ -660,7 +667,16 @@ export default function DayPhaseView({
           variant="witch"
           size="lg"
           icon={Moon}
-          onClick={onAdvanceToNight}
+          onClick={() => {
+            if (sheriffDead) {
+              triggerHaptic('error');
+              if (onOpenSheriffModal) {
+                onOpenSheriffModal(sheriff, true);
+              }
+              return;
+            }
+            onAdvanceToNight();
+          }}
           className="shadow-2xl shadow-purple-950/80"
         >
           <span>Hết ngày ➔ Ban đêm</span>

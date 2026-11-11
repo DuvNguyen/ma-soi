@@ -188,11 +188,16 @@ export default function NightPhaseView({
   // Actions state local helpers
   const [selectedSeerTarget, setSelectedSeerTarget] = useState(null);
   const [showAssignDropdown, setShowAssignDropdown] = useState(false);
+  const [showWolfWhisper, setShowWolfWhisper] = useState(false);
 
   // STRICT GATEKEEPER VALIDATION
   const isSkipped = (nightState?.skippedRoles || []).includes(currentRole?.id);
   const roleHolders = isWolfStep ? players.filter(isWolfPlayer) : players.filter(p => (p.currentRoleId || p.roleId) === currentRole?.id);
   const hasHolders = roleHolders.length > 0;
+
+  // Người giữ vai ban đầu đã bị Sói Nguyền lây nhiễm thành Ma Sói (vai trò bị loại khỏi làng)
+  const cursedHolder = !isWolfStep && players.find(p => p.isCursedWolf && p.originalRoleId === currentRole?.id);
+  const isRoleCursedOut = Boolean(cursedHolder) && !hasHolders;
 
   const WOLF_ROLE_IDS = [
     'soi-thuong', 'soi-con', 'soi-lon-xau-xa', 'soi-trang', 
@@ -257,6 +262,16 @@ export default function NightPhaseView({
         isDeadRole: true, 
         message: 'Người giữ vai này đã chết ➔ Có thể bỏ qua',
         shortMessage: 'Người giữ vai đã chết'
+      };
+    }
+
+    // If role has been eliminated due to original holder being cursed into a werewolf
+    if (isRoleCursedOut) {
+      return { 
+        isValid: true, 
+        isCursedRole: true, 
+        message: `Vai ${shortRoleName} đã bị loại do người chơi #${cursedHolder.id} (${cursedHolder.name}) bị nguyền thành Sói. Quản trò gọi tên giả vờ theo kịch bản rồi bấm Đi Ngủ.`,
+        shortMessage: 'Vai đã bị loại do lời nguyền ✓'
       };
     }
 
@@ -730,6 +745,65 @@ export default function NightPhaseView({
               </div>
             )}
 
+            {/* VAI TRÒ ĐÃ BỊ LOẠI DO BỊ SÓI NGUYỀN ĐỒNG HÓA */}
+            {isRoleCursedOut ? (
+              <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-purple-950/90 via-[#230933] to-[#140620] border-2 border-purple-500/80 text-purple-200 shadow-[0_0_25px_rgba(168,85,247,0.3)] space-y-3 animate-fade-in">
+                <div className="flex items-center gap-2.5 font-cinzel font-black text-sm sm:text-base text-purple-100">
+                  <span className="text-xl">🔮⚡</span>
+                  <span>VAI TRÒ ĐÃ BỊ LOẠI KHỎI LÀNG (TRÚNG LỜI NGUYỀN)</span>
+                </div>
+                <div className="text-xs sm:text-sm text-purple-200/90 leading-relaxed">
+                  Người giữ vai ban đầu là <strong className="text-white">#{cursedHolder.id} {cursedHolder.name}</strong> đã bị Sói Nguyền đồng hóa thành <strong className="text-rose-300">Ma Sói ({currentRole.name} bị nguyền)</strong>. Toàn bộ năng lực của vai này đã bị loại bỏ vĩnh viễn và không gán cho người khác theo luật chơi.
+                </div>
+                <div className="p-3 rounded-xl bg-purple-950/90 border border-purple-700/60 text-xs text-amber-200 flex items-start gap-2.5">
+                  <span className="text-base shrink-0 mt-0.5">💡</span>
+                  <div className="leading-relaxed">
+                    <strong>Hướng dẫn Quản trò:</strong> Vẫn đọc to câu gọi <em>"{currentRole.gmCall}"</em> và đếm thầm 3-5 giây để giữ kín bí mật rằng vai này đã biến mất, sau đó bấm <strong>Đã Gọi Xong & Cho Đi Ngủ 💤</strong> bên dưới để tiếp tục.
+                  </div>
+                </div>
+
+                <div className="pt-2">
+                  <GothicButton
+                    variant="gold"
+                    size="md"
+                    onClick={() => handleNextStep(false)}
+                    className="w-full h-11 text-xs font-black shadow-lg flex items-center justify-center gap-1.5"
+                  >
+                    <span>Đã Gọi Xong & Cho Đi Ngủ 💤</span>
+                    <ChevronRight className="w-4 h-4 ml-0.5 inline shrink-0" />
+                  </GothicButton>
+                </div>
+              </div>
+            ) : isDeadRole ? (
+              <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-slate-950 via-[#1c0e1e] to-[#120817] border-2 border-rose-500/60 text-rose-200 shadow-[0_0_30px_rgba(244,63,94,0.25)] space-y-3 animate-fade-in">
+                <div className="flex items-center gap-2.5 font-cinzel font-black text-sm sm:text-base text-rose-300">
+                  <span className="text-xl">💀💤</span>
+                  <span>NGƯỜI GIỮ VAI ĐÃ HY SINH (GỌI CÓ LỆ THEO KỊCH BẢN)</span>
+                </div>
+                <div className="text-xs sm:text-sm text-slate-300 leading-relaxed">
+                  Người chơi giữ vai <strong className="text-white">{currentRole.name}</strong> ({roleHolders.map(p => `#${p.id} ${p.name}`).join(', ')}) đã qua đời. Theo luật Ma Sói, vai trò này <strong>không được thực hiện chức năng nữa</strong>.
+                </div>
+                <div className="p-3 rounded-xl bg-slate-900/90 border border-slate-700/70 text-xs text-amber-200 flex items-start gap-2.5">
+                  <span className="text-base shrink-0 mt-0.5">💡</span>
+                  <div className="leading-relaxed">
+                    <strong>Hướng dẫn Quản trò:</strong> Vẫn đọc to câu gọi <em>"{currentRole.gmCall}"</em> và đếm thầm 3-5 giây để dân làng không đoán được ai đã chết, sau đó bấm <strong>Đã Gọi Xong & Cho Đi Ngủ 💤</strong> bên dưới để tiếp tục.
+                  </div>
+                </div>
+
+                <div className="pt-2">
+                  <GothicButton
+                    variant="gold"
+                    size="md"
+                    onClick={() => handleNextStep(false)}
+                    className="w-full h-11 text-xs font-black shadow-lg flex items-center justify-center gap-1.5"
+                  >
+                    <span>Đã Gọi Xong & Cho Đi Ngủ 💤</span>
+                    <ChevronRight className="w-4 h-4 ml-0.5 inline shrink-0" />
+                  </GothicButton>
+                </div>
+              </div>
+            ) : (
+              <>
             {/* 1. BẢO VỆ ACTION - SEAT MATRIX LAYOUT */}
             {currentRole.id === 'bao-ve' && (() => {
               const protectedP = players.find(x => x.id === nightState.protectedPlayerId);
@@ -857,14 +931,39 @@ export default function NightPhaseView({
             {/* 3. BẦY MA SÓI CẮN NGƯỜI (CRIMSON DANGER ZONE) */}
             {isWolfStep && (
               <div className="space-y-4">
-                {/* Secret Wolf Hand-off Box */}
-                <WolfWhisperBox
-                  players={players}
-                  nightState={nightState}
-                  onSaveAction={onSaveAction}
-                />
+                {/* Collapsible Secret Hand-off Accordion Toggle (Clean & unobtrusive) */}
+                <div className="p-2 sm:p-2.5 rounded-xl bg-gradient-to-r from-rose-950/60 via-[#180306] to-[#100103] border border-rose-900/60 flex items-center justify-between gap-2 shadow-sm">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className="text-base shrink-0">🤫</span>
+                    <div className="min-w-0">
+                      <div className="text-xs font-bold text-rose-200 truncate">
+                        Chuyền máy bí mật cho bầy Sói
+                      </div>
+                      <div className="text-[10px] text-rose-400/80 truncate">
+                        {showWolfWhisper ? 'Đang mở chế độ chuyền máy' : 'Dùng khi chơi trong im lặng (không mở mắt cùng nhau)'}
+                      </div>
+                    </div>
+                  </div>
 
-                <div className="space-y-4 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowWolfWhisper(prev => !prev)}
+                    className="text-xs font-bold px-3 py-1.5 rounded-lg bg-rose-950 hover:bg-rose-900 text-rose-200 border border-rose-700/80 transition-all cursor-pointer shrink-0 flex items-center gap-1 shadow-sm"
+                  >
+                    <span>{showWolfWhisper ? 'Thu Gọn ▲' : 'Mở Chuyền Máy ▼'}</span>
+                  </button>
+                </div>
+
+                {/* Secret Wolf Hand-off Box - Only rendered when user wants it */}
+                {showWolfWhisper && (
+                  <WolfWhisperBox
+                    players={players}
+                    nightState={nightState}
+                    onSaveAction={onSaveAction}
+                  />
+                )}
+
+                <div className="space-y-4 pt-1">
                   <div className="flex items-center gap-2">
                     <Skull className="w-5 h-5 text-rose-500 animate-bounce" />
                     <h4 className="font-bold text-sm text-rose-300 font-cinzel">
@@ -925,6 +1024,14 @@ export default function NightPhaseView({
                             </div>
                           )}
                         </div>
+
+                        {/* BÁN SÓI BỊ CẮN BANNER */}
+                        {target1 && (target1.currentRoleId === 'nua-nguoi-nua-soi' || target1.roleId === 'nua-nguoi-nua-soi') && !nightState.wolfSkipped && (
+                          <div className="mt-2.5 p-2.5 rounded-xl bg-purple-950/80 border border-purple-500/80 text-xs text-purple-200 flex items-center gap-2 animate-fade-in shadow-md">
+                            <span className="text-base shrink-0">🐺⚡</span>
+                            <span><strong>Bán Sói (Nửa Người Nửa Sói)</strong> bị cắn: Sẽ không chết sáng mai mà lập tức thức tỉnh gen Sói, trở thành Ma Sói! (Tiên Tri soi đêm nay sẽ ra Sói).</span>
+                          </div>
+                        )}
                       </div>
                     );
                   })()}
@@ -1117,7 +1224,12 @@ export default function NightPhaseView({
                 {selectedSeerTarget ? (() => {
                   const targetRole = getPlayerRole(selectedSeerTarget);
                   const targetOrigRole = getPlayerOriginalRole(selectedSeerTarget);
-                  const isTargetWolf = isWolfPlayer(selectedSeerTarget);
+                  
+                  // Bán Sói (Nửa Người Nửa Sói) nếu đã bị bầy Sói cắn trong đêm nay (bước Sói cắn trước Tiên Tri)
+                  const isBittenHalfWolfTonight = (selectedSeerTarget?.currentRoleId === 'nua-nguoi-nua-soi' || selectedSeerTarget?.roleId === 'nua-nguoi-nua-soi') &&
+                    (nightState?.wolfTargetId === selectedSeerTarget?.id || nightState?.wolfTargetId2 === selectedSeerTarget?.id) &&
+                    !nightState?.wolfSkipped;
+                  const isTargetWolf = isWolfPlayer(selectedSeerTarget) || isBittenHalfWolfTonight;
 
                   return (
                     <div className={`p-4 rounded-2xl border transition-all animate-fade-in flex flex-col sm:flex-row items-center gap-4 text-center sm:text-left relative ${
@@ -1181,6 +1293,12 @@ export default function NightPhaseView({
                         {selectedSeerTarget.isCursedWolf && (
                           <div className="text-[11px] text-purple-300 italic font-medium">
                             (Đã bị Sói Nguyền lây nhiễm thành Sói)
+                          </div>
+                        )}
+
+                        {isBittenHalfWolfTonight && (
+                          <div className="text-[11px] text-rose-300 italic font-medium animate-pulse">
+                            (Bán Sói đã bị bầy Sói cắn đêm nay ➔ Đã thức tỉnh thành Ma Sói!)
                           </div>
                         )}
                       </div>
@@ -1878,6 +1996,8 @@ export default function NightPhaseView({
                   actionLabel="Khóa phép"
                 />
               </div>
+            )}
+              </>
             )}
           </div>
 

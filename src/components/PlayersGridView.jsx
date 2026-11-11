@@ -145,11 +145,11 @@ export default function PlayersGridView({ players, onOpenAssignRole, onOpenRoste
                   ) : hasRole ? (
                     p.isCursedWolf && origRole ? (
                       <div className="space-y-0.5">
-                        <span className="text-[8px] font-bold px-1 py-0.5 rounded flex items-center justify-center gap-1 truncate bg-rose-950 text-rose-200 border border-rose-600 shadow-sm">
-                          <WolfIcon className="w-2.5 h-2.5 shrink-0" /> Sói (Bị Nguyền)
+                        <span className="text-[8px] font-bold px-1 py-0.5 rounded flex items-center justify-center gap-1 truncate bg-rose-950 text-rose-200 border border-rose-600 shadow-sm" title={pRole?.name}>
+                          <WolfIcon className="w-2.5 h-2.5 shrink-0" /> {pRole?.name}
                         </span>
-                        <span className="text-[8px] text-amber-300 font-medium block truncate" title={`Vai ban đầu: ${origRole.name}`}>
-                          Gốc: {origRole.name}
+                        <span className="text-[8px] text-purple-300 font-medium block truncate" title={`Vai ban đầu: ${origRole.name}`}>
+                          🔮 Trúng nguyền
                         </span>
                       </div>
                     ) : (

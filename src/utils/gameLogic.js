@@ -199,7 +199,7 @@ export function resolveNightPhase(players, nightActions, roundNumber) {
     if (targetRole?.id === 'gia-lang' && (target.elderLives || 2) > 1) {
       target.elderLives = (target.elderLives || 2) - 1;
       logs.push(`Già Làng ${target.name} bị Ma Sói cắn nhưng đã kiên cường sống sót nhờ mạng sống thứ nhất (Còn 1 mạng)!`);
-    } else if (targetRole?.id === 'nua-nguoi-nua-soi') {
+    } else if (targetRole?.id === 'nua-nguoi-nua-soi' || target.currentRoleId === 'nua-nguoi-nua-soi' || target.roleId === 'nua-nguoi-nua-soi') {
       // Nửa Người Nửa Sói turns into werewolf - preserve original role
       const oldRoleId = target.currentRoleId || target.roleId;
       target.originalRoleId = target.originalRoleId || oldRoleId;
@@ -209,7 +209,7 @@ export function resolveNightPhase(players, nightActions, roundNumber) {
       target.roleId = 'soi-thuong';
       delete target.role;
       delete target.originalRole;
-      logs.push(`Nửa Người Nửa Sói ${target.name} bị Ma Sói cắn và đã chính thức thức tỉnh gen Sói, gia nhập đàn Sói!`);
+      logs.push(`🐺 BÁN SÓI THỨC TỈNH: ${target.name} (Nửa Người Nửa Sói) bị Ma Sói cắn trong đêm không chết mà đã chính thức thức tỉnh gen Sói, gia nhập đàn Ma Sói của làng!`);
     } else {
       killedPlayerIds.add(target.id);
       deathReasons[target.id] = isSecondTarget 

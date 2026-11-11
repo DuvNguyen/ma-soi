@@ -12,20 +12,24 @@ export default function RoleHolderBanner({
   isWolfStep,
   isWolfPlayer
 }) {
+  // Check if someone was cursed into a werewolf from this role
+  const cursedHolder = !isWolfStep && players.find(p => p.isCursedWolf && p.originalRoleId === currentRole?.id);
+
   // For wolf pack step: show all living wolves
   const holders = isWolfStep 
     ? players.filter(p => isWolfPlayer(p))
     : players.filter(p => (p.currentRoleId || p.roleId) === currentRole?.id);
 
   const hasHolders = holders.length > 0;
+  const isRoleCursedOut = Boolean(cursedHolder) && !hasHolders;
   
-  // MẶC ĐỊNH: Nếu chưa có ai giữ vai thì TỰ ĐỘNG MỞ SẴN lưới gán vai (Hình 4)
-  const [showAssignDropdown, setShowAssignDropdown] = useState(!hasHolders);
+  // MẶC ĐỊNH: Nếu chưa có ai giữ vai và vai chưa bị loại do nguyền thì TỰ ĐỘNG MỞ SẴN lưới gán vai
+  const [showAssignDropdown, setShowAssignDropdown] = useState(!hasHolders && !isRoleCursedOut);
 
-  // Khi chuyển sang vai mới, tự động mở nếu chưa có ai giữ vai
+  // Khi chuyển sang vai mới, tự động mở nếu chưa có ai giữ vai và chưa bị loại
   useEffect(() => {
-    setShowAssignDropdown(!hasHolders);
-  }, [currentRole?.id]);
+    setShowAssignDropdown(!hasHolders && !isRoleCursedOut);
+  }, [currentRole?.id, isRoleCursedOut]);
 
   if (!currentRole) return null;
 
@@ -39,7 +43,9 @@ export default function RoleHolderBanner({
 
   return (
     <div className={`p-2 sm:p-2.5 rounded-xl sm:rounded-2xl border transition-all mb-2.5 sm:mb-3 ${
-      isOverCapacity
+      isRoleCursedOut
+        ? 'bg-purple-950/70 border-purple-500/80 text-purple-200 shadow-[0_0_15px_rgba(168,85,247,0.3)]'
+        : isOverCapacity
         ? 'bg-rose-950/80 border-rose-500 text-rose-100 shadow-[0_0_20px_rgba(225,29,72,0.4)]'
         : allDead
         ? 'bg-rose-950/60 border-rose-800 text-rose-200 shadow-[0_0_15px_rgba(225,29,72,0.3)]'
@@ -52,21 +58,30 @@ export default function RoleHolderBanner({
         {/* Left: Role identification info */}
         <div className="flex items-center gap-2 min-w-0">
           <div className={`w-7 h-7 sm:w-8 sm:h-8 rounded-xl flex items-center justify-center font-bold text-xs shrink-0 border ${
-            isOverCapacity || allDead
+            isRoleCursedOut
+              ? 'bg-purple-900 border-purple-400 text-purple-200 shadow-[0_0_8px_rgba(168,85,247,0.5)]'
+              : isOverCapacity || allDead
               ? 'bg-rose-900 border-rose-600 text-rose-200'
               : !hasHolders && !isWolfStep
               ? 'bg-amber-900 border-amber-600 text-amber-200'
               : 'bg-purple-900 border-purple-500 text-purple-100 shadow-[0_0_8px_rgba(168,85,247,0.4)]'
           }`}>
-            {allDead ? <Skull className="w-4 h-4 text-rose-300" /> : isOverCapacity ? <AlertTriangle className="w-4 h-4 text-rose-200" /> : <UserCheck className="w-4 h-4 text-purple-200" />}
+            {isRoleCursedOut ? <span>🔮</span> : allDead ? <Skull className="w-4 h-4 text-rose-300" /> : isOverCapacity ? <AlertTriangle className="w-4 h-4 text-rose-200" /> : <UserCheck className="w-4 h-4 text-purple-200" />}
           </div>
 
           <div className="min-w-0 flex items-center flex-wrap gap-1.5">
             <span className="text-[11px] sm:text-xs font-semibold text-slate-400 shrink-0">
-              {isWolfStep ? 'Bầy Sói:' : 'Giữ vai:'}
+              {isWolfStep ? 'Bầy Sói:' : isRoleCursedOut ? 'Vai bị loại:' : 'Giữ vai:'}
             </span>
 
-            {hasHolders ? (
+            {isRoleCursedOut ? (
+              <span className="inline-flex items-center gap-1 text-xs font-bold px-2 py-0.5 rounded-lg border bg-purple-900/90 text-purple-200 border-purple-500 shadow-sm">
+                <span>{cursedHolder.name} (#{cursedHolder.id})</span>
+                <span className="text-[10px] text-rose-300 font-semibold shrink-0">
+                  ● {cursedHolder.isAlive ? 'Đã hóa Sói 🐺🔮' : 'Hóa Sói & Đã chết ✕'}
+                </span>
+              </span>
+            ) : hasHolders ? (
               holders.map(p => (
                 <span
                   key={p.id}
@@ -93,19 +108,27 @@ export default function RoleHolderBanner({
             )}
 
             {/* Capacity Pill */}
-            <span className={`text-[10px] font-mono px-1.5 py-0.2 rounded border shrink-0 ${
-              isOverCapacity
-                ? 'bg-rose-950 border-rose-500 text-rose-300 font-bold'
-                : 'bg-black/40 border-slate-800 text-slate-400'
-            }`} title="Số người giữ vai / Tối đa theo bộ bài">
-              {holders.length}/{capacity}
-            </span>
+            {!isRoleCursedOut && (
+              <span className={`text-[10px] font-mono px-1.5 py-0.2 rounded border shrink-0 ${
+                isOverCapacity
+                  ? 'bg-rose-950 border-rose-500 text-rose-300 font-bold'
+                  : 'bg-black/40 border-slate-800 text-slate-400'
+              }`} title="Số người giữ vai / Tối đa theo bộ bài">
+                {holders.length}/{capacity}
+              </span>
+            )}
           </div>
         </div>
 
         {/* Right: Quick action buttons */}
         <div className="flex items-center gap-1.5 shrink-0">
-          {!isWolfStep && !hasHolders && onSkipRole && (
+          {!isWolfStep && isRoleCursedOut && (
+            <span className="text-[10px] font-bold text-purple-300 bg-purple-950 px-2 py-0.5 rounded border border-purple-700 shadow-sm shrink-0">
+              Trúng Lời Nguyền
+            </span>
+          )}
+
+          {!isWolfStep && !hasHolders && !isRoleCursedOut && onSkipRole && (
             <button
               type="button"
               onClick={() => onSkipRole(currentRole.id)}
@@ -117,7 +140,7 @@ export default function RoleHolderBanner({
             </button>
           )}
 
-          {!isWolfStep && (
+          {!isWolfStep && !isRoleCursedOut && (
             <button
               type="button"
               onClick={() => setShowAssignDropdown(!showAssignDropdown)}
@@ -129,7 +152,7 @@ export default function RoleHolderBanner({
             </button>
           )}
 
-          {allDead && (
+          {allDead && !isRoleCursedOut && (
             <span className="text-[10px] font-bold text-rose-300 bg-rose-950 px-2 py-0.5 rounded border border-rose-800 shrink-0">
               Đã chết
             </span>
