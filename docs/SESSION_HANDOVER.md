@@ -410,6 +410,13 @@ Theo quy chuẩn [docs/game-rules.md](file:///home/levi/Desktop/Projects/werewol
   - Tự động nhận diện chế độ Standalone (`window.navigator.standalone`).
   - Cung cấp hướng dẫn trực quan 3 bước: Bấm Chia sẻ (Share ⎋) ➔ Chọn "Thêm vào MH chính" (Add to Home Screen ⊞) ➔ Thêm (Add).
 
+## 22. Ưu Tiên Người Giữ Vai Bảo Vệ Đứng Đầu Ma Trận Ghế
+- **Sắp Xếp Danh Sách Ghế Chọn Người Của Bảo Vệ (`NightPhaseView.jsx`)**:
+  - Trong bước Bảo Vệ che chở ban đêm (`currentRole.id === 'bao-ve'`), hệ thống tự động tìm người chơi đang giữ vai Bảo Vệ (`(p.currentRoleId || p.roleId) === 'bao-ve'`) và đưa lên **vị trí đầu tiên (ô ghế #1 trên cùng bên trái)** của Ma trận ghế `PlayerSeatPicker`.
+  - Các người chơi còn sống khác được xếp tiếp theo sau theo thứ tự số ghế thông thường.
+  - Giúp Quản trò thao tác cực nhanh khi Bảo Vệ muốn tự bảo vệ chính mình (Self-protect) mà không cần phải tìm kiếm vị trí ghế của họ trong bàn.
+
+
 
 
 

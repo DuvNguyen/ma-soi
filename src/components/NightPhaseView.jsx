@@ -690,6 +690,11 @@ export default function NightPhaseView({
               const lastNightP = players.find(x => x.id === nightState.lastNightProtectedId);
               const isProtected = nightState.protectedPlayerId && !nightState.protectSkipped;
 
+              // Người giữ vai Bảo Vệ được ưu tiên đứng ở vị trí đầu tiên (#1) trong ma trận ghế
+              const bodyguardPlayers = alivePlayers.filter(p => (p.currentRoleId || p.roleId) === 'bao-ve' || getPlayerRole(p)?.id === 'bao-ve');
+              const otherPlayers = alivePlayers.filter(p => !bodyguardPlayers.some(bg => bg.id === p.id));
+              const sortedProtectPlayers = [...bodyguardPlayers, ...otherPlayers];
+
               return (
                 <div className="space-y-4">
                   <div className="flex items-center gap-2">
@@ -747,9 +752,9 @@ export default function NightPhaseView({
                     </div>
                   </div>
 
-                  {/* Seat Picker for Bodyguard */}
+                  {/* Seat Picker for Bodyguard (Bodyguard player placed first) */}
                   <PlayerSeatPicker
-                    players={alivePlayers}
+                    players={sortedProtectPlayers}
                     selectedIds={isProtected ? [nightState.protectedPlayerId] : []}
                     disabledIds={nightState.lastNightProtectedId ? [nightState.lastNightProtectedId] : []}
                     onSelect={(id) => {
