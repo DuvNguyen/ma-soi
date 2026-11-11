@@ -11,3 +11,14 @@ ReactDOM.createRoot(document.getElementById('root')).render(
     </GothicDialogProvider>
   </React.StrictMode>,
 )
+
+// Register Service Worker for PWA (iPhone / Android)
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js').then((reg) => {
+      console.log('Werewolf PWA ServiceWorker registered with scope:', reg.scope);
+    }).catch((err) => {
+      console.warn('Werewolf PWA ServiceWorker registration failed:', err);
+    });
+  });
+}

@@ -1731,7 +1731,7 @@ export default function NightPhaseView({
 
       {/* STICKY BOTTOM ACTION BAR - ONE-SCREEN MOBILE VIEWPORT */}
       {!isSummaryStep && (
-        <div ref={originalFooterRef} className="sticky bottom-0 z-30 -mx-4 -mb-4 sm:-mx-6 sm:-mb-6 p-2.5 sm:p-3 bg-[#0a0c16]/95 backdrop-blur-md border-t border-purple-900/80 shadow-[0_-8px_25px_rgba(0,0,0,0.8)] flex items-center justify-between gap-2">
+        <div ref={originalFooterRef} className="sticky bottom-0 z-30 -mx-4 -mb-4 sm:-mx-6 sm:-mb-6 p-2.5 sm:p-3 pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))] bg-[#0a0c16]/95 backdrop-blur-md border-t border-purple-900/80 shadow-[0_-8px_25px_rgba(0,0,0,0.8)] flex items-center justify-between gap-2">
           <GothicButton
             variant="dark"
             size="sm"
@@ -1779,7 +1779,7 @@ export default function NightPhaseView({
       {/* SMART FLOATING ADVANCE BUTTON (Only shows when selection is valid AND user hasn't scrolled down to original footer) */}
       {!isSummaryStep && (
         <div
-          className={`md:hidden fixed bottom-4 right-4 z-40 transition-all duration-300 transform ${
+          className={`md:hidden fixed bottom-[calc(1rem+env(safe-area-inset-bottom,0px))] right-4 z-40 transition-all duration-300 transform ${
             showFloatingAdvanceButton
               ? 'opacity-100 translate-y-0 scale-100 pointer-events-auto'
               : 'opacity-0 translate-y-4 scale-95 pointer-events-none'

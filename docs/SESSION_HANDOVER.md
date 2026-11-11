@@ -394,6 +394,23 @@ Theo quy chuẩn [docs/game-rules.md](file:///home/levi/Desktop/Projects/werewol
   - Khi đã chọn xong (`stepValidation.isValid === true`), nếu người dùng đang ở trên cao (chưa cuộn tới thanh điều hướng gốc ở chân trang), một nút tròn nổi `[ Đi Ngủ 💤 ➔ ]` sẽ nổi ở góc dưới bên phải màn hình di động.
   - Sử dụng `IntersectionObserver` giám sát `originalFooterRef`: Ngay khi người dùng cuộn xuống dưới đáy trang và thanh điều hướng gốc xuất hiện trong tầm nhìn (`entry.isIntersecting === true`), nút nổi sẽ tự động mờ dần và ẩn đi (`opacity-0 pointer-events-none`) để chỉ hiển thị thanh điều hướng gốc duy nhất, hoàn toàn loại bỏ hiện tượng trùng lặp nút.
 
+## 21. Hỗ Trợ Toàn Diện PWA Cho iPhone (iOS Standalone Web App)
+- **Cấu Hình PWA & Apple iOS Meta Tags (`index.html`)**:
+  - `apple-mobile-web-app-capable: yes` cho phép mở toàn màn hình (Standalone) không thanh URL Safari.
+  - `apple-mobile-web-app-status-bar-style: black-translucent` cho thanh trạng thái trong suốt hòa vào nền game.
+  - `apple-mobile-web-app-title: Quản Trò Ma Sói` hiển thị tên ứng dụng gọn gàng dưới icon màn hình chính.
+  - `viewport-fit=cover` và các class `.ios-safe-top`, `.ios-safe-bottom` thích ứng hoàn hảo với tai thỏ / Dynamic Island và thanh gạt Home Bar của iPhone.
+- **Tạo Bộ Icon Chuẩn Apple & Web Manifest (`public/`)**:
+  - `apple-touch-icon.png` (180x180 px): Icon cao cấp sắc nét cho màn hình chính iPhone.
+  - `icon-192.png`, `icon-512.png`, `icon-maskable-512.png`: Bộ icon chuẩn PWA.
+  - `manifest.json`: Khai báo thông tin PWA độc lập (display: standalone, theme-color: #07080d).
+- **Service Worker Caching & Offline Ready (`public/sw.js`, `main.jsx`)**:
+  - Đăng ký Service Worker lưu cache App Shell (HTML, icons, fonts, CSS, images), mở ứng dụng tức thì và dùng offline mượt mà.
+- **Thẻ Hướng Dẫn Cài Đặt Cho iPhone Trong Modal Cài Đặt (`GameSettingsModal.jsx`)**:
+  - Tự động nhận diện chế độ Standalone (`window.navigator.standalone`).
+  - Cung cấp hướng dẫn trực quan 3 bước: Bấm Chia sẻ (Share ⎋) ➔ Chọn "Thêm vào MH chính" (Add to Home Screen ⊞) ➔ Thêm (Add).
+
+
 
 
 

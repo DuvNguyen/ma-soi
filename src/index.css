@@ -36,6 +36,22 @@ button, a, input, select, textarea, [role="button"] {
   user-select: none;
 }
 
+/* iOS PWA Safe Area Insets for iPhone X/11/12/13/14/15/16 Dynamic Island & Home Bar */
+@supports (padding: max(0px)) {
+  body {
+    padding-left: min(0vmin, env(safe-area-inset-left));
+    padding-right: min(0vmin, env(safe-area-inset-right));
+  }
+}
+
+.ios-safe-top {
+  padding-top: calc(0.375rem + env(safe-area-inset-top, 0px));
+}
+
+.ios-safe-bottom {
+  padding-bottom: calc(0.75rem + env(safe-area-inset-bottom, 0px));
+}
+
 .font-cinzel {
   font-family: 'Cinzel', serif;
 }

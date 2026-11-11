@@ -1,5 +1,5 @@
-import React from 'react';
-import { Settings, Shield, Skull, Check, X, AlertTriangle, RefreshCw, Database } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Settings, Shield, Skull, Check, X, AlertTriangle, RefreshCw, Database, Smartphone, Share2, PlusSquare } from 'lucide-react';
 import GothicButton from './ui/GothicButton';
 import ClawMarks from './ui/ClawMarks';
 import WolfIcon from './ui/WolfIcon';
@@ -12,6 +12,16 @@ export default function GameSettingsModal({
   onToggleWolvesKillTeammates
 }) {
   const { showConfirm } = useGothicDialog();
+  const [isStandalone, setIsStandalone] = useState(false);
+  const [showIosGuide, setShowIosGuide] = useState(false);
+
+  useEffect(() => {
+    // Check if running as iOS Standalone PWA
+    const isRunningStandalone = 
+      window.navigator.standalone === true || 
+      window.matchMedia('(display-mode: standalone)').matches;
+    setIsStandalone(Boolean(isRunningStandalone));
+  }, []);
 
   if (!isOpen) return null;
 
@@ -139,6 +149,68 @@ export default function GameSettingsModal({
             <p className="text-[11px] text-slate-400 pl-12">
               Mọi hành động (gán vai, cắn mồi, bảo vệ, treo cổ, nhật ký chặng) được lưu trữ tức thì vào <strong>LocalStorage</strong> và đồng bộ lên <strong>Neon PostgreSQL Cloud</strong>.
             </p>
+          </div>
+
+          {/* IPHONE PWA APP INSTALLATION CARD */}
+          <div className="p-4 rounded-2xl bg-[#141624] border border-purple-900/70 shadow-lg space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-purple-950 border border-purple-500 flex items-center justify-center text-purple-300 shrink-0">
+                  <Smartphone className="w-4 h-4 text-purple-300" />
+                </div>
+                <div>
+                  <h4 className="font-bold text-sm text-slate-100 flex items-center gap-2">
+                    <span>Ứng Dụng PWA Cho iPhone (iOS)</span>
+                  </h4>
+                  <p className="text-xs text-slate-400">
+                    Cài vào màn hình chính để dùng toàn màn hình, mượt mà như App Store
+                  </p>
+                </div>
+              </div>
+
+              {isStandalone ? (
+                <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-950/80 border border-emerald-500 text-emerald-300 text-xs font-bold shadow-sm">
+                  <Check className="w-3.5 h-3.5 text-emerald-400" />
+                  <span>Đã Cài Đặt</span>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setShowIosGuide(!showIosGuide)}
+                  className="px-2.5 py-1 rounded-lg text-xs font-bold bg-purple-950/80 hover:bg-purple-900 border border-purple-600 text-purple-200 transition-all cursor-pointer"
+                >
+                  {showIosGuide ? 'Thu Gọn' : 'Xem Hướng Dẫn'}
+                </button>
+              )}
+            </div>
+
+            {(!isStandalone || showIosGuide) && (
+              <div className="pt-2 border-t border-purple-950/60 space-y-2 text-xs text-slate-300">
+                <div className="p-3 rounded-xl bg-purple-950/30 border border-purple-900/50 space-y-2">
+                  <div className="font-bold text-purple-200 flex items-center gap-1.5">
+                    <span>Cách thêm vào màn hình chính iPhone (3 bước):</span>
+                  </div>
+                  <ol className="list-decimal list-inside space-y-1.5 text-slate-300 pl-1">
+                    <li>
+                      Mở trang web này bằng trình duyệt <strong>Safari</strong> trên iPhone.
+                    </li>
+                    <li className="flex items-center gap-1.5 flex-wrap">
+                      <span>Bấm nút <strong>Chia sẻ</strong> (biểu tượng</span>
+                      <span className="inline-flex items-center px-1.5 py-0.5 rounded bg-slate-800 border border-slate-700 text-slate-200 text-[11px] font-mono"><Share2 className="w-3 h-3 inline mr-1" /> Share</span>
+                      <span>ở thanh công cụ Safari dưới cùng).</span>
+                    </li>
+                    <li className="flex items-center gap-1.5 flex-wrap">
+                      <span>Cuộn xuống và chọn</span>
+                      <span className="inline-flex items-center px-1.5 py-0.5 rounded bg-slate-800 border border-slate-700 text-purple-300 text-[11px] font-bold"><PlusSquare className="w-3 h-3 inline mr-1 text-purple-400" /> Thêm vào MH chính</span>
+                      <span>(Add to Home Screen).</span>
+                    </li>
+                  </ol>
+                  <p className="text-[11px] text-emerald-400/90 italic pt-1">
+                    ✓ Sau khi thêm, icon Ma Sói sẽ xuất hiện ngoài màn hình iPhone. Mở lên sẽ chạy toàn màn hình, không có thanh URL Safari, chạy mượt mà offline!
+                  </p>
+                </div>
+              </div>
+            )}
           </div>
         </div>
 

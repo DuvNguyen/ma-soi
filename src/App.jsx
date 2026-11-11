@@ -1274,7 +1274,7 @@ export default function App() {
       </div>
 
       {/* Top Navigation Bar - Consistent Gothic Dark & Mobile One-Screen */}
-      <header className="sticky top-0 z-40 bg-[#0c0d16]/85 backdrop-blur-md border-b border-purple-950/80 px-2 sm:px-4 py-1.5 sm:py-2 shadow-[0_4px_25px_rgba(0,0,0,0.8)]">
+      <header className="sticky top-0 z-40 bg-[#0c0d16]/90 backdrop-blur-md border-b border-purple-950/80 px-2 sm:px-4 py-1.5 sm:py-2 ios-safe-top shadow-[0_4px_25px_rgba(0,0,0,0.8)]">
         <div className="max-w-7xl mx-auto flex items-center justify-between gap-1.5 sm:gap-2">
           {/* Brand & Mini Status */}
           <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
@@ -1447,7 +1447,7 @@ export default function App() {
       </header>
 
       {/* Main View Area */}
-      <main className="relative z-10 flex-1 max-w-7xl w-full mx-auto p-2 sm:p-4 md:p-6 pb-20 sm:pb-24">
+      <main className="relative z-10 flex-1 max-w-7xl w-full mx-auto p-2 sm:p-4 md:p-6 pb-24 sm:pb-28 ios-safe-bottom">
         {activeTab === 'night' && (
           <NightPhaseView
             roundNumber={roundNumber}
