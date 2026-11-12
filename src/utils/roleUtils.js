@@ -30,6 +30,9 @@ export const getRole = (roleId) => {
  */
 export const getPlayerRole = (player) => {
   if (!player) return null;
+  if (typeof player.getRole === 'function') {
+    return player.getRole();
+  }
   const roleId = player.currentRoleId || player.roleId;
   const role = getRole(roleId);
   if (!role) return null;
@@ -59,6 +62,9 @@ export const getPlayerRole = (player) => {
  */
 export const getPlayerOriginalRole = (player) => {
   if (!player) return null;
+  if (typeof player.getOriginalRole === 'function') {
+    return player.getOriginalRole();
+  }
   return getRole(player.originalRoleId);
 };
 
@@ -70,6 +76,9 @@ export const getPlayerOriginalRole = (player) => {
  */
 export const isWolfPlayer = (player) => {
   if (!player) return false;
+  if (typeof player.isWolf === 'function') {
+    return player.isWolf();
+  }
   if (player.isCursedWolf) return true;
   const role = getPlayerRole(player);
   if (!role) return false;

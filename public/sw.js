@@ -1,5 +1,5 @@
 // Service Worker for Quản Trò Ma Sói PWA
-const CACHE_NAME = 'werewolf-pwa-v1';
+const CACHE_NAME = 'werewolf-pwa-v2';
 
 const STATIC_ASSETS = [
   '/',
@@ -44,6 +44,11 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
+  // Only handle HTTP and HTTPS requests (ignores chrome-extension://, blob:, data:, etc.)
+  if (!event.request.url.startsWith('http://') && !event.request.url.startsWith('https://')) {
+    return;
+  }
+
   const url = new URL(event.request.url);
 
   // Skip caching for API requests and non-GET requests

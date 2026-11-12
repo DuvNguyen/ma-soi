@@ -5,6 +5,8 @@ import { getRole, getPlayerRole, getPlayerOriginalRole, isWolfPlayer, WOLF_ROLE_
 import { DEFAULT_PLAYER_NAMES, getDefaultPlayerNames } from './data/defaultPlayers';
 import { useGothicDialog } from './context/GothicDialogContext';
 import { checkGameEnd, resolveNightPhase } from './utils/gameLogic';
+import { Player } from './domain/models/Player.js';
+import { WerewolfGame } from './domain/models/WerewolfGame.js';
 import triggerHaptic from './utils/haptics';
 import { checkNeonConnection, syncGameStateApi, loadGameStateApi, saveMatchRecordApi } from './services/api';
 import NightPhaseView from './components/NightPhaseView';
@@ -26,6 +28,38 @@ import WolfIcon from './components/ui/WolfIcon';
 import { Moon, Sun, Users, BookOpen, RotateCcw, Shield, Eye, Skull, Sparkles, Trophy, Layers, Database, CheckCircle2, RefreshCw, History, Settings } from 'lucide-react';
 
 const STORAGE_KEY = 'werewolf_active_game_state';
+export const GAME_SCHEMA_VERSION = 2;
+
+export const DEFAULT_NIGHT_STATE = {
+  protectedPlayerId: null,
+  lastNightProtectedId: null,
+  wolfTargetId: null,
+  wolfTargetId2: null,
+  wolfSkipped: false,
+  isCursedInfect: false,
+  cursedUsed: false,
+  lastCursedVictimId: null,
+  witchSaved: false,
+  witchPoisonTargetId: null,
+  witchHasHeal: true,
+  witchHasPoison: true,
+  seerCheckedId: null,
+  cupidChosenIds: null,
+  skippedRoles: []
+};
+
+export const DEFAULT_PLAYER_PROPS = {
+  currentRoleId: null,
+  roleId: null,
+  originalRoleId: null,
+  isAlive: true,
+  deathReason: null,
+  deathPhase: null,
+  loverId: null,
+  elderLives: undefined,
+  isRevealedIdiot: false,
+  isSheriff: false
+};
 
 const DEFAULT_DECK_ROLE_IDS = [
   "soi-thuong", "soi-thuong", "nua-nguoi-nua-soi", 
@@ -39,11 +73,23 @@ function getInitialSavedState() {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return null;
     const parsed = JSON.parse(raw);
+
+    // Schema version check: Clean up legacy or incompatible cache across deployments
+    if (parsed && parsed.schemaVersion !== GAME_SCHEMA_VERSION) {
+      console.info(`[Storage] Stale schema version detected (stored: ${parsed.schemaVersion}, current: ${GAME_SCHEMA_VERSION}). Clearing cache.`);
+      localStorage.removeItem(STORAGE_KEY);
+      localStorage.removeItem('werewolf_current_night_step');
+      return null;
+    }
+
     if (parsed && Array.isArray(parsed.players) && parsed.players.length > 0) {
       return parsed;
     }
   } catch (err) {
     console.error('Failed to parse saved game from localStorage:', err);
+    try {
+      localStorage.removeItem(STORAGE_KEY);
+    } catch (_) {}
   }
   return null;
 }
@@ -74,25 +120,16 @@ export default function App() {
     if (savedInitial?.players && savedInitial.players.length > 0) {
       return savedInitial.players.map((p, idx) => {
         // Loại bỏ triệt để tên Thu Hà tồn lưu từ cache cũ
-        if (p.name === 'Thu Hà') {
-          return { ...p, name: `Người chơi ${p.id}` };
-        }
-        return p;
+        const cleanName = p.name === 'Thu Hà' ? `Người chơi ${p.id || idx + 1}` : (p.name || `Người chơi ${p.id || idx + 1}`);
+        return Player.fromJSON({
+          ...p,
+          name: cleanName
+        });
       });
     }
-    return Array.from({ length: 14 }, (_, i) => ({
+    return Array.from({ length: 14 }, (_, i) => Player.fromJSON({
       id: i + 1,
-      name: DEFAULT_PLAYER_NAMES[i] || `Người chơi ${i + 1}`,
-      currentRoleId: null,
-      roleId: null,
-      originalRoleId: null,
-      isAlive: true,
-      deathReason: null,
-      deathPhase: null,
-      loverId: null,
-      elderLives: undefined,
-      isRevealedIdiot: false,
-      isSheriff: false
+      name: DEFAULT_PLAYER_NAMES[i] || `Người chơi ${i + 1}`
     }));
   });
 
@@ -123,23 +160,11 @@ export default function App() {
     return savedInitial?.currentNightStepIdx || 0;
   });
 
-  // Night action state
+  // Night action state: shallow merge with defaults to ensure newly added properties are never undefined
   const [nightState, setNightState] = useState(() => {
-    return savedInitial?.nightState || {
-      protectedPlayerId: null,
-      lastNightProtectedId: null,
-      wolfTargetId: null,
-      wolfTargetId2: null,
-      wolfSkipped: false,
-      isCursedInfect: false,
-      cursedUsed: false,
-      witchSaved: false,
-      witchPoisonTargetId: null,
-      witchHasHeal: true,
-      witchHasPoison: true,
-      seerCheckedId: null,
-      cupidChosenIds: null,
-      skippedRoles: []
+    return {
+      ...DEFAULT_NIGHT_STATE,
+      ...(savedInitial?.nightState || {})
     };
   });
 
@@ -178,6 +203,7 @@ export default function App() {
   useEffect(() => {
     if (players.length > 0) {
       const stateToSave = {
+        schemaVersion: GAME_SCHEMA_VERSION,
         roundNumber,
         isNight,
         activeTab,
@@ -243,19 +269,9 @@ export default function App() {
     
     // MẶC ĐỊNH BẮT ĐẦU: 14 NGƯỜI CHƠI VỚI TÊN THỰC TẾ, ROLE = NULL (CHƯA CÓ ROLE NGAY TỪ ĐẦU)
     // QUẢN TRÒ BẮT ĐẦU GỌI TỪNG VAI TRONG ĐÊM 1 ĐỂ GÁN DẦN TỪNG NGƯỜI
-    const initialPlayers = Array.from({ length: 14 }, (_, i) => ({
+    const initialPlayers = Array.from({ length: 14 }, (_, i) => Player.fromJSON({
       id: i + 1,
-      name: DEFAULT_PLAYER_NAMES[i] || `Người chơi ${i + 1}`,
-      currentRoleId: null,
-      roleId: null,
-      originalRoleId: null,
-      isAlive: true,
-      deathReason: null,
-      deathPhase: null,
-      loverId: null,
-      elderLives: undefined,
-      isRevealedIdiot: false,
-      isSheriff: false
+      name: DEFAULT_PLAYER_NAMES[i] || `Người chơi ${i + 1}`
     }));
 
     setPlayers(initialPlayers);
@@ -275,23 +291,7 @@ export default function App() {
     try {
       localStorage.removeItem('werewolf_current_night_step');
     } catch (e) {}
-    setNightState({
-      protectedPlayerId: null,
-      lastNightProtectedId: null,
-      wolfTargetId: null,
-      wolfTargetId2: null,
-      wolfSkipped: false,
-      isCursedInfect: false,
-      cursedUsed: false,
-      lastCursedVictimId: null,
-      witchSaved: false,
-      witchPoisonTargetId: null,
-      witchHasHeal: true,
-      witchHasPoison: true,
-      seerCheckedId: null,
-      cupidChosenIds: null,
-      skippedRoles: []
-    });
+    setNightState({ ...DEFAULT_NIGHT_STATE });
   };
 
   // RESET GAME DATA TO 0 (CHƠI LẠI TỪ ĐẦU)
@@ -303,21 +303,28 @@ export default function App() {
       confirmText: 'Reset Về 0 Ngay 🩸',
       cancelText: 'Giữ Lại Ván Chơi',
       onConfirm: () => {
-        setPlayers(prev => prev.map((p) => ({
-          ...p,
-          currentRoleId: null,
-          roleId: null,
-          originalRoleId: null,
-          role: null,
-          isAlive: true,
-          deathReason: null,
-          deathPhase: null,
-          loverId: null,
-          elderLives: undefined,
-          isRevealedIdiot: false,
-          isSheriff: false,
-          isCursedWolf: false
-        })));
+        setPlayers(prev => prev.map((p) => {
+          const resetProps = {
+            currentRoleId: null,
+            roleId: null,
+            originalRoleId: null,
+            role: null,
+            isAlive: true,
+            deathReason: null,
+            deathPhase: null,
+            loverId: null,
+            elderLives: undefined,
+            isRevealedIdiot: false,
+            isSheriff: false,
+            isCursedWolf: false,
+            curseNight: null,
+            poisonedByRustySword: false,
+            rustySwordPoisonRound: null,
+            hasUsedKnightDuel: false,
+            shadowHostId: null
+          };
+          return p instanceof Player ? p.clone(resetProps) : new Player({ ...p, ...resetProps });
+        }));
 
         setRoundNumber(1);
         setIsNight(true);
@@ -327,22 +334,7 @@ export default function App() {
         setLynchedTodayPlayerId(null);
         setIsVillageCursed(false);
         setWolfCanKillDouble(false);
-        setNightState({
-          protectedPlayerId: null,
-          lastNightProtectedId: null,
-          wolfTargetId: null,
-          wolfTargetId2: null,
-          wolfSkipped: false,
-          isCursedInfect: false,
-          cursedUsed: false,
-          witchSaved: false,
-          witchPoisonTargetId: null,
-          witchHasHeal: true,
-          witchHasPoison: true,
-          seerCheckedId: null,
-          cupidChosenIds: null,
-          skippedRoles: []
-        });
+        setNightState({ ...DEFAULT_NIGHT_STATE });
 
         try {
           localStorage.removeItem(STORAGE_KEY);
@@ -361,19 +353,9 @@ export default function App() {
       .filter(Boolean);
     setRolesInGame(uniqueRoles);
 
-    const newPlayers = Array.from({ length: playerCount }, (_, i) => ({
+    const newPlayers = Array.from({ length: playerCount }, (_, i) => Player.fromJSON({
       id: i + 1,
-      name: (playerNames && playerNames[i]) || DEFAULT_PLAYER_NAMES[i] || `Người chơi ${i + 1}`,
-      currentRoleId: null,
-      roleId: null,
-      originalRoleId: null,
-      isAlive: true,
-      deathReason: null,
-      deathPhase: null,
-      loverId: null,
-      elderLives: undefined,
-      isRevealedIdiot: false,
-      isSheriff: false
+      name: (playerNames && playerNames[i]) || DEFAULT_PLAYER_NAMES[i] || `Người chơi ${i + 1}`
     }));
 
     setPlayers(newPlayers);
@@ -388,23 +370,7 @@ export default function App() {
     try {
       localStorage.removeItem('werewolf_current_night_step');
     } catch (e) {}
-    setNightState({
-      protectedPlayerId: null,
-      lastNightProtectedId: null,
-      wolfTargetId: null,
-      wolfTargetId2: null,
-      wolfSkipped: false,
-      isCursedInfect: false,
-      cursedUsed: false,
-      lastCursedVictimId: null,
-      witchSaved: false,
-      witchPoisonTargetId: null,
-      witchHasHeal: true,
-      witchHasPoison: true,
-      seerCheckedId: null,
-      cupidChosenIds: null,
-      skippedRoles: []
-    });
+    setNightState({ ...DEFAULT_NIGHT_STATE });
   };
 
   const handleApplyTemplate = (template) => {
@@ -418,20 +384,10 @@ export default function App() {
     const newPlayers = Array.from({ length: count }, (_, i) => {
       const existingName = players[i]?.name;
       const tplName = template.playerNames?.[i];
-      return {
+      return Player.fromJSON({
         id: i + 1,
-        name: tplName || existingName || DEFAULT_PLAYER_NAMES[i] || `Người chơi ${i + 1}`,
-        currentRoleId: null,
-        roleId: null,
-        originalRoleId: null,
-        isAlive: true,
-        deathReason: null,
-        deathPhase: null,
-        loverId: null,
-        elderLives: undefined,
-        isRevealedIdiot: false,
-        isSheriff: false
-      };
+        name: tplName || existingName || DEFAULT_PLAYER_NAMES[i] || `Người chơi ${i + 1}`
+      });
     });
 
     setPlayers(newPlayers);
@@ -446,23 +402,7 @@ export default function App() {
     try {
       localStorage.removeItem('werewolf_current_night_step');
     } catch (e) {}
-    setNightState({
-      protectedPlayerId: null,
-      lastNightProtectedId: null,
-      wolfTargetId: null,
-      wolfTargetId2: null,
-      wolfSkipped: false,
-      isCursedInfect: false,
-      cursedUsed: false,
-      lastCursedVictimId: null,
-      witchSaved: false,
-      witchPoisonTargetId: null,
-      witchHasHeal: true,
-      witchHasPoison: true,
-      seerCheckedId: null,
-      cupidChosenIds: null,
-      skippedRoles: []
-    });
+    setNightState({ ...DEFAULT_NIGHT_STATE });
   };
 
   const handleApplyRoster = (roster) => {
@@ -483,20 +423,10 @@ export default function App() {
             loverId: existing.loverId && existing.loverId <= targetCount ? existing.loverId : null
           };
         }
-        return {
+        return Player.fromJSON({
           id: i + 1,
-          name: names[i] || `Người chơi ${i + 1}`,
-          currentRoleId: null,
-          roleId: null,
-          originalRoleId: null,
-          isAlive: true,
-          deathReason: null,
-          deathPhase: null,
-          loverId: null,
-          elderLives: undefined,
-          isRevealedIdiot: false,
-          isSheriff: false
-        };
+          name: names[i] || `Người chơi ${i + 1}`
+        });
       });
     });
 
@@ -765,13 +695,36 @@ export default function App() {
   const handleAssignRole = (playerId, role) => {
     if (!role) return;
 
+    const game = new WerewolfGame({
+      roundNumber,
+      isNight,
+      players,
+      deckRoleIds,
+      rolesInGameIds: rolesInGame.map(r => r.id),
+      nightState,
+      nightLogs,
+      gameDiary,
+      isVillageCursed,
+      wolfCanKillDouble,
+      gameEndResult
+    });
+
     // Rule: Nếu vai này đã có người giữ và người đó bị Sói Nguyền lây nhiễm thành Sói -> vai đã bị loại khỏi làng, không gán cho người khác
-    const isCursedOut = players.some(p => p.isCursedWolf && p.originalRoleId === role.id);
-    const hasActiveHolders = players.some(p => (p.currentRoleId || p.roleId) === role.id);
-    if (isCursedOut && !hasActiveHolders) {
+    if (game.isRoleEliminated(role.id)) {
       showAlert({
         title: 'VAI TRÒ ĐÃ BỊ LOẠI!',
         message: `Vai trò "${role.name}" đã bị loại khỏi làng vì người giữ vai ban đầu đã bị Sói Nguyền đồng hóa thành Ma Sói. Theo luật chơi, lá bài này không được gán cho người khác!`,
+        variant: 'warning'
+      });
+      return;
+    }
+
+    // Rule: Nếu tất cả người giữ vai này trước đó đã chết -> vai đã mất, không gán cho người khác
+    if (!game.canRoleBeReassigned(role.id)) {
+      const deadHolders = players.filter(p => (p.currentRoleId || p.roleId) === role.id && !p.isAlive);
+      showAlert({
+        title: 'NGƯỜI GIỮ VAI ĐÃ HY SINH!',
+        message: `Vai trò "${role.name}" đã bị mất vì người giữ vai (${deadHolders.map(p => `#${p.id} ${p.name}`).join(', ')}) đã qua đời. Theo luật chơi, vai này không được gán lại cho người khác!`,
         variant: 'warning'
       });
       return;
@@ -784,7 +737,7 @@ export default function App() {
       const targetCurrentId = targetPlayer?.currentRoleId || targetPlayer?.roleId;
       // Toggle unassign if clicking current holder
       if (targetCurrentId === role.id) {
-        return prev.map(p => p.id === playerId ? { ...p, currentRoleId: null, roleId: null, role: null } : p);
+        return prev.map(p => p.id === playerId ? (p instanceof Player ? p.unassignRole() : { ...p, currentRoleId: null, roleId: null, role: null }) : p);
       }
 
       // STRICT "ONE PERSON 1 ROLE" RULE:
@@ -797,7 +750,7 @@ export default function App() {
       if (capacity === 1) {
         return prev.map(p => {
           if (p.id === playerId) {
-            return {
+            return p instanceof Player ? p.assignRole(role.id) : {
               ...p,
               currentRoleId: role.id,
               roleId: role.id,
@@ -807,7 +760,7 @@ export default function App() {
           }
           const pCurrentId = p.currentRoleId || p.roleId;
           if (pCurrentId === role.id) {
-            return {
+            return p instanceof Player ? p.unassignRole() : {
               ...p,
               currentRoleId: null,
               roleId: null,
@@ -825,10 +778,10 @@ export default function App() {
         const oldestHolder = currentHolders[0];
         return prev.map(p => {
           if (p.id === playerId) {
-            return { ...p, currentRoleId: role.id, roleId: role.id, role: null };
+            return p instanceof Player ? p.assignRole(role.id) : { ...p, currentRoleId: role.id, roleId: role.id, role: null };
           }
           if (p.id === oldestHolder.id) {
-            return { ...p, currentRoleId: null, roleId: null, role: null };
+            return p instanceof Player ? p.unassignRole() : { ...p, currentRoleId: null, roleId: null, role: null };
           }
           return p;
         });
@@ -836,7 +789,7 @@ export default function App() {
 
       return prev.map(p => {
         if (p.id === playerId) {
-          return {
+          return p instanceof Player ? p.assignRole(role.id) : {
             ...p,
             currentRoleId: role.id,
             roleId: role.id,
@@ -888,7 +841,7 @@ export default function App() {
       const targetIdx = allowedIds.indexOf(p.id);
       if (targetIdx !== -1) {
         const assignedRole = (isWolf && wolfRolesInDeck[targetIdx]) ? wolfRolesInDeck[targetIdx] : role;
-        return {
+        return p instanceof Player ? p.assignRole(assignedRole.id) : {
           ...p,
           currentRoleId: assignedRole.id,
           roleId: assignedRole.id,
@@ -899,10 +852,10 @@ export default function App() {
       // If someone was previously assigned this role or wolf role but was removed from allowedIds
       const pCurrentId = p.currentRoleId || p.roleId;
       if (isWolf && (isWolfPlayer(p) || WOLF_ROLE_IDS.includes(pCurrentId)) && !allowedIds.includes(p.id)) {
-        return { ...p, currentRoleId: null, roleId: null, role: null };
+        return p instanceof Player ? p.unassignRole() : { ...p, currentRoleId: null, roleId: null, role: null };
       }
       if (!isWolf && pCurrentId === role.id && !allowedIds.includes(p.id)) {
-        return { ...p, currentRoleId: null, roleId: null, role: null };
+        return p instanceof Player ? p.unassignRole() : { ...p, currentRoleId: null, roleId: null, role: null };
       }
       return p;
     }));
@@ -923,7 +876,7 @@ export default function App() {
     setPlayers(prev => prev.map(p => {
       const pCurrentId = p.currentRoleId || p.roleId;
       if (!pCurrentId) {
-        return {
+        return p instanceof Player ? p.assignRole('dan-lang') : {
           ...p,
           currentRoleId: 'dan-lang',
           roleId: 'dan-lang',
@@ -951,21 +904,32 @@ export default function App() {
   };
 
   const handleAdvanceToDay = () => {
-    const { 
-      updatedPlayers, 
-      killedPlayerIds, 
-      poisonedPlayerIds = [], 
-      refundWitchHeal, 
-      elderKilledByWitch, 
-      logs 
-    } = resolveNightPhase(
+    const game = new WerewolfGame({
+      roundNumber,
+      isNight,
       players,
+      deckRoleIds,
+      rolesInGameIds: rolesInGame.map(r => r.id),
       nightState,
-      roundNumber
-    );
+      nightLogs,
+      gameDiary,
+      isVillageCursed,
+      wolfCanKillDouble,
+      gameEndResult
+    });
 
-    setPlayers(updatedPlayers);
+    const result = game.resolveNight(nightState);
+    const { game: nextGame, deadSheriff, hunterTrigger, elderKilledByWitch, logs, gameEndResult: endResult } = result;
+
+    setPlayers(nextGame.players);
     setNightLogs(logs);
+    setIsNight(false);
+    setActiveTab('day');
+    setLynchedTodayPlayerId(null);
+    setCurrentNightStepIdx(0);
+    setNightState(nextGame.nightState);
+    setWolfCanKillDouble(nextGame.wolfCanKillDouble);
+    setIsVillageCursed(nextGame.isVillageCursed);
 
     // Ghi nhật ký Đêm vừa qua vào quyển nhật ký biên niên sử
     const nightEntry = {
@@ -976,25 +940,12 @@ export default function App() {
     };
     setGameDiary(prev => appendToDiary(prev, nightEntry));
 
-    setIsNight(false);
-    setActiveTab('day');
-    setLynchedTodayPlayerId(null);
-    setCurrentNightStepIdx(0);
     try {
       localStorage.removeItem('werewolf_current_night_step');
     } catch (e) {}
 
-    // RULE CONFLICT FIX #3: Hoàn trả bình cứu cho Phù Thủy nếu Bảo Vệ đã đỡ đòn thành công
-    if (refundWitchHeal) {
-      setNightState(prev => ({
-        ...prev,
-        witchHasHeal: true
-      }));
-    }
-
-    // RULE CONFLICT FIX #2: Nếu Già Làng bị Phù Thủy đầu độc chết trong đêm
+    // Lời Nguyền Già Làng
     if (elderKilledByWitch) {
-      setIsVillageCursed(true);
       showAlert({
         title: 'LỜI NGUYỀN CỦA GIÀ LÀNG! ⚡',
         message: 'Phù Thủy đã dùng thuốc độc giết hại GIÀ LÀNG!\n\nNỗi oán hận biến thành lời nguyền: Toàn bộ phe Dân Làng bị tước đoạt toàn bộ chức năng đặc biệt từ nay về sau!',
@@ -1003,97 +954,67 @@ export default function App() {
       });
     }
 
-    // RULE CONFLICT FIX #4: Nếu Sói Con chết trong đêm, kích hoạt cắn 2 người cho đêm kế tiếp
-    const killedWolfPup = updatedPlayers.find(p => killedPlayerIds.includes(p.id) && getPlayerRole(p)?.id === 'soi-con');
-    if (killedWolfPup) {
-      setWolfCanKillDouble(true);
-      logs.push(`🐺 SÓI CON (${killedWolfPup.name}) ĐÃ CHẾT! Bầy Ma Sói nổi cơn cuồng sát: Đêm tiếp theo bầy Sói được cắn 2 người!`);
-      setNightLogs([...logs]);
-    }
-
-    // RULE CONFLICT FIX #8: Nếu Cảnh Sát Trưởng tử trận trong đêm -> Mở modal 1-chạm di chúc kế nhiệm
-    const deadSheriff = updatedPlayers.find(p => killedPlayerIds.includes(p.id) && p.isSheriff);
+    // Cảnh Sát Trưởng tử trận trong đêm
     if (deadSheriff) {
       handleOpenSheriffModal(deadSheriff, false);
     }
 
-    // If Cursed Wolf infected someone this night, mark cursedUsed = true
-    if (nightState.isCursedInfect) {
-      setNightState(prev => ({
-        ...prev,
-        cursedUsed: true,
-        isCursedInfect: false
-      }));
+    if (endResult) {
+      setGameEndResult(endResult);
+      return;
     }
 
-    // RULE THIÊN SỨ: Thiên Sứ bị Ma Sói cắn chết ở Đêm 1 -> THẮNG NGAY LẬP TỨC
-    if (roundNumber === 1) {
-      const deadAngel = updatedPlayers.find(p => killedPlayerIds.includes(p.id) && getPlayerRole(p)?.id === 'thien-su');
-      if (deadAngel && nightState.wolfTargetId === deadAngel.id) {
-        setGameEndResult({
-          isEnded: true,
-          winner: 'Angel',
-          winnerTitle: 'Thiên Sứ Chiến Thắng! 🪽',
-          teamCode: '3',
-          description: `${deadAngel.name} (Thiên Sứ) đã bị Ma Sói cắn chết vào Đêm 1 đúng như tâm nguyện, đắc đạo thăng thiên và một mình giành chiến thắng trò chơi!`
-        });
-        return;
-      }
-    }
-
-    const end = evaluateGameEnd(updatedPlayers);
-
-    // RULE CONFLICT FIX #1: Thợ Săn chết do Thuốc Độc Phù Thủy hoặc chết theo người yêu KHÔNG ĐƯỢC BẮN
-    if (!end.isEnded) {
-      const deadHunter = updatedPlayers.find(p => killedPlayerIds.includes(p.id) && getPlayerRole(p)?.id === 'tho-san');
-      if (deadHunter) {
-        const isPoisoned = poisonedPlayerIds.includes(deadHunter.id);
-        const isLoverSuicide = deadHunter.deathReason?.includes('đau buồn');
-        if (isPoisoned) {
-          logs.push(`☠️ Thợ Săn ${deadHunter.name} bị Phù Thủy đầu độc trong lúc ngủ nên bị tê liệt, không thể rút súng bắn!`);
-          setNightLogs([...logs]);
-        } else if (isLoverSuicide) {
-          logs.push(`🥀 Thợ Săn ${deadHunter.name} quẫn trí chết theo người tình, không thể nổ súng!`);
-          setNightLogs([...logs]);
-        } else {
-          setActionModal({
-            isOpen: true,
-            actionType: 'hunter',
-            role: getPlayerRole(deadHunter),
-            player: deadHunter
-          });
-        }
-      }
+    // Thợ Săn bắn trả
+    if (hunterTrigger) {
+      setActionModal({
+        isOpen: true,
+        actionType: 'hunter',
+        role: hunterTrigger.getRole(),
+        player: hunterTrigger
+      });
     }
   };
 
   const handleLynchPlayer = (playerId) => {
-    const target = players.find(p => p.id === playerId);
-    if (!target) return;
-    const targetRole = getPlayerRole(target);
+    const game = new WerewolfGame({
+      roundNumber,
+      isNight,
+      players,
+      deckRoleIds,
+      rolesInGameIds: rolesInGame.map(r => r.id),
+      nightState,
+      nightLogs,
+      gameDiary,
+      isVillageCursed,
+      wolfCanKillDouble,
+      gameEndResult
+    });
 
-    // RULE CONFLICT FIX #7: Thiên Sứ (Angel) bị treo cổ Ngày 1 thắng ngay lập tức
-    if (targetRole?.id === 'thien-su' && roundNumber === 1) {
-      const updated = players.map(p => p.id === playerId ? {
-        ...p,
-        isAlive: false,
-        deathReason: 'Được dân làng biểu quyết đưa lên giàn treo cổ Ngày 1 đúng như tâm nguyện',
-        deathPhase: `Ngày ${roundNumber}`
-      } : p);
-      setPlayers(updated);
-      setLynchedTodayPlayerId(playerId);
-      setGameEndResult({
-        isEnded: true,
-        winner: 'Angel',
-        winnerTitle: 'Thiên Sứ Chiến Thắng! 🪽',
-        teamCode: '3',
-        description: `${target.name} (Thiên Sứ) đã bị dân làng treo cổ vào ngày đầu tiên đúng như tâm nguyện, đắc đạo thăng thiên và giành chiến thắng trò chơi!`
-      });
+    const result = game.lynchPlayer(playerId);
+    if (!result.success) return;
+
+    const {
+      game: nextGame,
+      target,
+      isIdiotWin,
+      isAngelWin,
+      elderCurseTriggered,
+      wolfPupKilled,
+      deadSheriff,
+      loverPartnerDied,
+      hunterTrigger,
+      gameEndResult: endResult
+    } = result;
+
+    setPlayers(nextGame.players);
+    setLynchedTodayPlayerId(playerId);
+
+    if (isAngelWin && endResult) {
+      setGameEndResult(endResult);
       return;
     }
 
-    // RULE CONFLICT FIX #2: Già Làng (Elder) bị Dân Làng treo cổ -> Lời Nguyền Già Làng giáng xuống
-    if (targetRole?.id === 'gia-lang') {
+    if (elderCurseTriggered) {
       setIsVillageCursed(true);
       showAlert({
         title: 'LỜI NGUYỀN CỦA GIÀ LÀNG! ⚡',
@@ -1103,8 +1024,7 @@ export default function App() {
       });
     }
 
-    // RULE CONFLICT FIX #4: Sói Con (Wolf Pup) bị treo cổ -> Đêm tới bầy Sói cắn 2 người
-    if (targetRole?.id === 'soi-con') {
+    if (wolfPupKilled) {
       setWolfCanKillDouble(true);
       showAlert({
         title: 'SÓI CON BỊ TREO CỔ! 🐺',
@@ -1114,36 +1034,12 @@ export default function App() {
       });
     }
 
-    // RULE CONFLICT FIX #8: Cảnh Sát Trưởng bị treo cổ -> Mở modal 1-chạm di chúc kế nhiệm
-    if (target.isSheriff) {
-      handleOpenSheriffModal(target, false);
+    if (deadSheriff) {
+      handleOpenSheriffModal(deadSheriff, false);
     }
 
-    // USER RULE: Thằng Ngố bị dân làng treo cổ thì THẮNG LUÔN!
-    if (targetRole?.id === 'thang-ngoc') {
-      const updated = players.map(p => {
-        if (p.id === playerId) {
-          return {
-            ...p,
-            isAlive: true,
-            deathReason: 'Bị dân làng treo cổ và đạt mục tiêu chiến thắng ván đấu!',
-            deathPhase: `Ngày ${roundNumber}`
-          };
-        }
-        return p;
-      });
-      setPlayers(updated);
-      setLynchedTodayPlayerId(playerId);
-
-      const idiotWinResult = {
-        isEnded: true,
-        winner: 'Idiot',
-        winnerTitle: 'Thằng Ngố Đơn Độc Chiến Thắng! 🃏',
-        teamCode: '3',
-        description: `${target.name} (Thằng Ngố) đã thành công lừa toàn bộ dân làng biểu quyết treo cổ mình và một mình giành chiến thắng chung cuộc!`
-      };
-      setGameEndResult(idiotWinResult);
-
+    if (isIdiotWin && endResult) {
+      setGameEndResult(endResult);
       const dayEndEntry = {
         phase: `Ngày ${roundNumber}`,
         type: 'day',
@@ -1155,179 +1051,124 @@ export default function App() {
       };
       const fullTimeline = appendToDiary(gameDiary, dayEndEntry);
       setGameDiary(fullTimeline);
-
-      const totalNights = fullTimeline.filter(d => d.type === 'night' || d.phase?.includes('Đêm')).length;
-      const totalDays = fullTimeline.filter(d => d.type === 'day' || d.phase?.includes('Ngày')).length;
-      const totalRounds = Math.max(roundNumber, totalNights, totalDays, 1);
-
-      const matchData = {
-        id: `match-${Date.now()}`,
-        roomName: `Ván đấu Ma Sói (${players.length} người)`,
-        roundNumber,
-        totalRounds,
-        totalNights,
-        totalDays,
-        winnerTeam: '3',
-        winnerDesc: idiotWinResult.description,
-        winnerDescription: idiotWinResult.description,
-        playerCount: players.length,
-        aliveCount: players.filter(p => p.isAlive).length,
-        cupidPair: nightState.cupidChosenIds || null,
-        playersSnapshot: updated.map(p => ({
-          id: p.id,
-          name: p.name,
-          currentRoleId: p.currentRoleId || p.roleId,
-          roleId: p.currentRoleId || p.roleId,
-          originalRoleId: p.originalRoleId || null,
-          isAlive: p.isAlive,
-          isCursedWolf: p.isCursedWolf || false,
-          deathReason: p.deathReason || null,
-          deathPhase: p.deathPhase || null,
-          loverId: p.loverId || null
-        })),
-        nightLogs: fullTimeline,
-        dayLogs: fullTimeline.filter(d => d.type === 'day'),
-        createdAt: new Date().toISOString()
-      };
-      try {
-        const savedHistory = JSON.parse(localStorage.getItem('werewolf_match_history') || '[]');
-        savedHistory.unshift(matchData);
-        localStorage.setItem('werewolf_match_history', JSON.stringify(savedHistory.slice(0, 50)));
-      } catch (err) {}
-      saveMatchRecordApi(matchData).catch(err => console.error("Auto save match failed:", err));
       return;
     }
 
-    let updated = players.map(p => {
-      if (p.id === playerId) {
-        return {
-          ...p,
-          isAlive: false,
-          deathReason: 'Bị dân làng biểu quyết treo cổ trên giàn thiêu',
-          deathPhase: `Ngày ${roundNumber}`
-        };
-      }
-      return p;
-    });
-
-    if (target.loverId) {
-      const partner = updated.find(x => x.id === target.loverId);
-      if (partner && partner.isAlive) {
-        partner.isAlive = false;
-        partner.deathReason = `Chết vì quá đau buồn khi người yêu (${target.name}) bị treo cổ`;
-        partner.deathPhase = `Ngày ${roundNumber}`;
-        showAlert({
-          title: 'TÌNH YÊU BI KỊCH 💔',
-          message: `${partner.name} đau đớn gục ngã chết theo người tình ${target.name}!\n\nSố phận của họ đã gắn kết với nhau từ khi Cupid ban phát mũi tên tình yêu.`,
-          variant: 'tragedy',
-          confirmText: 'Ghi Nhận Chết Theo 🥀'
-        });
-      }
-    }
-
-    // Kiểm tra Ảnh Tử kế thừa linh hồn nếu chủ thể bị treo cổ hoặc chết theo người yêu
-    updated = checkShadowTransformation(updated, target);
-
-    setPlayers(updated);
-    setLynchedTodayPlayerId(playerId);
-    const end = evaluateGameEnd(updated);
-
-    if (!end.isEnded && targetRole?.id === 'tho-san') {
-      setActionModal({
-        isOpen: true,
-        actionType: 'hunter',
-        role: targetRole,
-        player: target
+    if (loverPartnerDied) {
+      showAlert({
+        title: 'TÌNH YÊU BI KỊCH 💔',
+        message: `${loverPartnerDied.name} đau đớn gục ngã chết theo người tình ${target.name}!\n\nSố phận của họ đã gắn kết với nhau từ khi Cupid ban phát mũi tên tình yêu.`,
+        variant: 'tragedy',
+        confirmText: 'Ghi Nhận Chết Theo 🥀'
       });
     }
-  };
 
-  // Helper kiểm tra và chuyển đổi linh hồn cho Ảnh Tử
-  const checkShadowTransformation = (playerList, deadPlayer) => {
-    if (!deadPlayer) return playerList;
-    let hasTransform = false;
-    const transformed = playerList.map(p => {
-      if (p.isAlive && (p.currentRoleId === 'anh-tu' || p.roleId === 'anh-tu' || getPlayerRole(p)?.id === 'anh-tu') && p.shadowHostId === deadPlayer.id) {
-        hasTransform = true;
-        const inheritRoleId = deadPlayer.originalRoleId || deadPlayer.currentRoleId || deadPlayer.roleId || 'dan-lang';
+    if (result.transformedShadows && result.transformedShadows.length > 0) {
+      result.transformedShadows.forEach(({ shadow, host, inheritRoleId }) => {
         const newRole = getRole(inheritRoleId);
         triggerHaptic('confirm');
         showAlert({
           title: '👻 ẢNH TỬ KẾ THỪA LINH HỒN!',
-          message: `Chủ thể của Ảnh Tử (${deadPlayer.name} #${deadPlayer.id}) đã qua đời!\n\nẢnh Tử (${p.name} #${p.id}) lập tức hấp thu linh hồn và chính thức trở thành: ${newRole?.name || inheritRoleId}!`,
+          message: `Chủ thể của Ảnh Tử (${host.name} #${host.id}) đã qua đời!\n\nẢnh Tử (${shadow.name} #${shadow.id}) lập tức hấp thu linh hồn và chính thức trở thành: ${newRole?.name || inheritRoleId}!`,
           variant: 'purple'
         });
-        return {
-          ...p,
-          originalRoleId: 'anh-tu',
-          currentRoleId: inheritRoleId,
-          roleId: inheritRoleId,
-          role: null,
-          originalRole: null
-        };
-      }
-      return p;
-    });
-    return hasTransform ? transformed : playerList;
+      });
+    }
+
+    if (endResult) {
+      setGameEndResult(endResult);
+      return;
+    }
+
+    if (hunterTrigger) {
+      setActionModal({
+        isOpen: true,
+        actionType: 'hunter',
+        role: hunterTrigger.getRole(),
+        player: hunterTrigger
+      });
+    }
   };
 
   // Kị Sĩ Thách Đấu Quyết Đấu Ban Ngày (Kị Sĩ lật bài 1 lần duy nhất)
   const handleKnightDuel = (knightId, targetId) => {
-    const knight = players.find(p => p.id === knightId);
-    const target = players.find(p => p.id === targetId);
-    if (!knight || !target) return;
+    const game = new WerewolfGame({
+      roundNumber,
+      isNight,
+      players,
+      deckRoleIds,
+      rolesInGameIds: rolesInGame.map(r => r.id),
+      nightState,
+      nightLogs,
+      gameDiary,
+      isVillageCursed,
+      wolfCanKillDouble,
+      gameEndResult
+    });
 
-    const isWolf = isWolfPlayer(target);
-    const targetRole = getPlayerRole(target);
-    let updated = players.map(p => ({ ...p }));
+    const result = game.knightDuel(knightId, targetId);
+    if (!result.success) return;
 
-    const updatedKnight = updated.find(p => p.id === knightId);
-    const updatedTarget = updated.find(p => p.id === targetId);
-    if (updatedKnight) updatedKnight.hasUsedKnightDuel = true;
+    const { game: nextGame, knight, target, isWolf, deadSheriff, transformedShadows, logs, gameEndResult: endResult } = result;
 
     if (isWolf) {
-      // Sói chết tại chỗ, ngày kết thúc không cần vote
-      updatedTarget.isAlive = false;
-      updatedTarget.deathReason = 'Bị Kị Sĩ lật bài chém chết tại chỗ vì là Ma Sói';
-      updatedTarget.deathPhase = `Ngày ${roundNumber}`;
       setLynchedTodayPlayerId(targetId);
       triggerHaptic('danger');
-
       showAlert({
         title: '⚔️ KỊ SĨ CHÉM CHẾT MA SÓI!',
-        message: `Kị Sĩ ${knight.name} dũng cảm lật bài thách đấu ${target.name}!\n\nKết quả: ${target.name} ĐÚNG LÀ MA SÓI (${targetRole?.name || 'Ma Sói'}) và đã bị Kị Sĩ chém gục tại chỗ!\n\nLàng hoàn thành công lý hôm nay, không cần biểu quyết treo cổ nữa!`,
+        message: `Kị Sĩ ${knight.name} dũng cảm lật bài thách đấu ${target.name}!\n\nKết quả: ${target.name} ĐÚNG LÀ MA SÓI (${target.getRole()?.name || 'Ma Sói'}) và đã bị Kị Sĩ chém gục tại chỗ!\n\nLàng hoàn thành công lý hôm nay, không cần biểu quyết treo cổ nữa!`,
         variant: 'blood'
       });
-      setNightLogs(prev => [...prev, `⚔️ Kị Sĩ ${knight.name} lật bài thách đấu thành công: Đã chém chết Ma Sói ${target.name} (#${target.id})!`]);
-      updated = checkShadowTransformation(updated, updatedTarget);
     } else {
-      // Thách đấu nhầm người lương thiện -> Kị Sĩ chết!
-      updatedKnight.isAlive = false;
-      updatedKnight.deathReason = 'Chết gục tại chỗ vì phán đoán sai lầm khi thách đấu người lương thiện';
-      updatedKnight.deathPhase = `Ngày ${roundNumber}`;
       triggerHaptic('danger');
-
       showAlert({
         title: '💀 KỊ SĨ PHÁN ĐOÁN SAI LẦM & TỬ TRẬN!',
-        message: `Kị Sĩ ${knight.name} lật bài thách đấu ${target.name}!\n\nKết quả: ${target.name} KHÔNG PHẢI MA SÓI (${targetRole?.name || 'Dân Làng'})!\n\nKị Sĩ ${knight.name} ngã gục tử trận vì nông nổi! Làng tiếp tục tiến hành tranh luận và biểu quyết treo cổ như thường lệ.`,
+        message: `Kị Sĩ ${knight.name} lật bài thách đấu ${target.name}!\n\nKết quả: ${target.name} KHÔNG PHẢI MA SÓI (${target.getRole()?.name || 'Dân Làng'})!\n\nKị Sĩ ${knight.name} ngã gục tử trận vì nông nổi! Làng tiếp tục tiến hành tranh luận và biểu quyết treo cổ như thường lệ.`,
         variant: 'destructive'
       });
-      setNightLogs(prev => [...prev, `💀 Kị Sĩ ${knight.name} thách đấu sai lầm: ${target.name} vô tội. Kị Sĩ tử trận!`]);
-      updated = checkShadowTransformation(updated, updatedKnight);
     }
 
-    setPlayers(updated);
-    evaluateGameEnd(updated);
+    // Thông báo nếu có Ảnh Tử kế thừa linh hồn
+    if (transformedShadows && transformedShadows.length > 0) {
+      transformedShadows.forEach(({ shadow, host, inheritRoleId }) => {
+        const newRole = getRole(inheritRoleId);
+        triggerHaptic('confirm');
+        showAlert({
+          title: '👻 ẢNH TỬ KẾ THỪA LINH HỒN!',
+          message: `Chủ thể của Ảnh Tử (${host.name} #${host.id}) đã qua đời!\n\nẢnh Tử (${shadow.name} #${shadow.id}) lập tức hấp thu linh hồn và chính thức trở thành: ${newRole?.name || inheritRoleId}!`,
+          variant: 'purple'
+        });
+      });
+    }
+
+    setPlayers(nextGame.players);
+    setNightLogs(prev => [...prev, ...logs]);
+    if (deadSheriff) {
+      handleOpenSheriffModal(deadSheriff, false);
+    }
+    if (endResult) {
+      setGameEndResult(endResult);
+    }
   };
 
   const handleUndoLynch = (playerId) => {
-    setPlayers(prev => prev.map(p => {
-      if (p.id === playerId) {
-        return { ...p, isAlive: true, deathReason: null, deathPhase: null };
-      }
-      return p;
-    }));
+    const game = new WerewolfGame({
+      roundNumber,
+      isNight,
+      players,
+      deckRoleIds,
+      rolesInGameIds: rolesInGame.map(r => r.id),
+      nightState,
+      nightLogs,
+      gameDiary,
+      isVillageCursed,
+      wolfCanKillDouble,
+      gameEndResult
+    });
+    const nextGame = game.undoLynch(playerId);
+    setPlayers(nextGame.players);
     setLynchedTodayPlayerId(null);
+    setGameEndResult(nextGame.gameEndResult);
   };
 
   const handleAdvanceToNight = () => {

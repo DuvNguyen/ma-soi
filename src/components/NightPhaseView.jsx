@@ -14,6 +14,7 @@ import PlayerSeatPicker from './PlayerSeatPicker';
 import { getRoleCapacity } from '../utils/deckUtils';
 import { useGothicDialog } from '../context/GothicDialogContext';
 import { isWolfPlayer, getPlayerRole, getPlayerOriginalRole, getRole, WOLF_ROLE_IDS } from '../utils/roleUtils';
+import { Player } from '../domain/models/Player.js';
 import triggerHaptic from '../utils/haptics';
 
 export default function NightPhaseView({
@@ -458,6 +459,7 @@ export default function NightPhaseView({
   };
 
   const stepValidation = getStepValidationState();
+  const isDeadRole = Boolean(stepValidation.isDeadRole);
 
   // Advance to next step with strict validation
   const handleNextStep = (force = false) => {
@@ -774,7 +776,7 @@ export default function NightPhaseView({
                   </GothicButton>
                 </div>
               </div>
-            ) : isDeadRole ? (
+            ) : stepValidation.isDeadRole ? (
               <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-slate-950 via-[#1c0e1e] to-[#120817] border-2 border-rose-500/60 text-rose-200 shadow-[0_0_30px_rgba(244,63,94,0.25)] space-y-3 animate-fade-in">
                 <div className="flex items-center gap-2.5 font-cinzel font-black text-sm sm:text-base text-rose-300">
                   <span className="text-xl">💀💤</span>
@@ -1222,14 +1224,16 @@ export default function NightPhaseView({
 
                 {/* THE REVEALED CARD OF INSPECTED PLAYER (MINIMALIST & PROMINENT RED X) */}
                 {selectedSeerTarget ? (() => {
-                  const targetRole = getPlayerRole(selectedSeerTarget);
-                  const targetOrigRole = getPlayerOriginalRole(selectedSeerTarget);
+                  const targetPlayerModel = selectedSeerTarget instanceof Player 
+                    ? selectedSeerTarget 
+                    : Player.fromJSON(selectedSeerTarget);
+                  const targetRole = targetPlayerModel.getRole();
+                  const isTargetWolf = targetPlayerModel.getSeerAffiliation(nightState) === 'WOLF';
                   
-                  // Bán Sói (Nửa Người Nửa Sói) nếu đã bị bầy Sói cắn trong đêm nay (bước Sói cắn trước Tiên Tri)
+                  // Bán Sói (Nửa Người Nửa Sói) nếu đã bị bầy Sói cắn trong đêm nay
                   const isBittenHalfWolfTonight = (selectedSeerTarget?.currentRoleId === 'nua-nguoi-nua-soi' || selectedSeerTarget?.roleId === 'nua-nguoi-nua-soi') &&
                     (nightState?.wolfTargetId === selectedSeerTarget?.id || nightState?.wolfTargetId2 === selectedSeerTarget?.id) &&
                     !nightState?.wolfSkipped;
-                  const isTargetWolf = isWolfPlayer(selectedSeerTarget) || isBittenHalfWolfTonight;
 
                   return (
                     <div className={`p-4 rounded-2xl border transition-all animate-fade-in flex flex-col sm:flex-row items-center gap-4 text-center sm:text-left relative ${

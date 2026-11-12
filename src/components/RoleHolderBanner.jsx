@@ -140,7 +140,7 @@ export default function RoleHolderBanner({
             </button>
           )}
 
-          {!isWolfStep && !isRoleCursedOut && (
+          {!isWolfStep && !isRoleCursedOut && !allDead && (
             <button
               type="button"
               onClick={() => setShowAssignDropdown(!showAssignDropdown)}
