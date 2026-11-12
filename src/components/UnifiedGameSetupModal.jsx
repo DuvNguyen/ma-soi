@@ -48,15 +48,6 @@ export default function UnifiedGameSetupModal({
   const [templates, setTemplates] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // Deleted presets persisted in localStorage
-  const [deletedPresetIds, setDeletedPresetIds] = useState(() => {
-    try {
-      return JSON.parse(localStorage.getItem('werewolf_deleted_presets') || '[]');
-    } catch (e) {
-      return [];
-    }
-  });
-
   // Selected template & roles (Exclude appointed titles like Cảnh Sát Trưởng)
   const [selectedTemplateId, setSelectedTemplateId] = useState('preset-9-11');
   const [selectedRoleIds, setSelectedRoleIds] = useState(() => {
@@ -130,23 +121,13 @@ export default function UnifiedGameSetupModal({
     }
   };
 
-  // Combine Presets (excluding deleted ones & overridden ones) + Custom templates into one list
+  // Templates directly and exclusively from Database
   const allTemplates = useMemo(() => {
-    const dbTemplateIds = new Set((templates || []).map(t => t.id));
-    const formattedPresets = PRESETS
-      .filter(p => !deletedPresetIds.includes(p.id) && !dbTemplateIds.has(p.id))
-      .map(p => ({
-        ...p,
-        isPreset: true,
-        roleIds: (p.roleIds || []).filter(id => id !== 'canh-sat-truong' && id !== 'canh-sat-characters'),
-        playerNames: DEFAULT_PLAYER_NAMES.slice(0, p.playerCount || p.roleIds.length)
-      }));
-    const sanitizedCustom = (templates || []).map(t => ({
+    return (templates || []).map(t => ({
       ...t,
       roleIds: (t.roleIds || []).filter(id => id !== 'canh-sat-truong' && id !== 'canh-sat-characters')
     }));
-    return [...sanitizedCustom, ...formattedPresets];
-  }, [templates, deletedPresetIds]);
+  }, [templates]);
 
   // When templates load from DB, sync selectedRoleIds with the loaded template if not editing
   useEffect(() => {
@@ -434,33 +415,20 @@ export default function UnifiedGameSetupModal({
     }
   };
 
-  // Delete ANY template (custom or preset)
+  // Delete ANY template straight from DB
   const handleDeleteTemplate = async (template, e) => {
     e.stopPropagation();
     showConfirm({
       title: 'XÓA BỘ BÀI?',
-      message: `Bạn có chắc chắn muốn xóa bộ bài "${template.name}" khỏi danh sách?`,
+      message: `Bạn có chắc chắn muốn xóa bộ bài "${template.name}" khỏi cơ sở dữ liệu?`,
       variant: 'blood',
       confirmText: 'Xóa Vĩnh Viễn 🩸',
       onConfirm: async () => {
         try {
-          if (template.id.startsWith('preset-') || template.isPreset) {
-            const nextDeleted = Array.from(new Set([...deletedPresetIds, template.id]));
-            setDeletedPresetIds(nextDeleted);
-            try {
-              localStorage.setItem('werewolf_deleted_presets', JSON.stringify(nextDeleted));
-            } catch (err) {}
-            try {
-              await deleteTemplateApi(template.id);
-            } catch (err) {}
-            setTemplates(prev => prev.filter(t => t.id !== template.id));
-          } else {
-            await deleteTemplateApi(template.id);
-            setTemplates(prev => prev.filter(t => t.id !== template.id));
-          }
-
+          await deleteTemplateApi(template.id);
+          await loadTemplatesData();
           if (selectedTemplateId === template.id) {
-            const remaining = allTemplates.filter(t => t.id !== template.id);
+            const remaining = (templates || []).filter(t => t.id !== template.id);
             if (remaining.length > 0) {
               handleSelectTemplate(remaining[0]);
             }
@@ -472,23 +440,31 @@ export default function UnifiedGameSetupModal({
     });
   };
 
-  // Restore deleted presets
+  // Restore / Seed standard presets into Database
   const handleRestoreDeletedPresets = async () => {
-    setDeletedPresetIds([]);
-    try {
-      localStorage.removeItem('werewolf_deleted_presets');
-    } catch (err) {}
     try {
       for (const p of PRESETS) {
-        await deleteTemplateApi(p.id).catch(() => {});
+        await saveTemplateApi({
+          id: p.id,
+          name: p.name,
+          desc: p.desc || '',
+          playerCount: p.roleIds.length,
+          roleIds: p.roleIds
+        });
       }
       await loadTemplatesData();
-    } catch (err) {}
-    showAlert({
-      title: 'ĐÃ KHÔI PHỤC BỘ BÀI MẶC ĐỊNH! ✨',
-      message: 'Các bộ bài kịch bản chuẩn của hệ thống đã được khôi phục đầy đủ.',
-      variant: 'emerald'
-    });
+      showAlert({
+        title: 'ĐÃ NẠP BỘ BÀI MẪU! ✨',
+        message: 'Các bộ bài kịch bản chuẩn đã được lưu thành công vào Database.',
+        variant: 'emerald'
+      });
+    } catch (err) {
+      showAlert({
+        title: 'LỖI NẠP BỘ BÀI',
+        message: err.message,
+        variant: 'blood'
+      });
+    }
   };
 
   // Final Action: Apply Game Setup and Start Game
@@ -640,6 +616,16 @@ export default function UnifiedGameSetupModal({
                 <div className="flex items-center gap-2">
                   <button
                     type="button"
+                    onClick={handleRestoreDeletedPresets}
+                    title="Nạp lại các bộ bài mẫu chuẩn vào Database"
+                    className="px-2.5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700 text-xs text-slate-300 hover:text-white transition-all flex items-center justify-center gap-1 cursor-pointer"
+                  >
+                    <Undo2 className="w-3.5 h-3.5 text-slate-400" />
+                    <span>Nạp Bộ Mẫu</span>
+                  </button>
+
+                  <button
+                    type="button"
                     onClick={() => {
                       setNewTemplateNameInput(`Bộ bài ${selectedRoleIds.length} lá mới`);
                       setIsSavingAsNew(true);
@@ -652,17 +638,16 @@ export default function UnifiedGameSetupModal({
                 </div>
               </div>
 
-              {/* Restore default presets if any were deleted */}
-              {deletedPresetIds.length > 0 && (
-                <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-900/60 border border-slate-800 text-xs text-slate-400">
-                  <span>Bạn đã xóa {deletedPresetIds.length} bộ bài mặc định của hệ thống.</span>
+              {allTemplates.length === 0 && !loading && (
+                <div className="p-4 rounded-2xl bg-slate-900/60 border border-slate-800 text-center space-y-2">
+                  <p className="text-xs text-slate-400">Chưa có bộ bài nào trong cơ sở dữ liệu.</p>
                   <button
                     type="button"
                     onClick={handleRestoreDeletedPresets}
-                    className="text-amber-400 hover:text-amber-300 font-bold flex items-center gap-1 cursor-pointer"
+                    className="px-3 py-1.5 rounded-xl bg-purple-900 hover:bg-purple-800 text-purple-200 text-xs font-bold inline-flex items-center gap-1.5 cursor-pointer"
                   >
                     <Undo2 className="w-3.5 h-3.5" />
-                    <span>Khôi phục bộ bài mặc định</span>
+                    <span>Nạp 3 bộ bài mẫu mặc định vào Database</span>
                   </button>
                 </div>
               )}
