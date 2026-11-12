@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { ROLES, PRESETS } from '../data/roles';
 import { DEFAULT_PLAYER_NAMES } from '../data/defaultPlayers';
 import { fetchTemplates, saveTemplateApi, deleteTemplateApi } from '../services/api';
@@ -86,6 +86,13 @@ export default function UnifiedGameSetupModal({
   // Bulk edit modal state
   const [isBulkEditModalOpen, setIsBulkEditModalOpen] = useState(false);
   const [bulkEditText, setBulkEditText] = useState('');
+  const lineNumbersRef = useRef(null);
+
+  const handleTextareaScroll = (e) => {
+    if (lineNumbersRef.current) {
+      lineNumbersRef.current.scrollTop = e.target.scrollTop;
+    }
+  };
 
   // Template creation/saving state
   const [isSavingAsNew, setIsSavingAsNew] = useState(false);
@@ -1043,21 +1050,53 @@ export default function UnifiedGameSetupModal({
               </button>
             </div>
 
-            {/* Multi-line editor: Line numbers column + Textarea */}
-            <div className="relative flex gap-2 bg-[#0a0c16] border border-purple-900/80 rounded-xl p-2.5 focus-within:border-purple-500 max-h-72 overflow-hidden">
-              <div className="flex flex-col items-center gap-1 select-none pr-2 border-r border-slate-800 text-[11px] font-mono text-purple-400 font-bold shrink-0 pt-1 overflow-y-hidden">
+            {/* Multi-line editor: Line numbers column + Textarea with exact pixel lock */}
+            <div className="relative flex bg-[#0a0c16] border border-purple-900/80 rounded-xl overflow-hidden focus-within:border-purple-500">
+              <div
+                ref={lineNumbersRef}
+                className="w-12 select-none border-r border-slate-800/80 bg-slate-950/60 shrink-0 overflow-hidden"
+                style={{
+                  paddingTop: '8px',
+                  paddingBottom: '8px',
+                  height: '280px',
+                  boxSizing: 'border-box'
+                }}
+              >
                 {bulkLines.map((_, idx) => (
-                  <span key={idx} className="h-7 flex items-center justify-center leading-7">
+                  <div
+                    key={idx}
+                    style={{
+                      height: '28px',
+                      lineHeight: '28px',
+                      fontSize: '13px',
+                      fontFamily: 'monospace',
+                      boxSizing: 'border-box'
+                    }}
+                    className="text-right pr-2.5 text-purple-400 font-bold select-none"
+                  >
                     #{idx + 1}
-                  </span>
+                  </div>
                 ))}
               </div>
               <textarea
-                rows={Math.max(8, Math.min(14, bulkLines.length))}
+                style={{
+                  paddingTop: '8px',
+                  paddingBottom: '8px',
+                  paddingLeft: '10px',
+                  paddingRight: '10px',
+                  height: '280px',
+                  lineHeight: '28px',
+                  fontSize: '13px',
+                  fontFamily: 'monospace',
+                  whiteSpace: 'pre',
+                  overflowX: 'auto',
+                  boxSizing: 'border-box'
+                }}
                 value={bulkEditText}
                 onChange={(e) => setBulkEditText(e.target.value)}
+                onScroll={handleTextareaScroll}
                 placeholder="Mỗi dòng là một người chơi..."
-                className="flex-1 bg-transparent text-xs sm:text-sm text-slate-100 focus:outline-none font-mono resize-none leading-7 tracking-wide pt-1 overflow-y-auto"
+                className="flex-1 bg-transparent text-slate-100 focus:outline-none resize-none border-none outline-none overflow-y-auto m-0 leading-[28px]"
                 autoFocus
               />
             </div>
