@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { 
   Shield, Eye, Skull, Sparkles, Heart, ChevronRight, ChevronLeft, ArrowRight,
   Sun, Moon, Check, UserCheck, AlertTriangle, AlertCircle, Wand2, Ghost, Flame, MoonStar, X 
@@ -42,6 +42,28 @@ export default function NightPhaseView({
   const isInitialMount = useRef(true);
   const prevStepIdxRef = useRef(null);
   const [isOriginalFooterVisible, setIsOriginalFooterVisible] = useState(false);
+  const [inlineButtonNode, setInlineButtonNode] = useState(null);
+  const [isInlineButtonVisible, setIsInlineButtonVisible] = useState(false);
+
+  const isElementInViewport = (el) => {
+    if (!el) return false;
+    const rect = el.getBoundingClientRect();
+    return (
+      rect.top < window.innerHeight &&
+      rect.bottom > 0 &&
+      rect.left < window.innerWidth &&
+      rect.right > 0
+    );
+  };
+
+  const inlineAdvanceBtnRef = useCallback((node) => {
+    setInlineButtonNode(node);
+    if (node) {
+      setIsInlineButtonVisible(isElementInViewport(node));
+    } else {
+      setIsInlineButtonVisible(false);
+    }
+  }, []);
 
   // Sort roles according to canonical night wake-up order
   const getOrderedNightRoles = () => {
@@ -551,10 +573,45 @@ export default function NightPhaseView({
     return () => observer.disconnect();
   }, [safeStepIdx]);
 
+  // Observer to track if the inline action button is in viewport (Quy tắc 1 khung hình 1 nút đi ngủ)
+  useEffect(() => {
+    if (!inlineButtonNode || typeof IntersectionObserver === 'undefined') {
+      setIsInlineButtonVisible(false);
+      return;
+    }
+
+    setIsInlineButtonVisible(isElementInViewport(inlineButtonNode));
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        setIsInlineButtonVisible(entry.isIntersecting);
+      },
+      { threshold: 0.05, rootMargin: '0px 0px 40px 0px' }
+    );
+
+    observer.observe(inlineButtonNode);
+
+    const handleScrollOrResize = () => {
+      setIsInlineButtonVisible(isElementInViewport(inlineButtonNode));
+    };
+
+    window.addEventListener('scroll', handleScrollOrResize, { passive: true });
+    window.addEventListener('resize', handleScrollOrResize, { passive: true });
+
+    return () => {
+      observer.disconnect();
+      window.removeEventListener('scroll', handleScrollOrResize);
+      window.removeEventListener('resize', handleScrollOrResize);
+    };
+  }, [inlineButtonNode]);
+
+  // QUY TẮC 1 KHUNG HÌNH 1 NÚT ĐI NGỦ:
+  // Nút floating chỉ được phép hiện khi nút đi ngủ dưới cùng hoàn toàn trượt khỏi tầm nhìn (vision)
   const showFloatingAdvanceButton = 
     !isSummaryStep && 
     stepValidation.isValid && 
-    !isOriginalFooterVisible;
+    !isOriginalFooterVisible &&
+    !isInlineButtonVisible;
 
   // Victim of wolves tonight
   const wolfVictim = players.find(p => p.id === nightState.wolfTargetId);
@@ -770,7 +827,7 @@ export default function NightPhaseView({
                   </div>
                 </div>
 
-                <div className="pt-2">
+                <div ref={inlineAdvanceBtnRef} className="pt-2">
                   <GothicButton
                     variant="gold"
                     size="md"
@@ -798,7 +855,7 @@ export default function NightPhaseView({
                   </div>
                 </div>
 
-                <div className="pt-2">
+                <div ref={inlineAdvanceBtnRef} className="pt-2">
                   <GothicButton
                     variant="gold"
                     size="md"
@@ -857,7 +914,7 @@ export default function NightPhaseView({
                   )}
                 </div>
 
-                <div className="pt-2">
+                <div ref={inlineAdvanceBtnRef} className="pt-2">
                   <GothicButton
                     variant="gold"
                     size="md"
@@ -979,7 +1036,7 @@ export default function NightPhaseView({
 
                   {/* Inline Quick Advance Button when chosen */}
                   {(nightState.protectedPlayerId || nightState.protectSkipped) && (
-                    <div className="pt-2 animate-fade-in">
+                    <div ref={inlineAdvanceBtnRef} className="pt-2 animate-fade-in">
                       <GothicButton
                         variant="witch"
                         size="md"
@@ -1260,7 +1317,7 @@ export default function NightPhaseView({
 
                 {/* Inline Quick Advance for Wolves */}
                 {(nightState.wolfTargetId || nightState.wolfSkipped) && (
-                  <div className="pt-2 animate-fade-in">
+                  <div ref={inlineAdvanceBtnRef} className="pt-2 animate-fade-in">
                     <GothicButton
                       variant="blood"
                       size="md"
@@ -1395,7 +1452,7 @@ export default function NightPhaseView({
 
                 {/* Inline Quick Advance for Seer */}
                 {selectedSeerTarget && (
-                  <div className="pt-2 animate-fade-in">
+                  <div ref={inlineAdvanceBtnRef} className="pt-2 animate-fade-in">
                     <GothicButton
                       variant="witch"
                       size="md"
@@ -1639,7 +1696,7 @@ export default function NightPhaseView({
 
                   {/* Inline Quick Advance for Cupid */}
                   {chosen.length === 2 && (
-                    <div className="pt-2 animate-fade-in">
+                    <div ref={inlineAdvanceBtnRef} className="pt-2 animate-fade-in">
                       <GothicButton
                         variant="witch"
                         size="md"
