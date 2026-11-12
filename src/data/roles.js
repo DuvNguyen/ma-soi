@@ -815,6 +815,31 @@ export const ROLES = [
     }
   },
   {
+    "id": "soi-bi-nguyen",
+    "name": "Sói Bị Nguyền",
+    "enName": "Cursed Werewolf",
+    "expansion": "Nhân Vật Đặc Biệt",
+    "team": "Phe Sói",
+    "teamCode": "W",
+    "wakeOrder": 5,
+    "wakeTime": "Mỗi đêm",
+    "shortDesc": "Nạn nhân bị Sói Nguyền lây nhiễm thành Ma Sói. Thuộc phe Sói và chiến thắng cùng bầy Sói.",
+    "fullDesc": "Người chơi bị Sói Nguyền (Sói Quỷ) biến đổi thành Ma Sói. Thức dậy và đi săn cùng bầy Sói từ đêm tiếp theo.",
+    "gmCall": "Thức dậy chung cùng bầy Ma Sói.",
+    "notes": [
+      "Thuộc phe Sói vĩnh viễn cho đến hết ván đấu.",
+      "Tiên Tri soi ra sẽ thấy biểu tượng Phe Sói.",
+      "Kỹ năng của vai trò gốc bị phong ấn hoàn toàn."
+    ],
+    "image": "/cards/la-bai-ma-soi.jpg",
+    "colors": {
+      "bg": "#4a044e",
+      "border": "#c026d3",
+      "banner": "#a21caf",
+      "text": "#f5d0fe"
+    }
+  },
+  {
     "id": "ba-dong",
     "name": "Bà Đồng",
     "enName": "Village Soothsayer",

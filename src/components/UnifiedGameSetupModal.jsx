@@ -34,6 +34,7 @@ export default function UnifiedGameSetupModal({
   initialTab = 'deck',
   currentPlayers = [],
   currentDeckRoleIds = [],
+  currentTemplateId = null,
   onApplyGameSetup,
   onApplyTemplate
 }) {
@@ -49,7 +50,9 @@ export default function UnifiedGameSetupModal({
   const [loading, setLoading] = useState(true);
 
   // Selected template & roles (Exclude appointed titles like Cảnh Sát Trưởng)
-  const [selectedTemplateId, setSelectedTemplateId] = useState('preset-9-11');
+  const [selectedTemplateId, setSelectedTemplateId] = useState(() => {
+    return currentTemplateId || 'preset-9-11';
+  });
   const [selectedRoleIds, setSelectedRoleIds] = useState(() => {
     if (currentDeckRoleIds && currentDeckRoleIds.length > 0) {
       return currentDeckRoleIds.filter(id => id !== 'canh-sat-truong' && id !== 'canh-sat-characters');
@@ -129,6 +132,13 @@ export default function UnifiedGameSetupModal({
     }));
   }, [templates]);
 
+  // Sync selectedTemplateId when currentTemplateId is updated or modal opens
+  useEffect(() => {
+    if (isOpen && currentTemplateId) {
+      setSelectedTemplateId(currentTemplateId);
+    }
+  }, [isOpen, currentTemplateId]);
+
   // When templates load from DB, sync selectedRoleIds with the loaded template if not editing
   useEffect(() => {
     if (templates && templates.length > 0 && !showRoleCustomizer) {
@@ -139,7 +149,7 @@ export default function UnifiedGameSetupModal({
         setEditingDeckDesc(match.desc || '');
       }
     }
-  }, [templates, selectedTemplateId]);
+  }, [templates, selectedTemplateId, showRoleCustomizer]);
 
   // Active template info
   const activeTemplate = useMemo(() => {
@@ -478,10 +488,12 @@ export default function UnifiedGameSetupModal({
     if (onApplyGameSetup) {
       onApplyGameSetup({
         playerNames: finalNames,
-        roleIds: selectedRoleIds
+        roleIds: selectedRoleIds,
+        templateId: selectedTemplateId
       });
     } else if (onApplyTemplate) {
       onApplyTemplate({
+        id: selectedTemplateId,
         playerCount: selectedRoleIds.length,
         roleIds: selectedRoleIds,
         playerNames: finalNames

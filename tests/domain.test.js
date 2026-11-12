@@ -88,7 +88,7 @@ console.log('🧪 Starting Phase 1 Domain Model & Strategy Tests...\n');
   assert.strictEqual(cursedSeer.isWolf(), true);
   assert.strictEqual(cursedSeer.isCursedWolf, true);
   assert.strictEqual(cursedSeer.originalRoleId, 'tien-tri');
-  assert.strictEqual(cursedSeer.currentRoleId, 'soi-thuong');
+  assert.strictEqual(cursedSeer.currentRoleId, 'soi-bi-nguyen');
   assert.strictEqual(cursedSeer.getRole().name, 'Sói (Tiên Tri bị nguyền)');
   assert.strictEqual(cursedSeer.getSeerAffiliation(), 'WOLF');
 
@@ -258,6 +258,104 @@ console.log('🧪 Starting Phase 1 Domain Model & Strategy Tests...\n');
     assert.strictEqual(hunterLynch.hunterTrigger, null, 'Hunter cannot shoot when village is cursed');
     console.log('✅ Test 14: Elder lynch triggers Village Curse -> Powers sealed (Protection fails, Witch poison fails, Hunter trigger blocked).');
 
-    console.log('\n🎉 ALL 14 DOMAIN ENGINE TESTS PASSED PERFECTLY!\n');
+    // Test 15: Hunter dies from lover death -> triggers hunterTrigger
+    const loverGame = new WerewolfGame({
+      roundNumber: 1,
+      isNight: false,
+      players: [
+        new Player({ id: 1, name: 'Bảo Ngọc (Hunter)', currentRoleId: 'tho-san', roleId: 'tho-san', loverId: 2 }),
+        new Player({ id: 2, name: 'Anh Quân (Villager)', currentRoleId: 'dan-lang', roleId: 'dan-lang', loverId: 1 }),
+        new Player({ id: 3, name: 'Minh Hùng (Wolf)', currentRoleId: 'soi-thuong', roleId: 'soi-thuong' })
+      ]
+    });
+    const loverLynch = loverGame.lynchPlayer(2); // Lynch Villager
+    assert.strictEqual(loverLynch.target.id, 2);
+    assert.strictEqual(loverLynch.loverPartnerDied?.id, 1, 'Hunter partner should die of heartbreak');
+    assert.strictEqual(loverLynch.hunterTrigger?.id, 1, 'Hunter must trigger dying shot even when dying from heartbreak');
+    console.log('✅ Test 15: Hunter dying from lover heartbreak triggers hunter shot passed.');
+
+    // Test 16: Undo Lynch restores full chain: Lynched lover + Hunter lover + Hunter shot victim
+    const chainGame = loverLynch.game;
+    // Simulate Hunter shot killed Wolf (#3)
+    const afterHunterShotGame = chainGame.clone({
+      players: chainGame.players.map(p => {
+        if (p.id === 3) {
+          return p.clone({ isAlive: false, deathReason: 'Bị Thợ Săn nổ súng bắn chết', deathPhase: 'Ngày 1' });
+        }
+        return p;
+      })
+    });
+    assert.strictEqual(afterHunterShotGame.getPlayer(1).isAlive, false);
+    assert.strictEqual(afterHunterShotGame.getPlayer(2).isAlive, false);
+    assert.strictEqual(afterHunterShotGame.getPlayer(3).isAlive, false);
+
+    const undoneChain = afterHunterShotGame.undoLynch(2);
+    assert.strictEqual(undoneChain.getPlayer(2).isAlive, true, 'Lynched lover resurrected');
+    assert.strictEqual(undoneChain.getPlayer(1).isAlive, true, 'Heartbroken hunter resurrected');
+    assert.strictEqual(undoneChain.getPlayer(3).isAlive, true, 'Hunter victim resurrected');
+    console.log('✅ Test 16: Undo lynch restores full chain of lover and hunter casualties.');
+
+    // Test 17: Big Bad Wolf (Sói Lớn Xấu Xa) extra bite and protection
+    const bbwGame = new WerewolfGame({
+      roundNumber: 1,
+      isNight: true,
+      players: [
+        new Player({ id: 1, name: 'Sói Lớn', currentRoleId: 'soi-lon-xau-xa', roleId: 'soi-lon-xau-xa' }),
+        new Player({ id: 2, name: 'Sói Thường', currentRoleId: 'soi-thuong', roleId: 'soi-thuong' }),
+        new Player({ id: 3, name: 'Dân 1', currentRoleId: 'dan-lang', roleId: 'dan-lang' }),
+        new Player({ id: 4, name: 'Dân 2', currentRoleId: 'dan-lang', roleId: 'dan-lang' }),
+        new Player({ id: 5, name: 'Bảo Vệ', currentRoleId: 'bao-ve', roleId: 'bao-ve' })
+      ]
+    });
+    // Night 1: Pack targets P3, Big Bad Wolf targets P4. Bodyguard protects P4.
+    const bbwRes1 = bbwGame.resolveNight({
+      wolfTargetId: 3,
+      bigBadWolfTargetId: 4,
+      protectedPlayerId: 4
+    });
+    assert.strictEqual(bbwRes1.game.getPlayer(3).isAlive, false, 'Dân 1 killed by wolf pack');
+    assert.strictEqual(bbwRes1.game.getPlayer(4).isAlive, true, 'Dân 2 protected by Bodyguard against Big Bad Wolf');
+
+    // Without protection, Big Bad Wolf kills target
+    const bbwRes2 = bbwGame.resolveNight({
+      wolfTargetId: 3,
+      bigBadWolfTargetId: 4,
+      protectedPlayerId: null
+    });
+    assert.strictEqual(bbwRes2.game.getPlayer(3).isAlive, false);
+    assert.strictEqual(bbwRes2.game.getPlayer(4).isAlive, false, 'Dân 2 killed by Big Bad Wolf extra bite');
+    console.log('✅ Test 17: Big Bad Wolf extra bite and protection interaction passed.');
+
+    // Test 18: Assigning functional role to player previously infected by Cursed Wolf
+    const unassignedPlayer = new Player({ id: 12, name: 'Duyên', currentRoleId: null, roleId: null });
+    // Duyên gets infected by Cursed Wolf during Night 1
+    const infectedDuyen = unassignedPlayer.infectByCursedWolf(1);
+    assert.strictEqual(infectedDuyen.isWolf(), true);
+    assert.strictEqual(infectedDuyen.isCursedWolf, true);
+    assert.strictEqual(infectedDuyen.currentRoleId, 'soi-bi-nguyen');
+    assert.strictEqual(infectedDuyen.getRole().name, 'Sói Bị Nguyền');
+
+    // Later in Night 1, Game Master wakes Seer and assigns 'tien-tri' to Duyên
+    const seerDuyen = infectedDuyen.assignRole('tien-tri');
+    assert.strictEqual(seerDuyen.originalRoleId, 'tien-tri', 'Original role set to Seer');
+    assert.strictEqual(seerDuyen.currentRoleId, 'soi-bi-nguyen', 'Still a werewolf');
+    assert.strictEqual(seerDuyen.isCursedWolf, true, 'Maintains cursed wolf status');
+    assert.strictEqual(seerDuyen.isWolf(), true, 'Affiliated with wolf team');
+    assert.strictEqual(seerDuyen.getRole().name, 'Sói (Tiên Tri bị nguyền)');
+
+    // In WerewolfGame, Seer role is now eliminated from village and cannot be given to someone else
+    const gameWithCursedSeer = new WerewolfGame({
+      roundNumber: 1,
+      isNight: true,
+      players: [
+        seerDuyen,
+        new Player({ id: 13, name: 'Đức', currentRoleId: null, roleId: null })
+      ]
+    });
+    assert.strictEqual(gameWithCursedSeer.isRoleEliminated('tien-tri'), true, 'Seer role is eliminated from village');
+    assert.strictEqual(gameWithCursedSeer.canRoleBeReassigned('tien-tri', 13), false, 'Cannot be given to another player');
+    console.log('✅ Test 18: Cursed player assigned functional role remains a wolf and seals the role.');
+
+    console.log('\n🎉 ALL 18 DOMAIN ENGINE TESTS PASSED PERFECTLY!\n');
   });
 }

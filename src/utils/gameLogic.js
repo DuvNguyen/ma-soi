@@ -138,6 +138,7 @@ export function resolveNightPhase(players, nightActions, roundNumber) {
   const {
     wolfTargetId,
     wolfTargetId2,
+    bigBadWolfTargetId,
     protectedPlayerId,
     witchSaved,
     witchPoisonTargetId,
@@ -250,6 +251,37 @@ export function resolveNightPhase(players, nightActions, roundNumber) {
   // 1.1 Process Secondary Werewolf Kill (RULE CONFLICT FIX #4: Khi Sói Con chết đêm trước)
   if (wolfTargetId2 && wolfTargetId2 !== wolfTargetId) {
     processWolfBite(wolfTargetId2, true);
+  }
+
+  // 1.2 Process Big Bad Wolf (Sói Lớn Xấu Xa) Extra Bite
+  if (bigBadWolfTargetId && bigBadWolfTargetId !== wolfTargetId && bigBadWolfTargetId !== wolfTargetId2) {
+    const bbTarget = updatedPlayers.find(p => p.id === bigBadWolfTargetId);
+    if (bbTarget && bbTarget.isAlive) {
+      const isProtected = !isVillageCursed && protectedPlayerId === bbTarget.id;
+      if (isProtected) {
+        logs.push(`🛡️ ${bbTarget.name} bị Sói Lớn Xấu Xa cắn thêm nhưng đã được BẢO VỆ che chở an toàn!`);
+      } else {
+        const targetRole = getPlayerRole(bbTarget);
+        if (targetRole?.id === 'gia-lang' && (bbTarget.elderLives || 2) > 1) {
+          bbTarget.elderLives = (bbTarget.elderLives || 2) - 1;
+          logs.push(`Già Làng ${bbTarget.name} bị Sói Lớn Xấu Xa cắn nhưng sống sót nhờ mạng sống thứ nhất (Còn 1 mạng)!`);
+        } else if (targetRole?.id === 'nua-nguoi-nua-soi' || bbTarget.currentRoleId === 'nua-nguoi-nua-soi' || bbTarget.roleId === 'nua-nguoi-nua-soi') {
+          const oldRoleId = bbTarget.currentRoleId || bbTarget.roleId;
+          bbTarget.originalRoleId = bbTarget.originalRoleId || oldRoleId;
+          bbTarget.isCursedWolf = true;
+          bbTarget.curseNight = roundNumber;
+          bbTarget.currentRoleId = 'soi-thuong';
+          bbTarget.roleId = 'soi-thuong';
+          delete bbTarget.role;
+          delete bbTarget.originalRole;
+          logs.push(`🐺 BÁN SÓI THỨC TỈNH: ${bbTarget.name} bị Sói Lớn Xấu Xa cắn và đã thức tỉnh gen Sói, gia nhập phe Sói!`);
+        } else {
+          killedPlayerIds.add(bbTarget.id);
+          deathReasons[bbTarget.id] = 'Bị Sói Lớn Xấu Xa cắn chết trong đêm';
+          logs.push(`🐺💀 SÓI LỚN XẤU XA RA TAY: ${bbTarget.name} (#${bbTarget.id}) đã bị Sói Lớn Xấu Xa cắn chết trong lượt săn đêm bổ sung!`);
+        }
+      }
+    }
   }
 
   // 2. Process Witch Poison

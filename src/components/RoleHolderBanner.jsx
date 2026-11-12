@@ -176,8 +176,21 @@ export default function RoleHolderBanner({
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-1.5 max-h-48 overflow-y-auto pr-1">
             {players.map(p => {
               const pCurrentId = p.currentRoleId || p.roleId;
-              const isCurrent = pCurrentId === currentRole.id;
-              const hasOtherRole = Boolean(pCurrentId && !isCurrent);
+              const isCursed = Boolean(p.isCursedWolf || pCurrentId === 'soi-bi-nguyen');
+              const isCurrent = isCursed 
+                ? p.originalRoleId === currentRole.id 
+                : pCurrentId === currentRole.id;
+
+              // Người bị Sói Nguyền lây nhiễm nhưng chưa gán vai gốc chức năng thì VẪN ĐƯỢC PHÉP gán vai chức năng này!
+              const hasAssignedFunctionalOrig = isCursed && Boolean(
+                p.originalRoleId && 
+                p.originalRoleId !== 'dan-lang' && 
+                p.originalRoleId !== 'dan-thuong' && 
+                p.originalRoleId !== 'soi-bi-nguyen' && 
+                p.originalRoleId !== 'soi-thuong'
+              );
+              const isCursedUnassigned = isCursed && !hasAssignedFunctionalOrig;
+              const hasOtherRole = Boolean(!isCurrent && (isCursed ? !isCursedUnassigned : pCurrentId));
               const isWolf = isWolfPlayer(p);
 
               return (
@@ -194,6 +207,8 @@ export default function RoleHolderBanner({
                       ? 'bg-purple-700 text-white border-purple-400 shadow-[0_0_12px_rgba(168,85,247,0.5)] ring-1 ring-purple-300 cursor-pointer'
                       : hasOtherRole
                       ? 'bg-[#0a0c16] border-slate-900/90 text-slate-500 opacity-40 cursor-not-allowed select-none'
+                      : isCursedUnassigned
+                      ? 'bg-[#220736] hover:bg-[#320a4f] text-purple-200 border-purple-600/90 hover:border-purple-400 cursor-pointer shadow-sm'
                       : isWolf
                       ? 'bg-[#1c0608] hover:bg-[#28090c] text-rose-200 border-rose-800/80 hover:border-rose-500 cursor-pointer'
                       : 'bg-[#0f111c] hover:bg-[#181a2e] text-slate-300 border-slate-800 hover:border-slate-700 cursor-pointer'
@@ -203,7 +218,9 @@ export default function RoleHolderBanner({
                     <div className="font-bold truncate">{p.name}</div>
                     <div className="text-[10px] text-slate-400 truncate">
                       {isCurrent ? (
-                        <span className="text-purple-200 font-medium">✓ Đang giữ vai này</span>
+                        <span className="text-purple-200 font-medium">✓ Đã nguyền từ vai này</span>
+                      ) : isCursedUnassigned ? (
+                        <span className="text-purple-300 font-medium">🔮 Đã hóa Sói (chưa gán vai gốc)</span>
                       ) : hasOtherRole ? (
                         <span className="text-purple-400/80 font-medium">🔒 Đã là {getPlayerRole(p)?.name || pCurrentId}</span>
                       ) : (

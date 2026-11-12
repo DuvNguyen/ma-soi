@@ -36,6 +36,8 @@ export const DEFAULT_NIGHT_STATE = {
   wolfTargetId: null,
   wolfTargetId2: null,
   wolfSkipped: false,
+  bigBadWolfTargetId: null,
+  bigBadWolfSkipped: false,
   isCursedInfect: false,
   cursedUsed: false,
   lastCursedVictimId: null,
@@ -153,6 +155,9 @@ export default function App() {
   const [lynchedTodayPlayerId, setLynchedTodayPlayerId] = useState(() => savedInitial?.lynchedTodayPlayerId ?? null);
   const [isVillageCursed, setIsVillageCursed] = useState(() => savedInitial?.isVillageCursed || false);
   const [wolfCanKillDouble, setWolfCanKillDouble] = useState(() => savedInitial?.wolfCanKillDouble || false);
+  const [pendingHunterShot, setPendingHunterShot] = useState(() => savedInitial?.pendingHunterShot || null);
+  const [preLynchSnapshot, setPreLynchSnapshot] = useState(() => savedInitial?.preLynchSnapshot || null);
+  const [selectedTemplateId, setSelectedTemplateId] = useState(() => savedInitial?.selectedTemplateId || 'preset-9-11');
   const [canWolvesKillTeammates, setCanWolvesKillTeammates] = useState(() => {
     try {
       const saved = localStorage.getItem('werewolf_rule_wolves_can_kill_teammates');
@@ -230,6 +235,11 @@ export default function App() {
         gameDiary,
         lynchedTodayPlayerId,
         gameEndResult,
+        isVillageCursed,
+        wolfCanKillDouble,
+        pendingHunterShot,
+        preLynchSnapshot,
+        selectedTemplateId,
         currentNightStepIdx,
         canWolvesKillTeammates,
         updatedAt: new Date().toISOString()
@@ -245,7 +255,7 @@ export default function App() {
       // 2. Cloud DB sync (Neon)
       syncGameStateApi(stateToSave);
     }
-  }, [roundNumber, isNight, activeTab, players, deckRoleIds, rolesInGame, nightState, lynchedTodayPlayerId, gameEndResult, currentNightStepIdx, gameDiary, canWolvesKillTeammates]);
+  }, [roundNumber, isNight, activeTab, players, deckRoleIds, rolesInGame, nightState, lynchedTodayPlayerId, gameEndResult, isVillageCursed, wolfCanKillDouble, pendingHunterShot, preLynchSnapshot, selectedTemplateId, currentNightStepIdx, gameDiary, canWolvesKillTeammates]);
 
   // Helper canonical diary chronologist: merges & sorts chapters strictly by round number and phase (Night before Day)
   const appendToDiary = (prevDiary, newEntry) => {
@@ -303,6 +313,10 @@ export default function App() {
     setGameDiary([]);
     setGameEndResult(null);
     setLynchedTodayPlayerId(null);
+    setPendingHunterShot(null);
+    setPreLynchSnapshot(null);
+    setIsVillageCursed(false);
+    setWolfCanKillDouble(false);
     setCurrentNightStepIdx(0);
     try {
       localStorage.removeItem('werewolf_current_night_step');
@@ -343,6 +357,8 @@ export default function App() {
     setLynchedTodayPlayerId(null);
     setIsVillageCursed(false);
     setWolfCanKillDouble(false);
+    setPendingHunterShot(null);
+    setPreLynchSnapshot(null);
     setCurrentNightStepIdx(0);
     setGameDiary([]);
     setNightState({ ...DEFAULT_NIGHT_STATE });
@@ -394,6 +410,10 @@ export default function App() {
     setGameDiary([]);
     setGameEndResult(null);
     setLynchedTodayPlayerId(null);
+    setPendingHunterShot(null);
+    setPreLynchSnapshot(null);
+    setIsVillageCursed(false);
+    setWolfCanKillDouble(false);
     setCurrentNightStepIdx(0);
     try {
       localStorage.removeItem('werewolf_current_night_step');
@@ -401,7 +421,10 @@ export default function App() {
     setNightState({ ...DEFAULT_NIGHT_STATE });
   };
 
-  const handleApplyGameSetup = ({ playerNames, roleIds }) => {
+  const handleApplyGameSetup = ({ playerNames, roleIds, templateId }) => {
+    if (templateId) {
+      setSelectedTemplateId(templateId);
+    }
     const finalRoleIds = roleIds && roleIds.length > 0 ? roleIds : deckRoleIds;
     const count = playerNames?.length || finalRoleIds.length;
 
@@ -428,6 +451,10 @@ export default function App() {
     setGameDiary([]);
     setGameEndResult(null);
     setLynchedTodayPlayerId(null);
+    setPendingHunterShot(null);
+    setPreLynchSnapshot(null);
+    setIsVillageCursed(false);
+    setWolfCanKillDouble(false);
     setCurrentNightStepIdx(0);
     try {
       localStorage.removeItem('werewolf_current_night_step');
@@ -436,6 +463,9 @@ export default function App() {
   };
 
   const handleApplyTemplate = (template) => {
+    if (template.id) {
+      setSelectedTemplateId(template.id);
+    }
     setDeckRoleIds(template.roleIds);
     const uniqueRoles = Array.from(new Set(template.roleIds))
       .map(id => ROLES.find(r => r.id === id))
@@ -461,6 +491,10 @@ export default function App() {
     setGameDiary([]);
     setGameEndResult(null);
     setLynchedTodayPlayerId(null);
+    setPendingHunterShot(null);
+    setPreLynchSnapshot(null);
+    setIsVillageCursed(false);
+    setWolfCanKillDouble(false);
     setCurrentNightStepIdx(0);
     try {
       localStorage.removeItem('werewolf_current_night_step');
@@ -642,19 +676,53 @@ export default function App() {
       } else if (type === 'seer') {
         next.seerCheckedId = payload;
       } else if (type === 'wolves') {
+        if (payload && !canWolvesKillTeammates) {
+          const target = players.find(p => p.id === payload);
+          if (target && isWolfPlayer(target)) {
+            return prev;
+          }
+        }
         next.wolfTargetId = payload;
         next.wolfSkipped = !!extra.wolfSkipped;
         if (extra.wolfTargetId2 !== undefined) {
-          next.wolfTargetId2 = extra.wolfTargetId2;
+          if (extra.wolfTargetId2 && !canWolvesKillTeammates) {
+            const target2 = players.find(p => p.id === extra.wolfTargetId2);
+            if (!target2 || !isWolfPlayer(target2)) {
+              next.wolfTargetId2 = extra.wolfTargetId2;
+            }
+          } else {
+            next.wolfTargetId2 = extra.wolfTargetId2;
+          }
         }
         if (extra.isCursedInfect !== undefined) {
           next.isCursedInfect = !!extra.isCursedInfect;
         }
       } else if (type === 'wolves_second') {
+        if (payload && !canWolvesKillTeammates) {
+          const target = players.find(p => p.id === payload);
+          if (target && isWolfPlayer(target)) {
+            return prev;
+          }
+        }
         next.wolfTargetId2 = payload;
+      } else if (type === 'bigBadWolf') {
+        if (payload && !canWolvesKillTeammates) {
+          const target = players.find(p => p.id === payload);
+          if (target && isWolfPlayer(target)) {
+            return prev;
+          }
+        }
+        next.bigBadWolfTargetId = payload;
+        next.bigBadWolfSkipped = !!extra.bigBadWolfSkipped;
       } else if (type === 'curse_convert') {
         // Immediately convert victim into Werewolf and clear bite target so wolves can pick again
         const victimId = payload;
+        const victim = players.find(p => p.id === victimId);
+        // Bỏ logic Sói nguyền Sói: không cho phép nguyền người đã là Sói
+        if (!victim || isWolfPlayer(victim)) {
+          return prev;
+        }
+
         next.wolfTargetId = null;
         next.isCursedInfect = false;
         next.cursedUsed = true;
@@ -663,7 +731,7 @@ export default function App() {
         setPlayers(current => {
           const updated = current.map(p => {
             if (p.id === victimId) {
-              const origId = p.originalRoleId || p.currentRoleId || p.roleId || 'dan-lang';
+              const origId = p.originalRoleId || p.currentRoleId || p.roleId || null;
               return {
                 ...p,
                 originalRoleId: origId,
@@ -750,6 +818,12 @@ export default function App() {
             variant: 'danger'
           });
         }
+
+        let shotLover = null;
+        if (shotPlayer?.loverId) {
+          shotLover = players.find(p => p.id === shotPlayer.loverId);
+        }
+
         setPlayers(current => {
           const updated = current.map(p => {
             if (p.id === payload) {
@@ -760,11 +834,23 @@ export default function App() {
                 deathPhase: isNight ? `Đêm ${roundNumber}` : `Ngày ${roundNumber}`
               };
             }
+            if (shotLover && p.id === shotLover.id && p.isAlive) {
+              return {
+                ...p,
+                isAlive: false,
+                deathReason: `Chết vì quá đau buồn khi người yêu (${shotPlayer.name}) bị Thợ Săn bắn chết`,
+                deathPhase: isNight ? `Đêm ${roundNumber}` : `Ngày ${roundNumber}`
+              };
+            }
             return p;
           });
           evaluateGameEnd(updated);
           return updated;
         });
+
+        setPendingHunterShot(null);
+      } else if (type === 'skip_hunter') {
+        setPendingHunterShot(null);
       }
       return next;
     });
@@ -809,10 +895,11 @@ export default function App() {
     }
 
     // Rule: Nếu vai này đã có người giữ và người đó bị Sói Nguyền lây nhiễm thành Sói -> vai đã bị loại khỏi làng, không gán cho người khác
-    if (game.isRoleEliminated(role.id)) {
+    const transformedHolder = players.find(p => p.id !== playerId && p.originalRoleId === role.id && (p.currentRoleId !== role.id || p.roleId !== role.id));
+    if (transformedHolder) {
       showAlert({
         title: 'VAI TRÒ ĐÃ BỊ LOẠI!',
-        message: `Vai trò "${role.name}" đã bị loại khỏi làng vì người giữ vai ban đầu đã bị đồng hóa hoặc biến đổi. Theo luật chơi, lá bài này không được gán cho người khác!`,
+        message: `Vai trò "${role.name}" đã bị loại khỏi làng vì người giữ vai ban đầu (${transformedHolder.name} #${transformedHolder.id}) đã bị đồng hóa hoặc biến đổi. Theo luật chơi, lá bài này không được gán cho người khác!`,
         variant: 'warning'
       });
       return;
@@ -833,10 +920,34 @@ export default function App() {
 
     setPlayers(prev => {
       const targetPlayer = prev.find(p => p.id === playerId);
-      const targetCurrentId = targetPlayer?.currentRoleId || targetPlayer?.roleId;
+      if (!targetPlayer) return prev;
+
+      const isTargetHoldingOriginal = targetPlayer.isCursedWolf && targetPlayer.originalRoleId === role.id;
+      const targetCurrentId = targetPlayer.currentRoleId || targetPlayer.roleId;
+
       // Toggle unassign if clicking current holder
-      if (targetCurrentId === role.id) {
-        return prev.map(p => p.id === playerId ? (p instanceof Player ? p.unassignRole() : { ...p, currentRoleId: null, roleId: null, role: null, elderLives: undefined }) : p);
+      if (isTargetHoldingOriginal || (!targetPlayer.isCursedWolf && targetCurrentId === role.id)) {
+        return prev.map(p => p.id === playerId ? (p instanceof Player ? p.unassignRole() : { ...p, currentRoleId: null, roleId: null, originalRoleId: null, role: null, elderLives: undefined }) : p);
+      }
+
+      // If player was infected by Cursed Wolf prior to assigning their functional role:
+      // Keep their werewolf identity intact, assign role as originalRoleId
+      if (targetPlayer.isCursedWolf || targetPlayer.currentRoleId === 'soi-bi-nguyen') {
+        return prev.map(p => {
+          if (p.id === playerId) {
+            return p instanceof Player ? p.assignRole(role.id) : {
+              ...p,
+              originalRoleId: role.id,
+              currentRoleId: 'soi-bi-nguyen',
+              roleId: 'soi-bi-nguyen',
+              isCursedWolf: true
+            };
+          }
+          if (p.originalRoleId === role.id) {
+            return p instanceof Player ? p.unassignRole() : { ...p, originalRoleId: null };
+          }
+          return p;
+        });
       }
 
       // Single role capacity (capacity === 1): STRICTLY REVOKE FROM ANY OTHER HOLDER
@@ -1097,6 +1208,16 @@ export default function App() {
   };
 
   const handleLynchPlayer = (playerId) => {
+    // Lưu snapshot trước khi treo cổ để hỗ trợ hoàn tác trọn vẹn mọi chuỗi chết phát sinh
+    setPreLynchSnapshot({
+      players: players.map(p => p instanceof Player ? p.toJSON() : p),
+      isVillageCursed,
+      wolfCanKillDouble,
+      gameEndResult,
+      lynchedTodayPlayerId,
+      roundNumber
+    });
+
     const game = new WerewolfGame({
       roundNumber,
       isNight,
@@ -1202,6 +1323,10 @@ export default function App() {
     }
 
     if (hunterTrigger) {
+      setPendingHunterShot({
+        hunterId: hunterTrigger.id,
+        hunterName: hunterTrigger.name
+      });
       setActionModal({
         isOpen: true,
         actionType: 'hunter',
@@ -1273,6 +1398,19 @@ export default function App() {
   };
 
   const handleUndoLynch = (playerId) => {
+    // Nếu có snapshot đầy đủ của toàn bộ trạng thái trước khi lynch -> Khôi phục chuẩn xác
+    if (preLynchSnapshot && preLynchSnapshot.players) {
+      setPlayers(preLynchSnapshot.players.map(p => Player.fromJSON(p)));
+      setIsVillageCursed(Boolean(preLynchSnapshot.isVillageCursed));
+      setWolfCanKillDouble(Boolean(preLynchSnapshot.wolfCanKillDouble));
+      setGameEndResult(preLynchSnapshot.gameEndResult || null);
+      setLynchedTodayPlayerId(preLynchSnapshot.lynchedTodayPlayerId || null);
+      setPendingHunterShot(null);
+      setPreLynchSnapshot(null);
+      setActionModal(prev => ({ ...prev, isOpen: false }));
+      return;
+    }
+
     const game = new WerewolfGame({
       roundNumber,
       isNight,
@@ -1290,9 +1428,37 @@ export default function App() {
     setPlayers(nextGame.players);
     setLynchedTodayPlayerId(null);
     setGameEndResult(nextGame.gameEndResult);
+    setPendingHunterShot(null);
+    setPreLynchSnapshot(null);
+    setActionModal(prev => ({ ...prev, isOpen: false }));
+  };
+
+  const handleSkipHunterShot = () => {
+    setPendingHunterShot(null);
+    setActionModal(prev => ({ ...prev, isOpen: false }));
   };
 
   const handleAdvanceToNight = () => {
+    // Chặn nếu Thợ Săn đã ngã xuống nhưng chưa bắn phát súng cuối cùng
+    if (pendingHunterShot) {
+      triggerHaptic('error');
+      showAlert({
+        title: 'THỢ SĂN CHƯA BẮN!',
+        message: `Thợ Săn (${pendingHunterShot.hunterName}) đã ngã xuống nhưng chưa thực hiện phát súng cuối cùng.\n\nVui lòng giải quyết phát súng hoặc bấm Bỏ Qua trước khi kết thúc ngày.`,
+        variant: 'warning'
+      });
+      const hunter = players.find(p => p.id === pendingHunterShot.hunterId);
+      if (hunter) {
+        setActionModal({
+          isOpen: true,
+          actionType: 'hunter',
+          role: getPlayerRole(hunter),
+          player: hunter
+        });
+      }
+      return;
+    }
+
     // Chặn nếu Cảnh Sát Trưởng đã hy sinh mà chưa chỉ định người kế nhiệm
     const sheriff = players.find(p => p.isSheriff);
     const sheriffDead = sheriff && !sheriff.isAlive;
@@ -1301,6 +1467,10 @@ export default function App() {
       handleOpenSheriffModal(sheriff, true);
       return;
     }
+
+    // Reset lynch snapshot & pending actions khi chuyển sang đêm mới
+    setPreLynchSnapshot(null);
+    setPendingHunterShot(null);
 
     // Ghi nhận nhật ký Ban Ngày vừa qua vào quyển nhật ký
     const lynchedP = players.find(p => p.id === lynchedTodayPlayerId);
@@ -1405,19 +1575,19 @@ export default function App() {
 
       {/* Top Navigation Bar - Consistent Gothic Dark & Mobile One-Screen */}
       <header className="sticky top-0 z-40 bg-[#0c0d16]/90 backdrop-blur-md border-b border-purple-950/80 px-2 sm:px-4 py-1.5 sm:py-2 ios-safe-top shadow-[0_4px_25px_rgba(0,0,0,0.8)]">
-        <div className="max-w-7xl mx-auto flex items-center justify-between gap-1.5 sm:gap-2">
+        <div className="max-w-7xl mx-auto flex items-center justify-between gap-1 sm:gap-2">
           {/* Brand & Mini Status */}
-          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+          <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
             <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl bg-gradient-to-br from-purple-800 to-rose-900 border border-purple-600/60 flex items-center justify-center font-cinzel font-black text-white text-base shadow-[0_0_12px_rgba(147,51,234,0.4)] shrink-0">
               <WolfIcon className="w-3.5 h-3.5 sm:w-4.5 sm:h-4.5 text-rose-200" />
             </div>
-            <div>
+            <div className="min-w-0">
               <div className="flex items-center gap-1 sm:gap-1.5">
-                <h1 className="font-cinzel font-black text-xs sm:text-sm md:text-base tracking-wider text-slate-100 leading-tight whitespace-nowrap">
+                <h1 className="font-cinzel font-black text-xs sm:text-sm md:text-base tracking-wide sm:tracking-wider text-slate-100 leading-tight truncate">
                   QUẢN TRÒ MA SÓI
                 </h1>
                 {neonStatus.ok && (
-                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0" title="Đã kết nối Neon DB"></span>
+                  <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-emerald-400 animate-pulse shrink-0" title="Đã kết nối Neon DB"></span>
                 )}
               </div>
               <div className="text-[10px] text-purple-300/70 font-medium hidden sm:block">
@@ -1433,14 +1603,14 @@ export default function App() {
               type="button"
               onClick={handleResetGame}
               title="Reset ván chơi về 0"
-              className="h-7 px-2 sm:h-8 sm:px-2.5 rounded-lg sm:rounded-xl bg-rose-950/70 hover:bg-rose-900 border border-rose-700/80 hover:border-rose-400 text-rose-200 text-xs font-bold transition-all flex items-center justify-center gap-1 cursor-pointer shadow-sm active:scale-95 shrink-0"
+              className="h-7 w-7 sm:h-8 sm:w-auto sm:px-2.5 rounded-lg sm:rounded-xl bg-rose-950/70 hover:bg-rose-900 border border-rose-700/80 hover:border-rose-400 text-rose-200 text-xs font-bold transition-all flex items-center justify-center gap-1 cursor-pointer shadow-sm active:scale-95 shrink-0"
             >
               <RefreshCw className="w-3.5 h-3.5 shrink-0 text-rose-300" />
               <span className="hidden sm:inline">Reset Về 0</span>
             </button>
 
             {/* Unified Setup Group: Thiết Lập Ván Chơi (Tích hợp Người Chơi + Bộ Bài) */}
-            <div className="flex items-center gap-0.5 bg-[#101220]/80 p-0.5 rounded-lg sm:rounded-xl border border-purple-950/80">
+            <div className="flex items-center gap-0.5 bg-[#101220]/80 p-0.5 rounded-lg sm:rounded-xl border border-purple-950/80 shrink-0">
               <button
                 type="button"
                 onClick={() => {
@@ -1448,11 +1618,11 @@ export default function App() {
                   setIsSetupOpen(true);
                 }}
                 title="Thiết lập phòng chơi: Tùy chỉnh danh sách người chơi & bộ bài đồng bộ"
-                className="h-6 sm:h-7 px-1.5 sm:px-2.5 rounded-md sm:rounded-lg bg-purple-950 hover:bg-purple-900 border border-purple-600/70 text-purple-200 text-xs font-bold transition-all flex items-center justify-center gap-1 sm:gap-1.5 cursor-pointer shadow-sm active:scale-95"
+                className="h-6 sm:h-7 px-1.5 sm:px-2.5 rounded-md sm:rounded-lg bg-purple-950 hover:bg-purple-900 border border-purple-600/70 text-purple-200 text-xs font-bold transition-all flex items-center justify-center gap-1 sm:gap-1.5 cursor-pointer shadow-sm active:scale-95 shrink-0"
               >
                 <SlidersHorizontal className="w-3.5 h-3.5 text-purple-300 shrink-0" />
                 <span className="hidden sm:inline">Thiết Lập Ván</span>
-                <span className="sm:hidden">Thiết Lập</span>
+                <span className="sm:hidden text-[11px]">Thiết Lập</span>
               </button>
 
               {/* Quick shortcut to Rosters */}
@@ -1463,7 +1633,7 @@ export default function App() {
                   setIsSetupOpen(true);
                 }}
                 title="Quản lý danh sách nhóm người chơi"
-                className="hidden sm:flex h-6 w-6.5 sm:h-7 sm:w-auto sm:px-1.5 rounded-md sm:rounded-lg hover:bg-slate-800 text-slate-400 hover:text-purple-200 text-xs font-bold transition-all items-center justify-center cursor-pointer"
+                className="hidden sm:flex h-6 w-6 sm:h-7 sm:w-auto sm:px-1.5 rounded-md sm:rounded-lg hover:bg-slate-800 text-slate-400 hover:text-purple-200 text-xs font-bold transition-all items-center justify-center cursor-pointer"
               >
                 <Users className="w-3.5 h-3.5 shrink-0" />
               </button>
@@ -1476,20 +1646,20 @@ export default function App() {
                   setIsSetupOpen(true);
                 }}
                 title="Quản lý bộ bài mẫu"
-                className="hidden sm:flex h-6 w-6.5 sm:h-7 sm:w-auto sm:px-1.5 rounded-md sm:rounded-lg hover:bg-slate-800 text-slate-400 hover:text-amber-200 text-xs font-bold transition-all items-center justify-center cursor-pointer"
+                className="hidden sm:flex h-6 w-6 sm:h-7 sm:w-auto sm:px-1.5 rounded-md sm:rounded-lg hover:bg-slate-800 text-slate-400 hover:text-amber-200 text-xs font-bold transition-all items-center justify-center cursor-pointer"
               >
                 <Layers className="w-3.5 h-3.5 shrink-0" />
               </button>
             </div>
 
             {/* Tools Group: Cài Đặt, Lịch Sử, Thư Viện */}
-            <div className="flex items-center gap-0.5 bg-[#101220]/80 p-0.5 rounded-lg sm:rounded-xl border border-slate-800">
+            <div className="flex items-center gap-0.5 bg-[#101220]/80 p-0.5 rounded-lg sm:rounded-xl border border-slate-800 shrink-0">
               {/* Cài Đặt Luật Chơi */}
               <button
                 type="button"
                 onClick={() => setIsSettingsOpen(true)}
                 title="Cài đặt luật chơi (Bật/tắt Sói cắn đồng loại, lưu state game...)"
-                className="h-6 w-6.5 sm:h-7 sm:w-auto sm:px-2 rounded-md sm:rounded-lg hover:bg-slate-800 text-purple-200 text-xs font-bold transition-all flex items-center justify-center gap-1 cursor-pointer"
+                className="h-6 w-6 sm:h-7 sm:w-auto sm:px-2 rounded-md sm:rounded-lg hover:bg-slate-800 text-purple-200 text-xs font-bold transition-all flex items-center justify-center gap-1 cursor-pointer shrink-0"
               >
                 <Settings className="w-3.5 h-3.5 text-purple-300 shrink-0" />
                 <span className="hidden md:inline">Cài Đặt</span>
@@ -1500,7 +1670,7 @@ export default function App() {
                 type="button"
                 onClick={() => setIsHistoryOpen(true)}
                 title="Xem lịch sử các trận đấu đã lưu trên Neon DB"
-                className="h-6 w-6.5 sm:h-7 sm:w-auto sm:px-2 rounded-md sm:rounded-lg hover:bg-slate-800 text-slate-300 text-xs font-bold transition-all flex items-center justify-center gap-1 cursor-pointer"
+                className="h-6 w-6 sm:h-7 sm:w-auto sm:px-2 rounded-md sm:rounded-lg hover:bg-slate-800 text-slate-300 text-xs font-bold transition-all flex items-center justify-center gap-1 cursor-pointer shrink-0"
               >
                 <History className="w-3.5 h-3.5 text-slate-400 shrink-0" />
                 <span className="hidden md:inline">Lịch Sử</span>
@@ -1511,9 +1681,9 @@ export default function App() {
                 type="button"
                 onClick={() => setIsLibraryOpen(true)}
                 title="Thư viện 48 vai trò Ma Sói"
-                className="h-6 w-6.5 sm:h-7 sm:w-auto sm:px-2 rounded-md sm:rounded-lg hover:bg-slate-800 text-slate-300 text-xs font-bold transition-all flex items-center justify-center gap-1 cursor-pointer"
+                className="h-6 w-6 sm:h-7 sm:w-auto sm:px-2 rounded-md sm:rounded-lg hover:bg-slate-800 bg-amber-950/25 hover:bg-amber-950/60 text-amber-300 hover:text-amber-100 text-xs font-bold transition-all flex items-center justify-center gap-1 cursor-pointer shrink-0 border border-amber-900/40"
               >
-                <BookOpen className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                <BookOpen className="w-3.5 h-3.5 text-amber-300 shrink-0" />
                 <span className="hidden md:inline">Thư Viện</span>
               </button>
             </div>
@@ -1636,6 +1806,21 @@ export default function App() {
             nightState={nightState}
             lynchedTodayPlayerId={lynchedTodayPlayerId}
             onOpenSheriffModal={handleOpenSheriffModal}
+            pendingHunterShot={pendingHunterShot}
+            onOpenHunterModal={() => {
+              if (pendingHunterShot) {
+                const hunter = players.find(p => p.id === pendingHunterShot.hunterId);
+                if (hunter) {
+                  setActionModal({
+                    isOpen: true,
+                    actionType: 'hunter',
+                    role: getPlayerRole(hunter),
+                    player: hunter
+                  });
+                }
+              }
+            }}
+            onSkipHunterShot={handleSkipHunterShot}
             onOpenAssignRole={(p) => {
               setActionModal({
                 isOpen: true,
@@ -1698,6 +1883,7 @@ export default function App() {
         initialTab={setupModalTab}
         currentPlayers={players}
         currentDeckRoleIds={deckRoleIds}
+        currentTemplateId={selectedTemplateId}
         onApplyGameSetup={handleApplyGameSetup}
         onApplyTemplate={handleApplyTemplate}
         onApplyRoster={handleApplyRoster}

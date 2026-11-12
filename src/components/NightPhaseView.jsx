@@ -144,6 +144,30 @@ export default function NightPhaseView({
       });
     }
 
+    // Sói Lớn Xấu Xa (Big Bad Wolf) thức dậy riêng mỗi đêm để cắn thêm 1 người khi chưa có Ma Sói nào chết
+    if (rolesInGame.some(r => r.id === 'soi-lon-xau-xa')) {
+      const bigBadWolfPlayer = players.find(p => (p.currentRoleId || p.roleId) === 'soi-lon-xau-xa');
+      const deadWolves = players.filter(p => !p.isAlive && isWolfPlayer(p));
+      const isPowerActive = bigBadWolfPlayer && bigBadWolfPlayer.isAlive && deadWolves.length === 0;
+
+      finalRoles.push({
+        id: 'soi-lon-xau-xa',
+        name: 'Sói Lớn Xấu Xa (Cắn Thêm)',
+        enName: 'Big Bad Wolf',
+        teamCode: 'W',
+        team: 'Phe Sói',
+        isPowerLost: !isPowerActive,
+        powerLostReason: !bigBadWolfPlayer?.isAlive
+          ? 'Sói Lớn Xấu Xa đã tử trận'
+          : deadWolves.length > 0
+          ? `Đã mất năng lực cắn thêm vì có Ma Sói (${deadWolves.map(w => w.name).join(', ')}) đã chết`
+          : null,
+        shortDesc: 'Mỗi đêm cắn thêm 1 nạn nhân khi chưa có bất kỳ Ma Sói nào trong bầy bị tiêu diệt.',
+        gmCall: 'Sói Lớn Xấu Xa thức dậy một mình. Bạn có muốn cắn thêm nạn nhân nào không?',
+        image: '/cards/Nhan_vat_Ma_soi___Soi_lon_xau_xa.PNG'
+      });
+    }
+
     // Sói Trắng thức dậy riêng vào các đêm chẵn (Đêm 2, 4, 6...) sau khi bầy Sói đi ngủ
     if (rolesInGame.some(r => r.id === 'soi-trang') && roundNumber % 2 === 0) {
       finalRoles.push({
@@ -210,7 +234,7 @@ export default function NightPhaseView({
 
   // Active step
   const currentRole = nightSteps[safeStepIdx] || nightSteps[0];
-  const isWolfStep = ['soi-thuong', 'soi-con', 'soi-lon-xau-xa', 'nguoi-cha-cua-soi', 'soi-quy'].includes(currentRole.id);
+  const isWolfStep = currentRole.id === 'soi-thuong';
   const isSummaryStep = currentRole.id === 'night-summary';
 
   // Players assigned to this role
@@ -221,6 +245,7 @@ export default function NightPhaseView({
   const [selectedSeerTarget, setSelectedSeerTarget] = useState(null);
   const [showAssignDropdown, setShowAssignDropdown] = useState(false);
   const [showWolfWhisper, setShowWolfWhisper] = useState(false);
+  const [wolfLogs, setWolfLogs] = useState([]);
 
   // STRICT GATEKEEPER VALIDATION
   const isSkipped = (nightState?.skippedRoles || []).includes(currentRole?.id);
@@ -233,7 +258,7 @@ export default function NightPhaseView({
 
   const WOLF_ROLE_IDS = [
     'soi-thuong', 'soi-con', 'soi-lon-xau-xa', 'soi-trang', 
-    'nguoi-cha-cua-soi', 'soi-quy', 'soi-lua', 'anh-em-soi'
+    'nguoi-cha-cua-soi', 'soi-quy', 'soi-lua', 'anh-em-soi', 'soi-bi-nguyen'
   ];
   const maxWolves = deckRoleIds.filter(id => WOLF_ROLE_IDS.includes(id)).length || 2;
   const currentWolves = players.filter(isWolfPlayer);
@@ -451,6 +476,28 @@ export default function NightPhaseView({
           isValid: true,
           message: 'Cáo đã kiểm tra nhóm 3 người',
           shortMessage: 'Đã quét xong ✓'
+        };
+      }
+
+      case 'soi-lon-xau-xa': {
+        if (currentRole.isPowerLost) {
+          return {
+            isValid: true,
+            message: currentRole.powerLostReason || 'Năng lực cắn thêm đã mất',
+            shortMessage: 'Mất năng lực'
+          };
+        }
+        if (nightState.bigBadWolfTargetId === null && !nightState.bigBadWolfSkipped) {
+          return {
+            isValid: false,
+            message: 'Sói Lớn Xấu Xa chọn 1 nạn nhân cắn thêm hoặc bấm Bỏ qua',
+            shortMessage: 'Chưa chọn mục tiêu'
+          };
+        }
+        return {
+          isValid: true,
+          message: 'Sói Lớn Xấu Xa đã đưa ra lựa chọn',
+          shortMessage: 'Đã chọn ✓'
         };
       }
 
@@ -1071,20 +1118,56 @@ export default function NightPhaseView({
 
                   <button
                     type="button"
-                    onClick={() => setShowWolfWhisper(prev => !prev)}
+                    onClick={() => setShowWolfWhisper(true)}
                     className="text-xs font-bold px-3 py-1.5 rounded-lg bg-rose-950 hover:bg-rose-900 text-rose-200 border border-rose-700/80 transition-all cursor-pointer shrink-0 flex items-center gap-1 shadow-sm"
                   >
-                    <span>{showWolfWhisper ? 'Thu Gọn ▲' : 'Mở Chuyền Máy ▼'}</span>
+                    <span>Mở Chuyền Máy 📱</span>
                   </button>
                 </div>
 
-                {/* Secret Wolf Hand-off Box - Only rendered when user wants it */}
+                {/* Secret Wolf Hand-off Box - Full-screen modal to isolate secrets */}
                 {showWolfWhisper && (
                   <WolfWhisperBox
                     players={players}
                     nightState={nightState}
-                    onSaveAction={onSaveAction}
+                    canWolvesKillTeammates={canWolvesKillTeammates}
+                    wolfLogs={wolfLogs}
+                    setWolfLogs={setWolfLogs}
+                    onClose={() => setShowWolfWhisper(false)}
                   />
+                )}
+
+                {/* Wolf Discussion Results Summary for Game Master */}
+                {wolfLogs.length > 0 && (
+                  <div className="p-3 rounded-2xl bg-gradient-to-r from-[#180306] to-[#0d0103] border border-rose-900/80 shadow-md space-y-1.5">
+                    <div className="flex items-center justify-between text-xs font-bold text-rose-300">
+                      <span className="flex items-center gap-1.5 uppercase tracking-wider text-[11px] text-rose-400">
+                        <span>🐺 Thảo luận từ bầy Sói ({wolfLogs.length}):</span>
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setWolfLogs([])}
+                        className="text-[10px] text-rose-500 hover:text-rose-300 underline cursor-pointer"
+                      >
+                        Xóa lịch sử
+                      </button>
+                    </div>
+                    <div className="space-y-1 max-h-32 overflow-y-auto pr-1">
+                      {wolfLogs.map(log => (
+                        <div key={log.id} className="text-xs bg-[#240509]/80 border border-rose-950 rounded-lg p-2 flex items-center justify-between gap-2">
+                          <div className="flex items-center gap-1.5 min-w-0">
+                            <span className="font-bold text-rose-200 shrink-0">{log.wolfName}:</span>
+                            {log.text && <span className="text-rose-100 truncate">{log.text}</span>}
+                          </div>
+                          {log.targetName && (
+                            <span className="text-[11px] font-bold text-rose-200 bg-rose-950 px-2 py-0.5 rounded border border-rose-800 shrink-0">
+                              🎯 Đề xuất: {log.targetName}
+                            </span>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                 )}
 
                 <div className="space-y-4 pt-1">
@@ -1281,8 +1364,8 @@ export default function NightPhaseView({
                   </div>
                 </div>
 
-                {/* SÓI NGUYỀN (NGƯỜI CHA CỦA SÓI) LÂY NHIỄM PANEL - CHỈ HIỆN KHI CÓ SÓI NGUYỀN TRONG BÀI & CÒN SỐNG & CHƯA DÙNG */}
-                {wolfVictim && !nightState.wolfSkipped && canCursedWolfInfect && (
+                {/* SÓI NGUYỀN (NGƯỜI CHA CỦA SÓI) LÂY NHIỄM PANEL - CHỈ HIỆN KHI MỤC TIÊU KHÔNG PHẢI LÀ SÓI & CÒN SỐNG & CHƯA DÙNG */}
+                {wolfVictim && !isWolfPlayer(wolfVictim) && !nightState.wolfSkipped && canCursedWolfInfect && (
                   <div className="p-4 rounded-2xl border transition-all mt-3 bg-gradient-to-r from-[#220736] via-[#160424] to-[#220736] border-purple-600/90 shadow-[0_0_25px_rgba(168,85,247,0.4)] animate-fade-in">
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                       <div className="flex items-center gap-3">
@@ -1346,20 +1429,24 @@ export default function NightPhaseView({
 
                 {/* THE REVEALED CARD OF INSPECTED PLAYER (MINIMALIST & PROMINENT RED X) */}
                 {selectedSeerTarget ? (() => {
-                  const targetPlayerModel = selectedSeerTarget instanceof Player 
-                    ? selectedSeerTarget 
-                    : Player.fromJSON(selectedSeerTarget);
+                  const livePlayer = players.find(p => p.id === selectedSeerTarget.id) || selectedSeerTarget;
+                  const targetPlayerModel = livePlayer instanceof Player 
+                    ? livePlayer 
+                    : Player.fromJSON(livePlayer);
+                  const isUnassigned = !targetPlayerModel.currentRoleId && !targetPlayerModel.roleId;
                   const targetRole = targetPlayerModel.getRole();
-                  const isTargetWolf = targetPlayerModel.getSeerAffiliation(nightState) === 'WOLF';
+                  const isTargetWolf = !isUnassigned && targetPlayerModel.getSeerAffiliation(nightState) === 'WOLF';
                   
                   // Bán Sói (Nửa Người Nửa Sói) nếu đã bị bầy Sói cắn trong đêm nay
-                  const isBittenHalfWolfTonight = (selectedSeerTarget?.currentRoleId === 'nua-nguoi-nua-soi' || selectedSeerTarget?.roleId === 'nua-nguoi-nua-soi') &&
-                    (nightState?.wolfTargetId === selectedSeerTarget?.id || nightState?.wolfTargetId2 === selectedSeerTarget?.id) &&
+                  const isBittenHalfWolfTonight = (livePlayer?.currentRoleId === 'nua-nguoi-nua-soi' || livePlayer?.roleId === 'nua-nguoi-nua-soi') &&
+                    (nightState?.wolfTargetId === livePlayer?.id || nightState?.wolfTargetId2 === livePlayer?.id) &&
                     !nightState?.wolfSkipped;
 
                   return (
                     <div className={`p-4 rounded-2xl border transition-all animate-fade-in flex flex-col sm:flex-row items-center gap-4 text-center sm:text-left relative ${
-                      isTargetWolf
+                      isUnassigned
+                        ? 'bg-gradient-to-r from-[#181520] via-[#100e17] to-[#08070c] border-amber-600/70 shadow-[0_0_25px_rgba(245,158,11,0.25)]'
+                        : isTargetWolf
                         ? 'bg-gradient-to-r from-[#3b080c] via-[#200305] to-[#120204] border-rose-600 shadow-[0_0_30px_rgba(225,29,72,0.6)]'
                         : 'bg-gradient-to-r from-[#0d1a33] via-[#091224] to-[#050b18] border-blue-500 shadow-[0_0_30px_rgba(59,130,246,0.5)]'
                     }`}>
@@ -1376,7 +1463,11 @@ export default function NightPhaseView({
                       {/* The Big Card */}
                       <div className="relative shrink-0">
                         <div className={`w-24 h-34 sm:w-28 sm:h-40 rounded-xl overflow-hidden border-2 p-1 shadow-2xl flex items-center justify-center bg-black/90 ${
-                          isTargetWolf ? 'border-rose-500 shadow-[0_0_20px_rgba(225,29,72,0.8)]' : 'border-blue-400 shadow-[0_0_20px_rgba(59,130,246,0.6)]'
+                          isUnassigned
+                            ? 'border-amber-500 shadow-[0_0_20px_rgba(245,158,11,0.4)]'
+                            : isTargetWolf
+                            ? 'border-rose-500 shadow-[0_0_20px_rgba(225,29,72,0.8)]'
+                            : 'border-blue-400 shadow-[0_0_20px_rgba(59,130,246,0.6)]'
                         }`}>
                           {targetRole?.image ? (
                             <img
@@ -1386,37 +1477,51 @@ export default function NightPhaseView({
                             />
                           ) : (
                             <div className="text-4xl flex items-center justify-center">
-                              {isTargetWolf ? <WolfIcon className="w-10 h-10" /> : '👨‍🌾'}
+                              {isUnassigned ? '❓' : isTargetWolf ? <WolfIcon className="w-10 h-10" /> : '👨‍🌾'}
                             </div>
                           )}
                         </div>
                       </div>
 
-                      {/* Card Info - Clean, direct and minimal */}
+                      {/* Card Info */}
                       <div className="flex-1 space-y-2 pr-6">
                         <div className="text-xs uppercase font-bold tracking-wider text-slate-400">
-                          #{selectedSeerTarget.id} {selectedSeerTarget.name}
+                          #{livePlayer.id} {livePlayer.name}
                         </div>
                         <h3 className={`text-xl sm:text-2xl font-black font-cinzel ${
-                          isTargetWolf ? 'text-rose-100' : 'text-blue-100'
+                          isUnassigned
+                            ? 'text-amber-200'
+                            : isTargetWolf
+                            ? 'text-rose-100'
+                            : 'text-blue-100'
                         }`}>
-                          {targetRole?.name || 'Dân Làng'}
+                          {isUnassigned ? 'Chưa Lộ Vai / Chưa Gán' : (targetRole?.name || 'Dân Làng')}
                         </h3>
 
                         {/* Clean Result Badge */}
                         <div className="pt-0.5">
-                          {isTargetWolf ? (
+                          {isUnassigned ? (
+                            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-950/90 border border-amber-600 text-amber-300 font-bold text-xs uppercase tracking-wide shadow-md">
+                              <AlertCircle className="w-3.5 h-3.5 shrink-0" /> Chưa Xác Định
+                            </span>
+                          ) : isTargetWolf ? (
                             <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-rose-600 text-white font-bold text-xs uppercase tracking-wide shadow-md shadow-rose-950/80">
                               <WolfIcon className="w-4 h-4" /> Là Ma Sói
                             </span>
                           ) : (
                             <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-600 text-white font-bold text-xs uppercase tracking-wide shadow-md shadow-blue-950/80">
-                              👨‍🌾 Là Dân Làng
+                              👨‍🌾 Phe Dân Làng
                             </span>
                           )}
                         </div>
 
-                        {selectedSeerTarget.isCursedWolf && (
+                        {isUnassigned && (
+                          <div className="text-[11px] text-amber-300/80 italic font-medium">
+                            Người chơi chưa được gán vai trò. Quản trò cần gán vai trước khi ra dấu cho Tiên Tri.
+                          </div>
+                        )}
+
+                        {livePlayer.isCursedWolf && (
                           <div className="text-[11px] text-purple-300 italic font-medium">
                             (Đã bị Sói Nguyền lây nhiễm thành Sói)
                           </div>
@@ -2026,6 +2131,72 @@ export default function NightPhaseView({
               );
             })()}
 
+            {/* 10.5. SÓI LỚN XẤU XA (BIG BAD WOLF) - LƯỢT CẮN BỔ SUNG */}
+            {currentRole.id === 'soi-lon-xau-xa' && (() => {
+              if (currentRole.isPowerLost) {
+                return (
+                  <div className="p-4 rounded-2xl bg-gradient-to-r from-red-950/80 via-[#200407] to-[#120204] border border-rose-800 text-rose-200 space-y-2">
+                    <div className="flex items-center gap-2 font-cinzel font-black text-sm text-rose-300">
+                      <Skull className="w-4 h-4 text-rose-400" />
+                      <span>NĂNG LỰC CẮN THÊM ĐÃ MẤT</span>
+                    </div>
+                    <p className="text-xs text-rose-300/80 leading-relaxed">
+                      {currentRole.powerLostReason}
+                    </p>
+                    <div className="pt-2">
+                      <GothicButton
+                        variant="dark"
+                        size="sm"
+                        onClick={() => handleNextStep(false)}
+                      >
+                        Tiếp Tục ➔
+                      </GothicButton>
+                    </div>
+                  </div>
+                );
+              }
+
+              const validVictims = alivePlayers.filter(p => canWolvesKillTeammates ? true : !isWolfPlayer(p));
+
+              return (
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Skull className="w-5 h-5 text-rose-400 animate-pulse" />
+                      <h4 className="font-bold text-sm text-rose-200 font-cinzel">
+                        SÓI LỚN XẤU XA CẮN THÊM 1 NẠN NHÂN:
+                      </h4>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => onSaveAction('bigBadWolf', null, { bigBadWolfSkipped: true })}
+                      className={`text-xs px-3 py-1 rounded-xl border transition-all font-bold cursor-pointer ${
+                        nightState.bigBadWolfSkipped
+                          ? 'bg-rose-950 border-rose-500 text-rose-200 shadow-md'
+                          : 'bg-black/60 border-slate-700 text-slate-400 hover:text-white'
+                      }`}
+                    >
+                      Bỏ Qua (Không Cắn)
+                    </button>
+                  </div>
+
+                  <PlayerSeatPicker
+                    players={validVictims}
+                    selectedIds={!nightState.bigBadWolfSkipped && nightState.bigBadWolfTargetId ? [nightState.bigBadWolfTargetId] : []}
+                    onSelect={(id) => {
+                      if (nightState.bigBadWolfTargetId === id && !nightState.bigBadWolfSkipped) {
+                        onSaveAction('bigBadWolf', null, { bigBadWolfSkipped: false });
+                      } else {
+                        onSaveAction('bigBadWolf', id, { bigBadWolfSkipped: false });
+                      }
+                    }}
+                    variant="blood"
+                    actionLabel="Cắn thêm"
+                  />
+                </div>
+              );
+            })()}
+
             {/* 11. SÓI TRẮNG (WHITE WEREWOLF) - ĐÊM CHẴN CẮN ĐỒNG BỌN */}
             {currentRole.id === 'soi-trang' && (() => {
               const otherWolves = alivePlayers.filter(p => isWolfPlayer(p) && (p.currentRoleId || p.roleId) !== 'soi-trang');
@@ -2203,6 +2374,12 @@ export default function NightPhaseView({
               <span className="text-slate-400">Mục tiêu Sói cắn:</span>
               <strong className="text-rose-400">{wolfVictim?.name || 'Không cắn ai'}</strong>
             </div>
+            {nightState.bigBadWolfTargetId && !nightState.bigBadWolfSkipped && (
+              <div className="flex justify-between">
+                <span className="text-slate-400">Sói Lớn cắn thêm:</span>
+                <strong className="text-rose-400">{players.find(x => x.id === nightState.bigBadWolfTargetId)?.name || 'Không có'}</strong>
+              </div>
+            )}
             <div className="flex justify-between">
               <span className="text-slate-400">Phù Thủy cứu nạn nhân:</span>
               <strong className={nightState.witchSaved ? 'text-emerald-400' : 'text-slate-500'}>
