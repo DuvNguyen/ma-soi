@@ -82,6 +82,8 @@ export default function UnifiedGameSetupModal({
   const [templateSearchQuery, setTemplateSearchQuery] = useState('');
   const [showRoleCustomizer, setShowRoleCustomizer] = useState(false);
   const [roleSearchQuery, setRoleSearchQuery] = useState('');
+  const [editingDeckName, setEditingDeckName] = useState(() => PRESETS[1]?.name || '');
+  const [editingDeckDesc, setEditingDeckDesc] = useState(() => PRESETS[1]?.desc || '');
 
   // Bulk edit modal state
   const [isBulkEditModalOpen, setIsBulkEditModalOpen] = useState(false);
@@ -166,10 +168,20 @@ export default function UnifiedGameSetupModal({
     return extended;
   };
 
+  // Sync editingDeckName with activeTemplate when activeTemplate id changes
+  useEffect(() => {
+    if (activeTemplate) {
+      setEditingDeckName(activeTemplate.name || '');
+      setEditingDeckDesc(activeTemplate.desc || '');
+    }
+  }, [activeTemplate?.id]);
+
   // Select a deck template
   const handleSelectTemplate = (template) => {
     triggerHaptic('light');
     setSelectedTemplateId(template.id);
+    setEditingDeckName(template.name || '');
+    setEditingDeckDesc(template.desc || '');
     const newRoleIds = (template.roleIds || []).filter(id => id !== 'canh-sat-truong' && id !== 'canh-sat-characters');
     setSelectedRoleIds(newRoleIds);
 
@@ -286,11 +298,13 @@ export default function UnifiedGameSetupModal({
     triggerHaptic('success');
     if (activeTemplate) {
       try {
+        const finalName = editingDeckName.trim() || activeTemplate.name || 'Bộ bài';
+        const finalDesc = editingDeckDesc.trim() || activeTemplate.desc || '';
         const updatedTemplate = {
           ...activeTemplate,
           id: activeTemplate.id,
-          name: activeTemplate.name,
-          desc: activeTemplate.desc || '',
+          name: finalName,
+          desc: finalDesc,
           roleIds: selectedRoleIds,
           playerCount: selectedRoleIds.length,
           playerNames: playerNames.slice(0, selectedRoleIds.length)
@@ -299,7 +313,7 @@ export default function UnifiedGameSetupModal({
         await loadTemplatesData();
         showAlert({
           title: 'ĐÃ LƯU BỘ BÀI! ✨',
-          message: `Bộ bài "${activeTemplate.name}" đã được lưu thành công (${selectedRoleIds.length} lá).`,
+          message: `Bộ bài "${finalName}" đã được lưu thành công (${selectedRoleIds.length} lá).`,
           variant: 'emerald'
         });
       } catch (err) {
@@ -348,11 +362,13 @@ export default function UnifiedGameSetupModal({
     if (!activeTemplate) return;
 
     try {
+      const finalName = editingDeckName.trim() || activeTemplate.name || 'Bộ bài';
+      const finalDesc = editingDeckDesc.trim() || activeTemplate.desc || '';
       const updatedTemplate = {
         ...activeTemplate,
         id: activeTemplate.id,
-        name: activeTemplate.name,
-        desc: activeTemplate.desc || '',
+        name: finalName,
+        desc: finalDesc,
         roleIds: selectedRoleIds,
         playerCount: selectedRoleIds.length,
         playerNames: playerNames
@@ -361,7 +377,7 @@ export default function UnifiedGameSetupModal({
       await loadTemplatesData();
       showAlert({
         title: 'ĐÃ LƯU TÊN VÀO BỘ BÀI! ✨',
-        message: `Đã lưu danh sách ${playerNames.length} người chơi vào bộ bài "${activeTemplate.name}". Lần sau khi chọn bộ bài này, tên sẽ tự động nạp lại!`,
+        message: `Đã lưu danh sách ${playerNames.length} người chơi vào bộ bài "${finalName}". Lần sau khi chọn bộ bài này, tên sẽ tự động nạp lại!`,
         variant: 'emerald'
       });
     } catch (err) {
@@ -680,6 +696,28 @@ export default function UnifiedGameSetupModal({
                     const wolfs = isSelected ? wolfCount : tRoles.filter(r => r.teamCode === 'W').length;
                     const villagers = isSelected ? villagerCount : tRoles.filter(r => r.teamCode === 'V').length;
 
+                    // Group unique roles with accurate counts
+                    const deckRoleCountsMap = {};
+                    for (const id of tRoleIds) {
+                      deckRoleCountsMap[id] = (deckRoleCountsMap[id] || 0) + 1;
+                    }
+                    const groupedRoles = Object.entries(deckRoleCountsMap)
+                      .map(([id, count]) => ({
+                        role: ROLES.find(r => r.id === id),
+                        count
+                      }))
+                      .filter(item => Boolean(item.role))
+                      .sort((a, b) => {
+                        if (a.role.id === 'dan-lang') return 1;
+                        if (b.role.id === 'dan-lang') return -1;
+                        if (a.role.teamCode === 'W' && b.role.teamCode !== 'W') return -1;
+                        if (a.role.teamCode !== 'W' && b.role.teamCode === 'W') return 1;
+                        return 0;
+                      });
+
+                    const displayName = isSelected && editingDeckName.trim() ? editingDeckName.trim() : t.name;
+                    const displayDesc = (isSelected && editingDeckDesc.trim()) || t.desc || (t.isPreset ? 'Bộ bài kịch bản tiêu chuẩn' : 'Bộ bài lưu');
+
                     return (
                       <div
                         key={t.id}
@@ -696,21 +734,45 @@ export default function UnifiedGameSetupModal({
                         }`}
                       >
                         <div>
-                          <div className="flex items-center justify-between mb-1.5">
-                            <span className="font-bold text-sm text-slate-100 truncate mr-2">
-                              {t.name}
-                            </span>
+                          <div className="flex items-center justify-between mb-1.5 gap-2">
+                            {isEditing ? (
+                              <div className="flex-1 min-w-0" onClick={(e) => e.stopPropagation()}>
+                                <input
+                                  type="text"
+                                  value={editingDeckName}
+                                  onChange={(e) => setEditingDeckName(e.target.value)}
+                                  placeholder="Tên bộ bài..."
+                                  className="w-full px-2.5 py-1 rounded-lg bg-slate-900 border border-amber-500 text-sm font-bold text-slate-100 focus:outline-none focus:ring-1 focus:ring-amber-400"
+                                />
+                              </div>
+                            ) : (
+                              <span className="font-bold text-sm text-slate-100 truncate mr-2">
+                                {displayName}
+                              </span>
+                            )}
                             <span className="text-[11px] font-mono font-bold text-amber-300 bg-amber-950/80 px-2 py-0.5 rounded-md border border-amber-800/80 shrink-0">
                               {cardCount} lá
                             </span>
                           </div>
 
-                          <p className="text-[11px] text-slate-400 line-clamp-2 mb-2">
-                            {t.desc || (t.isPreset ? 'Bộ bài kịch bản tiêu chuẩn' : 'Bộ bài lưu')}
-                          </p>
+                          {isEditing ? (
+                            <div className="mb-2" onClick={(e) => e.stopPropagation()}>
+                              <input
+                                type="text"
+                                value={editingDeckDesc}
+                                onChange={(e) => setEditingDeckDesc(e.target.value)}
+                                placeholder="Mô tả bộ bài (không bắt buộc)..."
+                                className="w-full px-2.5 py-1 rounded-lg bg-slate-900/80 border border-slate-700 text-[11px] text-slate-300 focus:outline-none focus:border-amber-500"
+                              />
+                            </div>
+                          ) : (
+                            <p className="text-[11px] text-slate-400 line-clamp-2 mb-2">
+                              {displayDesc}
+                            </p>
+                          )}
 
                           {/* Role badges summary */}
-                          <div className="flex flex-wrap gap-1 max-h-16 overflow-hidden">
+                          <div className="flex flex-wrap gap-1 max-h-24 overflow-hidden">
                             {wolfs > 0 && (
                               <span className="text-[10px] px-1.5 py-0.5 rounded bg-rose-950/80 text-rose-300 border border-rose-900/60 font-medium">
                                 🐺 {wolfs} Sói
@@ -721,14 +783,26 @@ export default function UnifiedGameSetupModal({
                                 🛡️ {villagers} Dân
                               </span>
                             )}
-                            {tRoles.slice(0, 4).map((r, i) => (
-                              <span key={i} className="text-[10px] px-1.5 py-0.5 rounded bg-slate-900 text-slate-300 border border-slate-800">
-                                {r.name}
+                            {groupedRoles.slice(0, 8).map((item) => (
+                              <span
+                                key={item.role.id}
+                                className={`text-[10px] px-1.5 py-0.5 rounded border flex items-center gap-1 ${
+                                  item.role.teamCode === 'W'
+                                    ? 'bg-rose-950/60 text-rose-200 border-rose-900/50'
+                                    : 'bg-slate-900 text-slate-300 border-slate-800'
+                                }`}
+                              >
+                                <span>{item.role.name}</span>
+                                {item.count > 1 && (
+                                  <span className="text-[9px] font-mono font-bold text-amber-400 bg-black/40 px-1 rounded">
+                                    x{item.count}
+                                  </span>
+                                )}
                               </span>
                             ))}
-                            {tRoles.length > 4 && (
-                              <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-900 text-slate-500 border border-slate-800">
-                                +{tRoles.length - 4}
+                            {groupedRoles.length > 8 && (
+                              <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-900 text-slate-400 border border-slate-800 font-mono">
+                                +{groupedRoles.length - 8} vai
                               </span>
                             )}
                           </div>
@@ -871,6 +945,8 @@ export default function UnifiedGameSetupModal({
                                   setShowRoleCustomizer(false);
                                 } else {
                                   handleSelectTemplate(t);
+                                  setEditingDeckName(t.name || '');
+                                  setEditingDeckDesc(t.desc || '');
                                   setShowRoleCustomizer(true);
                                 }
                               }}
@@ -1022,7 +1098,7 @@ export default function UnifiedGameSetupModal({
             <div className="flex items-center gap-1.5 text-[11px] sm:text-xs font-bold text-amber-300 bg-amber-950/60 border border-amber-800/80 px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-xl max-w-full truncate">
               <CheckCircle2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-400 shrink-0" />
               <span className="truncate">
-                {activeTemplate?.name || 'Bộ bài'}: {playerNames.length} người ⟷ {selectedRoleIds.length} lá ({wolfCount} Sói, {villagerCount} Dân)
+                {(selectedTemplateId === activeTemplate?.id && editingDeckName.trim()) || activeTemplate?.name || 'Bộ bài'}: {playerNames.length} người ⟷ {selectedRoleIds.length} lá ({wolfCount} Sói, {villagerCount} Dân)
               </span>
             </div>
           </div>
