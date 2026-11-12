@@ -519,26 +519,13 @@ export default function UnifiedGameSetupModal({
                   <button
                     type="button"
                     onClick={() => {
-                      setNewTemplateNameInput(`Bộ bài ${selectedRoleIds.length} người mới`);
+                      setNewTemplateNameInput(`Bộ bài ${selectedRoleIds.length} lá mới`);
                       setIsSavingAsNew(true);
                     }}
-                    className="flex-1 sm:flex-initial px-3 py-2 rounded-xl bg-slate-900 hover:bg-purple-950/80 border border-slate-700 hover:border-purple-500 text-slate-200 text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                    className="px-3 py-2 rounded-xl bg-slate-900 hover:bg-purple-950/80 border border-slate-700 hover:border-purple-500 text-slate-200 text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer"
                   >
                     <Plus className="w-3.5 h-3.5 text-purple-400" />
-                    <span>Lưu Bộ Bài Mới</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setShowRoleCustomizer(!showRoleCustomizer)}
-                    className={`px-3 py-2 rounded-xl border text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
-                      showRoleCustomizer
-                        ? 'bg-amber-950/80 border-amber-500 text-amber-200'
-                        : 'bg-slate-900 hover:bg-slate-800 border-slate-700 text-slate-300'
-                    }`}
-                  >
-                    <SlidersHorizontal className="w-3.5 h-3.5 text-amber-400" />
-                    <span>{showRoleCustomizer ? 'Đóng Sửa Lá' : 'Sửa Lá Bài'}</span>
+                    <span>Tạo Bộ Bài Mới</span>
                   </button>
                 </div>
               </div>
@@ -583,124 +570,6 @@ export default function UnifiedGameSetupModal({
                 </form>
               )}
 
-              {/* Collapsible Role Cards Customizer (+ / - roles) */}
-              {showRoleCustomizer && (
-                <div className="p-3 sm:p-4 rounded-2xl bg-[#0f111d] border border-amber-900/60 space-y-3 animate-fade-in shadow-inner">
-                  {/* Customizer Header with Live Card Counter */}
-                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 border-b border-slate-800/80 pb-2.5">
-                    <div>
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-xs sm:text-sm font-bold text-amber-300">Tùy Chỉnh Các Lá Bài:</span>
-                        {/* LIVE CARD COUNT TAGS */}
-                        <span className="px-2.5 py-0.5 rounded-full bg-amber-500/20 border border-amber-500/60 text-amber-300 font-mono font-bold text-xs flex items-center gap-1 shadow-sm">
-                          <Layers className="w-3.5 h-3.5 text-amber-400" />
-                          <span>{selectedRoleIds.length} lá bài</span>
-                        </span>
-                        <span className="px-2 py-0.5 rounded-full bg-rose-950/80 border border-rose-800 text-rose-300 font-mono text-[11px] flex items-center gap-1">
-                          <WolfIcon className="w-3 h-3 text-rose-400" />
-                          <span>{wolfCount} Sói</span>
-                        </span>
-                        <span className="px-2 py-0.5 rounded-full bg-purple-950/80 border border-purple-800 text-purple-300 font-mono text-[11px] flex items-center gap-1">
-                          <Sparkles className="w-3 h-3 text-purple-400" />
-                          <span>{villagerCount} Dân</span>
-                        </span>
-                      </div>
-                    </div>
-
-                    <div className="relative w-full sm:w-44 shrink-0">
-                      <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
-                      <input
-                        type="text"
-                        value={roleSearchQuery}
-                        onChange={(e) => setRoleSearchQuery(e.target.value)}
-                        placeholder="Tìm vai trò..."
-                        className="w-full pl-7 pr-2 py-1 rounded-lg bg-slate-900 border border-slate-800 text-[11px] text-white focus:outline-none focus:border-amber-500"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Vertical wrap grid of roles */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 max-h-56 overflow-y-auto pr-1">
-                    {filteredAvailableRoles.map(role => {
-                      const count = roleCountsMap[role.id] || 0;
-                      const isWolf = role.teamCode === 'W';
-                      return (
-                        <div
-                          key={role.id}
-                          className={`p-2 rounded-xl border flex items-center justify-between transition-all ${
-                            count > 0
-                              ? isWolf
-                                ? 'bg-rose-950/40 border-rose-800/80 text-rose-200'
-                                : 'bg-purple-950/40 border-purple-800/80 text-purple-200'
-                              : 'bg-slate-900/40 border-slate-800/60 text-slate-400'
-                          }`}
-                        >
-                          <div className="flex items-center gap-1.5 truncate mr-2">
-                            {isWolf ? <WolfIcon className="w-3.5 h-3.5 text-rose-400 shrink-0" /> : <Sparkles className="w-3.5 h-3.5 text-purple-400 shrink-0" />}
-                            <span className="text-xs font-bold truncate">{role.name}</span>
-                          </div>
-
-                          <div className="flex items-center gap-1 shrink-0">
-                            <button
-                              type="button"
-                              onClick={() => handleModifyRoleCount(role.id, -1)}
-                              disabled={count === 0}
-                              className="w-6 h-6 rounded-lg bg-slate-800 hover:bg-slate-700 disabled:opacity-30 disabled:pointer-events-none text-white text-xs flex items-center justify-center cursor-pointer active:scale-95"
-                            >
-                              <Minus className="w-3 h-3" />
-                            </button>
-                            <span className="w-5 text-center text-xs font-mono font-bold text-white">
-                              {count}
-                            </span>
-                            <button
-                              type="button"
-                              onClick={() => handleModifyRoleCount(role.id, 1)}
-                              className="w-6 h-6 rounded-lg bg-slate-800 hover:bg-purple-900 text-white text-xs flex items-center justify-center cursor-pointer active:scale-95"
-                            >
-                              <Plus className="w-3 h-3" />
-                            </button>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-
-                  {/* ACTION BAR: ĐẾM SỐ LÁ & NÚT LƯU BỘ BÀI ĐỂ QUA ADD NGƯỜI */}
-                  <div className="pt-2.5 border-t border-slate-800/80 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 bg-[#0b0c16]/90 p-2.5 rounded-xl border border-purple-900/50">
-                    <div className="flex items-center gap-2 text-xs text-slate-300">
-                      <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                      <span>
-                        Cấu hình: <strong className="text-amber-300 font-mono">{selectedRoleIds.length} lá</strong> ⟷ <strong className="text-purple-300 font-mono">{selectedRoleIds.length} slot người chơi</strong>
-                      </span>
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setNewTemplateNameInput(`Bộ bài ${selectedRoleIds.length} người mới`);
-                          setIsSavingAsNew(true);
-                        }}
-                        className="px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700 hover:border-amber-500 text-slate-200 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shrink-0"
-                        title="Lưu cấu hình này thành mẫu bộ bài mới trong database"
-                      >
-                        <Save className="w-3.5 h-3.5 text-amber-400" />
-                        <span>Lưu Mẫu Mới</span>
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={handleSaveAndGoToPlayers}
-                        className="flex-1 sm:flex-initial px-4 py-2 rounded-xl bg-gradient-to-r from-purple-700 via-indigo-600 to-purple-800 hover:from-purple-600 hover:to-indigo-500 border border-purple-400 text-white text-xs font-black shadow-[0_0_15px_rgba(168,85,247,0.4)] transition-all flex items-center justify-center gap-1.5 cursor-pointer active:scale-95 shrink-0"
-                      >
-                        <Save className="w-3.5 h-3.5 text-purple-200" />
-                        <span>Lưu & Sang Thêm Người ➔</span>
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              )}
-
               {/* Deck Templates List (1 Column on Mobile, 2 on Desktop) */}
               <div className="space-y-2.5">
                 <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
@@ -710,17 +579,24 @@ export default function UnifiedGameSetupModal({
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {filteredTemplates.map(t => {
                     const isSelected = selectedTemplateId === t.id;
-                    const cardCount = t.roleIds?.length || t.playerCount || 0;
-                    const tRoles = (t.roleIds || []).map(id => ROLES.find(r => r.id === id)).filter(Boolean);
-                    const wolfs = tRoles.filter(r => r.teamCode === 'W').length;
-                    const villagers = tRoles.filter(r => r.teamCode === 'V').length;
+                    const isEditing = isSelected && showRoleCustomizer;
+                    const cardCount = isSelected ? selectedRoleIds.length : (t.roleIds?.length || t.playerCount || 0);
+                    const tRoleIds = isSelected ? selectedRoleIds : (t.roleIds || []);
+                    const tRoles = tRoleIds.map(id => ROLES.find(r => r.id === id)).filter(Boolean);
+                    const wolfs = isSelected ? wolfCount : tRoles.filter(r => r.teamCode === 'W').length;
+                    const villagers = isSelected ? villagerCount : tRoles.filter(r => r.teamCode === 'V').length;
 
                     return (
                       <div
                         key={t.id}
-                        onClick={() => handleSelectTemplate(t)}
-                        className={`p-3.5 rounded-2xl border text-left transition-all cursor-pointer relative flex flex-col justify-between ${
-                          isSelected
+                        onClick={(e) => {
+                          if (e.target.closest('button') || e.target.closest('input')) return;
+                          handleSelectTemplate(t);
+                        }}
+                        className={`p-3.5 sm:p-4 rounded-2xl border text-left transition-all cursor-pointer relative flex flex-col justify-between ${
+                          isEditing
+                            ? 'col-span-full bg-gradient-to-br from-purple-950/80 via-[#131525] to-amber-950/50 border-amber-500 shadow-xl shadow-purple-950/50 ring-1 ring-amber-500/50'
+                            : isSelected
                             ? 'bg-gradient-to-br from-purple-950/70 via-[#181a2e] to-amber-950/40 border-amber-500 shadow-lg shadow-purple-950/50'
                             : 'bg-[#141624] hover:bg-[#1a1c2e] border-slate-800 hover:border-slate-700 text-slate-300'
                         }`}
@@ -764,9 +640,130 @@ export default function UnifiedGameSetupModal({
                           </div>
                         </div>
 
-                        {/* Card Footer: Selection indicator & DELETE BUTTON ON ALL CARDS */}
+                        {/* Inline Role Customizer inside the deck card */}
+                        {isEditing && (
+                          <div className="mt-4 pt-3.5 border-t border-amber-900/60 space-y-3 animate-fade-in" onClick={(e) => e.stopPropagation()}>
+                            {/* Header for role cards inside editor */}
+                            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 border-b border-slate-800/80 pb-2.5">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span className="text-xs sm:text-sm font-bold text-amber-300">Chỉnh Sửa Lá Bài:</span>
+                                <span className="px-2.5 py-0.5 rounded-full bg-amber-500/20 border border-amber-500/60 text-amber-300 font-mono font-bold text-xs flex items-center gap-1 shadow-sm">
+                                  <Layers className="w-3.5 h-3.5 text-amber-400" />
+                                  <span>{selectedRoleIds.length} lá bài</span>
+                                </span>
+                                <span className="px-2 py-0.5 rounded-full bg-rose-950/80 border border-rose-800 text-rose-300 font-mono text-[11px] flex items-center gap-1">
+                                  <WolfIcon className="w-3 h-3 text-rose-400" />
+                                  <span>{wolfCount} Sói</span>
+                                </span>
+                                <span className="px-2 py-0.5 rounded-full bg-purple-950/80 border border-purple-800 text-purple-300 font-mono text-[11px] flex items-center gap-1">
+                                  <Sparkles className="w-3 h-3 text-purple-400" />
+                                  <span>{villagerCount} Dân</span>
+                                </span>
+                              </div>
+
+                              <div className="relative w-full sm:w-44 shrink-0">
+                                <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
+                                <input
+                                  type="text"
+                                  value={roleSearchQuery}
+                                  onChange={(e) => setRoleSearchQuery(e.target.value)}
+                                  placeholder="Tìm vai trò..."
+                                  className="w-full pl-7 pr-2 py-1 rounded-lg bg-slate-900 border border-slate-800 text-[11px] text-white focus:outline-none focus:border-amber-500"
+                                />
+                              </div>
+                            </div>
+
+                            {/* Vertical wrap grid of roles */}
+                            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 max-h-56 overflow-y-auto pr-1">
+                              {filteredAvailableRoles.map(role => {
+                                const count = roleCountsMap[role.id] || 0;
+                                const isWolf = role.teamCode === 'W';
+                                return (
+                                  <div
+                                    key={role.id}
+                                    className={`p-2 rounded-xl border flex items-center justify-between transition-all ${
+                                      count > 0
+                                        ? isWolf
+                                          ? 'bg-rose-950/40 border-rose-800/80 text-rose-200'
+                                          : 'bg-purple-950/40 border-purple-800/80 text-purple-200'
+                                        : 'bg-slate-900/40 border-slate-800/60 text-slate-400'
+                                    }`}
+                                  >
+                                    <div className="flex items-center gap-1.5 truncate mr-2">
+                                      {isWolf ? <WolfIcon className="w-3.5 h-3.5 text-rose-400 shrink-0" /> : <Sparkles className="w-3.5 h-3.5 text-purple-400 shrink-0" />}
+                                      <span className="text-xs font-bold truncate">{role.name}</span>
+                                    </div>
+
+                                    <div className="flex items-center gap-1 shrink-0">
+                                      <button
+                                        type="button"
+                                        onClick={() => handleModifyRoleCount(role.id, -1)}
+                                        disabled={count === 0}
+                                        className="w-6 h-6 rounded-lg bg-slate-800 hover:bg-slate-700 disabled:opacity-30 disabled:pointer-events-none text-white text-xs flex items-center justify-center cursor-pointer active:scale-95"
+                                      >
+                                        <Minus className="w-3 h-3" />
+                                      </button>
+                                      <span className="w-5 text-center text-xs font-mono font-bold text-white">
+                                        {count}
+                                      </span>
+                                      <button
+                                        type="button"
+                                        onClick={() => handleModifyRoleCount(role.id, 1)}
+                                        className="w-6 h-6 rounded-lg bg-slate-800 hover:bg-purple-900 text-white text-xs flex items-center justify-center cursor-pointer active:scale-95"
+                                      >
+                                        <Plus className="w-3 h-3" />
+                                      </button>
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+
+                            {/* Action Bar inside card editor */}
+                            <div className="pt-2.5 border-t border-slate-800/80 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 bg-[#0b0c16]/90 p-2.5 rounded-xl border border-purple-900/50">
+                              <div className="flex items-center gap-2 text-xs text-slate-300">
+                                <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                                <span>
+                                  Cấu hình: <strong className="text-amber-300 font-mono">{selectedRoleIds.length} lá</strong> ⟷ <strong className="text-purple-300 font-mono">{selectedRoleIds.length} slot người chơi</strong>
+                                </span>
+                              </div>
+
+                              <div className="flex items-center gap-2">
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setNewTemplateNameInput(`Bộ bài ${selectedRoleIds.length} người mới`);
+                                    setIsSavingAsNew(true);
+                                  }}
+                                  className="px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700 hover:border-amber-500 text-slate-200 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shrink-0"
+                                >
+                                  <Save className="w-3.5 h-3.5 text-amber-400" />
+                                  <span>Lưu Mẫu Mới</span>
+                                </button>
+
+                                <button
+                                  type="button"
+                                  onClick={handleSaveAndGoToPlayers}
+                                  className="flex-1 sm:flex-initial px-4 py-2 rounded-xl bg-gradient-to-r from-purple-700 via-indigo-600 to-purple-800 hover:from-purple-600 hover:to-indigo-500 border border-purple-400 text-white text-xs font-black shadow-[0_0_15px_rgba(168,85,247,0.4)] transition-all flex items-center justify-center gap-1.5 cursor-pointer active:scale-95 shrink-0"
+                                >
+                                  <Save className="w-3.5 h-3.5 text-purple-200" />
+                                  <span>Lưu & Sang Thêm Người ➔</span>
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Card Footer: Selection indicator, Sửa Lá Bài & Delete button */}
                         <div className="flex items-center justify-between pt-2.5 mt-2.5 border-t border-slate-800/80">
-                          <span className={`text-xs font-bold flex items-center gap-1 ${isSelected ? 'text-amber-400' : 'text-slate-400'}`}>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleSelectTemplate(t);
+                            }}
+                            className={`text-xs font-bold flex items-center gap-1 cursor-pointer transition-colors ${isSelected ? 'text-amber-400' : 'text-slate-400 hover:text-slate-200'}`}
+                          >
                             {isSelected ? (
                               <>
                                 <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
@@ -778,17 +775,41 @@ export default function UnifiedGameSetupModal({
                                 <ArrowRight className="w-3 h-3" />
                               </>
                             )}
-                          </span>
-
-                          {/* Delete button available on ALL cards */}
-                          <button
-                            type="button"
-                            onClick={(e) => handleDeleteTemplate(t, e)}
-                            title={`Xóa bộ bài "${t.name}"`}
-                            className="p-1.5 rounded-lg text-slate-500 hover:text-rose-400 hover:bg-rose-950/60 transition-all cursor-pointer"
-                          >
-                            <Trash2 className="w-4 h-4" />
                           </button>
+
+                          <div className="flex items-center gap-2">
+                            {/* Nút Sửa Lá Bài trực tiếp trên từng bộ bài */}
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                if (isSelected && showRoleCustomizer) {
+                                  setShowRoleCustomizer(false);
+                                } else {
+                                  handleSelectTemplate(t);
+                                  setShowRoleCustomizer(true);
+                                }
+                              }}
+                              className={`px-2.5 py-1.5 rounded-xl border text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                                isEditing
+                                  ? 'bg-amber-950/80 border-amber-500 text-amber-200 shadow-sm'
+                                  : 'bg-slate-900 hover:bg-amber-950/50 border-slate-700 hover:border-amber-500/80 text-slate-300 hover:text-amber-300'
+                              }`}
+                            >
+                              <SlidersHorizontal className="w-3.5 h-3.5 text-amber-400" />
+                              <span>{isEditing ? 'Đóng Sửa' : 'Sửa Lá Bài'}</span>
+                            </button>
+
+                            {/* Delete button available on ALL cards */}
+                            <button
+                              type="button"
+                              onClick={(e) => handleDeleteTemplate(t, e)}
+                              title={`Xóa bộ bài "${t.name}"`}
+                              className="p-1.5 rounded-lg text-slate-500 hover:text-rose-400 hover:bg-rose-950/60 transition-all cursor-pointer"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
                         </div>
                       </div>
                     );
