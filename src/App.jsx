@@ -13,7 +13,7 @@ import NightPhaseView from './components/NightPhaseView';
 import DayPhaseView from './components/DayPhaseView';
 import PlayersGridView from './components/PlayersGridView';
 import ActionModal from './components/ActionModal';
-import SetupGameModal from './components/SetupGameModal';
+import UnifiedGameSetupModal from './components/UnifiedGameSetupModal';
 import GameOverModal from './components/GameOverModal';
 import SheriffSuccessionModal from './components/SheriffSuccessionModal';
 import RoleLibraryModal from './components/RoleLibraryModal';
@@ -25,7 +25,7 @@ import GameSettingsModal from './components/GameSettingsModal';
 import GothicButton from './components/ui/GothicButton';
 import GothicBadge from './components/ui/GothicBadge';
 import WolfIcon from './components/ui/WolfIcon';
-import { Moon, Sun, Users, BookOpen, RotateCcw, Shield, Eye, Skull, Sparkles, Trophy, Layers, Database, CheckCircle2, RefreshCw, History, Settings } from 'lucide-react';
+import { Moon, Sun, Users, BookOpen, RotateCcw, Shield, Eye, Skull, Sparkles, Trophy, Layers, Database, CheckCircle2, RefreshCw, History, Settings, SlidersHorizontal } from 'lucide-react';
 
 const STORAGE_KEY = 'werewolf_active_game_state';
 export const GAME_SCHEMA_VERSION = 2;
@@ -170,6 +170,7 @@ export default function App() {
 
   // Modals state
   const [isSetupOpen, setIsSetupOpen] = useState(false);
+  const [setupModalTab, setSetupModalTab] = useState('setup');
   const [isLibraryOpen, setIsLibraryOpen] = useState(false);
   const [isTemplatesOpen, setIsTemplatesOpen] = useState(false);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
@@ -357,6 +358,39 @@ export default function App() {
       id: i + 1,
       name: (playerNames && playerNames[i]) || DEFAULT_PLAYER_NAMES[i] || `Người chơi ${i + 1}`
     }));
+
+    setPlayers(newPlayers);
+    setRoundNumber(1);
+    setIsNight(true);
+    setActiveTab('night');
+    setNightLogs([]);
+    setGameDiary([]);
+    setGameEndResult(null);
+    setLynchedTodayPlayerId(null);
+    setCurrentNightStepIdx(0);
+    try {
+      localStorage.removeItem('werewolf_current_night_step');
+    } catch (e) {}
+    setNightState({ ...DEFAULT_NIGHT_STATE });
+  };
+
+  const handleApplyGameSetup = ({ playerNames, roleIds }) => {
+    const finalRoleIds = roleIds && roleIds.length > 0 ? roleIds : deckRoleIds;
+    const count = playerNames?.length || finalRoleIds.length;
+
+    setDeckRoleIds(finalRoleIds);
+    const uniqueRoles = Array.from(new Set(finalRoleIds))
+      .map(id => ROLES.find(r => r.id === id))
+      .filter(Boolean);
+    setRolesInGame(uniqueRoles);
+
+    const newPlayers = Array.from({ length: count }, (_, i) => {
+      const name = playerNames?.[i] || DEFAULT_PLAYER_NAMES[i] || `Người chơi ${i + 1}`;
+      return Player.fromJSON({
+        id: i + 1,
+        name
+      });
+    });
 
     setPlayers(newPlayers);
     setRoundNumber(1);
@@ -1317,28 +1351,45 @@ export default function App() {
               <span className="hidden sm:inline">Reset Về 0</span>
             </button>
 
-            {/* Management Group: Bộ Bài & Nhóm Người */}
+            {/* Unified Setup Group: Thiết Lập Ván Chơi (Tích hợp Người Chơi + Bộ Bài) */}
             <div className="flex items-center gap-0.5 bg-[#101220]/80 p-0.5 rounded-lg sm:rounded-xl border border-purple-950/80">
-              {/* Bộ Bài */}
               <button
                 type="button"
-                onClick={() => setIsTemplatesOpen(true)}
-                title="Chọn hoặc tạo template bộ bài"
-                className="h-6 w-6.5 sm:h-7 sm:w-auto sm:px-2 rounded-md sm:rounded-lg hover:bg-purple-950/80 text-purple-200 text-xs font-bold transition-all flex items-center justify-center gap-1 cursor-pointer"
+                onClick={() => {
+                  setSetupModalTab('setup');
+                  setIsSetupOpen(true);
+                }}
+                title="Thiết lập phòng chơi: Tùy chỉnh danh sách người chơi & bộ bài đồng bộ"
+                className="h-6 sm:h-7 px-2 sm:px-2.5 rounded-md sm:rounded-lg bg-purple-950 hover:bg-purple-900 border border-purple-600/70 text-purple-200 text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-sm active:scale-95"
               >
-                <Layers className="w-3.5 h-3.5 text-purple-300 shrink-0" />
-                <span className="hidden sm:inline">Bộ Bài</span>
+                <SlidersHorizontal className="w-3.5 h-3.5 text-purple-300 shrink-0" />
+                <span>Thiết Lập Ván</span>
               </button>
 
-              {/* Nhóm Người Chơi */}
+              {/* Quick shortcut to Rosters */}
               <button
                 type="button"
-                onClick={() => setIsRostersOpen(true)}
-                title="Quản lý danh sách nhóm người chơi đã lưu (sửa hoặc áp dụng vào bàn)"
-                className="h-6 w-6.5 sm:h-7 sm:w-auto sm:px-2 rounded-md sm:rounded-lg hover:bg-purple-950/80 text-purple-200 text-xs font-bold transition-all flex items-center justify-center gap-1 cursor-pointer"
+                onClick={() => {
+                  setSetupModalTab('rosters');
+                  setIsSetupOpen(true);
+                }}
+                title="Quản lý danh sách nhóm người chơi"
+                className="h-6 w-6.5 sm:h-7 sm:w-auto sm:px-1.5 rounded-md sm:rounded-lg hover:bg-slate-800 text-slate-400 hover:text-purple-200 text-xs font-bold transition-all flex items-center justify-center cursor-pointer"
               >
-                <Users className="w-3.5 h-3.5 text-purple-300 shrink-0" />
-                <span className="hidden sm:inline">Nhóm Người</span>
+                <Users className="w-3.5 h-3.5 shrink-0" />
+              </button>
+
+              {/* Quick shortcut to Templates */}
+              <button
+                type="button"
+                onClick={() => {
+                  setSetupModalTab('templates');
+                  setIsSetupOpen(true);
+                }}
+                title="Quản lý bộ bài mẫu"
+                className="h-6 w-6.5 sm:h-7 sm:w-auto sm:px-1.5 rounded-md sm:rounded-lg hover:bg-slate-800 text-slate-400 hover:text-amber-200 text-xs font-bold transition-all flex items-center justify-center cursor-pointer"
+              >
+                <Layers className="w-3.5 h-3.5 shrink-0" />
               </button>
             </div>
 
@@ -1501,7 +1552,10 @@ export default function App() {
         {activeTab === 'table' && (
           <PlayersGridView
             players={players}
-            onOpenRosters={() => setIsRostersOpen(true)}
+            onOpenRosters={() => {
+              setSetupModalTab('rosters');
+              setIsSetupOpen(true);
+            }}
             onOpenAssignRole={(p) => {
               setActionModal({
                 isOpen: true,
@@ -1536,11 +1590,16 @@ export default function App() {
         onAssignRole={handleAssignRole}
       />
 
-      {/* Setup Game Modal */}
-      <SetupGameModal
+      {/* Unified Game Setup Modal (Tích hợp Người chơi + Bộ bài) */}
+      <UnifiedGameSetupModal
         isOpen={isSetupOpen}
         onClose={() => setIsSetupOpen(false)}
-        onStartGame={handleStartCustomGame}
+        initialTab={setupModalTab}
+        currentPlayers={players}
+        currentDeckRoleIds={deckRoleIds}
+        onApplyGameSetup={handleApplyGameSetup}
+        onApplyTemplate={handleApplyTemplate}
+        onApplyRoster={handleApplyRoster}
       />
 
       {/* Deck Template Manager Modal */}
