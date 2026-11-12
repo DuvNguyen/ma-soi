@@ -1071,19 +1071,21 @@ export default function NightPhaseView({
 
                   <button
                     type="button"
-                    onClick={() => setShowWolfWhisper(prev => !prev)}
+                    onClick={() => setShowWolfWhisper(true)}
                     className="text-xs font-bold px-3 py-1.5 rounded-lg bg-rose-950 hover:bg-rose-900 text-rose-200 border border-rose-700/80 transition-all cursor-pointer shrink-0 flex items-center gap-1 shadow-sm"
                   >
-                    <span>{showWolfWhisper ? 'Thu Gọn ▲' : 'Mở Chuyền Máy ▼'}</span>
+                    <span>Mở Chuyền Máy 📱</span>
                   </button>
                 </div>
 
-                {/* Secret Wolf Hand-off Box - Only rendered when user wants it */}
+                {/* Secret Wolf Hand-off Box - Full-screen modal to isolate secrets */}
                 {showWolfWhisper && (
                   <WolfWhisperBox
                     players={players}
                     nightState={nightState}
+                    canWolvesKillTeammates={canWolvesKillTeammates}
                     onSaveAction={onSaveAction}
+                    onClose={() => setShowWolfWhisper(false)}
                   />
                 )}
 

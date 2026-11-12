@@ -642,15 +642,34 @@ export default function App() {
       } else if (type === 'seer') {
         next.seerCheckedId = payload;
       } else if (type === 'wolves') {
+        if (payload && !canWolvesKillTeammates) {
+          const target = players.find(p => p.id === payload);
+          if (target && isWolfPlayer(target)) {
+            return prev;
+          }
+        }
         next.wolfTargetId = payload;
         next.wolfSkipped = !!extra.wolfSkipped;
         if (extra.wolfTargetId2 !== undefined) {
-          next.wolfTargetId2 = extra.wolfTargetId2;
+          if (extra.wolfTargetId2 && !canWolvesKillTeammates) {
+            const target2 = players.find(p => p.id === extra.wolfTargetId2);
+            if (!target2 || !isWolfPlayer(target2)) {
+              next.wolfTargetId2 = extra.wolfTargetId2;
+            }
+          } else {
+            next.wolfTargetId2 = extra.wolfTargetId2;
+          }
         }
         if (extra.isCursedInfect !== undefined) {
           next.isCursedInfect = !!extra.isCursedInfect;
         }
       } else if (type === 'wolves_second') {
+        if (payload && !canWolvesKillTeammates) {
+          const target = players.find(p => p.id === payload);
+          if (target && isWolfPlayer(target)) {
+            return prev;
+          }
+        }
         next.wolfTargetId2 = payload;
       } else if (type === 'curse_convert') {
         // Immediately convert victim into Werewolf and clear bite target so wolves can pick again
