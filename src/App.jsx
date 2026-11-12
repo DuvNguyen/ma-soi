@@ -1545,6 +1545,7 @@ export default function App() {
       <main className="relative z-10 flex-1 max-w-7xl w-full mx-auto p-2 sm:p-4 md:p-6 pb-24 sm:pb-28 ios-safe-bottom">
         <div style={{ display: activeTab === 'night' ? 'block' : 'none' }}>
           <NightPhaseView
+            key={`night-${roundNumber}`}
             roundNumber={roundNumber}
             rolesInGame={rolesInGame}
             players={players}

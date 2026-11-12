@@ -167,6 +167,13 @@ export default function NightPhaseView({
     return typeof externalStepIdx === 'number' ? externalStepIdx : 0;
   });
 
+  // Đồng bộ bước gọi đêm khi externalStepIdx thay đổi (ví dụ: chuyển đêm mới -> reset về 0)
+  useEffect(() => {
+    if (typeof externalStepIdx === 'number' && externalStepIdx !== currentStepIdx) {
+      setCurrentStepIdx(externalStepIdx);
+    }
+  }, [externalStepIdx]);
+
   // Đảm bảo không vượt quá độ dài nightSteps
   const safeStepIdx = Math.min(currentStepIdx, Math.max(0, nightSteps.length - 1));
 
