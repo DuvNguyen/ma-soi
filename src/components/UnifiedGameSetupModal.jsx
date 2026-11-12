@@ -148,6 +148,18 @@ export default function UnifiedGameSetupModal({
     return [...sanitizedCustom, ...formattedPresets];
   }, [templates, deletedPresetIds]);
 
+  // When templates load from DB, sync selectedRoleIds with the loaded template if not editing
+  useEffect(() => {
+    if (templates && templates.length > 0 && !showRoleCustomizer) {
+      const match = allTemplates.find(t => t.id === selectedTemplateId);
+      if (match && match.roleIds && match.roleIds.length > 0) {
+        setSelectedRoleIds(match.roleIds);
+        setEditingDeckName(match.name || '');
+        setEditingDeckDesc(match.desc || '');
+      }
+    }
+  }, [templates, selectedTemplateId]);
+
   // Active template info
   const activeTemplate = useMemo(() => {
     return allTemplates.find(t => t.id === selectedTemplateId) || allTemplates[0] || null;
@@ -690,11 +702,11 @@ export default function UnifiedGameSetupModal({
                   {filteredTemplates.map(t => {
                     const isSelected = selectedTemplateId === t.id;
                     const isEditing = isSelected && showRoleCustomizer;
-                    const cardCount = isSelected ? selectedRoleIds.length : (t.roleIds?.length || t.playerCount || 0);
-                    const tRoleIds = isSelected ? selectedRoleIds : (t.roleIds || []);
+                    const cardCount = isEditing ? selectedRoleIds.length : (t.roleIds?.length || t.playerCount || 0);
+                    const tRoleIds = isEditing ? selectedRoleIds : (t.roleIds || []);
                     const tRoles = tRoleIds.map(id => ROLES.find(r => r.id === id)).filter(Boolean);
-                    const wolfs = isSelected ? wolfCount : tRoles.filter(r => r.teamCode === 'W').length;
-                    const villagers = isSelected ? villagerCount : tRoles.filter(r => r.teamCode === 'V').length;
+                    const wolfs = isEditing ? wolfCount : tRoles.filter(r => r.teamCode === 'W').length;
+                    const villagers = isEditing ? villagerCount : tRoles.filter(r => r.teamCode === 'V').length;
 
                     // Group unique roles with accurate counts
                     const deckRoleCountsMap = {};
@@ -720,8 +732,8 @@ export default function UnifiedGameSetupModal({
                         return a.role.name.localeCompare(b.role.name);
                       });
 
-                    const displayName = isSelected && editingDeckName.trim() ? editingDeckName.trim() : t.name;
-                    const displayDesc = (isSelected && editingDeckDesc.trim()) || t.desc || (t.isPreset ? 'Bộ bài kịch bản tiêu chuẩn' : 'Bộ bài lưu');
+                    const displayName = isEditing && editingDeckName.trim() ? editingDeckName.trim() : t.name;
+                    const displayDesc = (isEditing && editingDeckDesc.trim()) || t.desc || (t.isPreset ? 'Bộ bài kịch bản tiêu chuẩn' : 'Bộ bài lưu');
 
                     return (
                       <div

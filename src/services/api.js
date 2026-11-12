@@ -13,7 +13,7 @@ export async function checkNeonConnection() {
 
 export async function fetchTemplates() {
   try {
-    const res = await fetch('/api/templates');
+    const res = await fetch('/api/templates', { cache: 'no-store' });
     const data = await res.json();
     if (data.ok && data.templates) {
       localStorage.setItem('werewolf_templates_cache', JSON.stringify(data.templates));
