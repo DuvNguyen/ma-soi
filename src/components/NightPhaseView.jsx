@@ -39,6 +39,8 @@ export default function NightPhaseView({
   const topContainerRef = useRef(null);
   const cardRef = useRef(null);
   const originalFooterRef = useRef(null);
+  const isInitialMount = useRef(true);
+  const prevStepIdxRef = useRef(null);
   const [isOriginalFooterVisible, setIsOriginalFooterVisible] = useState(false);
 
   // Sort roles according to canonical night wake-up order
@@ -504,16 +506,25 @@ export default function NightPhaseView({
     }
   };
 
-  // Smooth auto-scroll to Tarot Card when advancing or rewinding role steps
+  // Smooth auto-scroll to Tarot Card when advancing or rewinding role steps (skip initial mount & tab switches)
   useEffect(() => {
-    if (cardRef.current) {
-      const yOffset = -90; // offset for sticky top header
-      const y = cardRef.current.getBoundingClientRect().top + window.pageYOffset + yOffset;
-      window.scrollTo({ top: Math.max(0, y), behavior: 'smooth' });
-    } else if (topContainerRef.current) {
-      const yOffset = -80;
-      const y = topContainerRef.current.getBoundingClientRect().top + window.pageYOffset + yOffset;
-      window.scrollTo({ top: Math.max(0, y), behavior: 'smooth' });
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      prevStepIdxRef.current = safeStepIdx;
+      return;
+    }
+
+    if (prevStepIdxRef.current !== safeStepIdx) {
+      prevStepIdxRef.current = safeStepIdx;
+      if (cardRef.current) {
+        const yOffset = -90; // offset for sticky top header
+        const y = cardRef.current.getBoundingClientRect().top + window.pageYOffset + yOffset;
+        window.scrollTo({ top: Math.max(0, y), behavior: 'smooth' });
+      } else if (topContainerRef.current) {
+        const yOffset = -80;
+        const y = topContainerRef.current.getBoundingClientRect().top + window.pageYOffset + yOffset;
+        window.scrollTo({ top: Math.max(0, y), behavior: 'smooth' });
+      }
     }
   }, [safeStepIdx]);
 

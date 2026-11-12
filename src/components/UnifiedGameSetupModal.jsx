@@ -245,37 +245,50 @@ export default function UnifiedGameSetupModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/80 backdrop-blur-md animate-fade-in"
+      className="fixed inset-0 z-50 flex items-center justify-center modal-safe-overlay bg-black/80 backdrop-blur-md animate-fade-in"
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div className="bg-[#0f111a] border border-slate-800 rounded-3xl w-full max-w-4xl overflow-hidden shadow-2xl flex flex-col max-h-[92vh] relative">
+      <div className="bg-[#0f111a] border border-slate-800 rounded-2xl sm:rounded-3xl w-full max-w-4xl overflow-hidden shadow-2xl flex flex-col max-h-full relative my-auto">
         {/* ============================================================== */}
         {/* HEADER: TITLE + NAVIGATION + PROMINENT CLOSE BUTTON */}
         {/* ============================================================== */}
-        <div className="p-4 sm:p-5 border-b border-slate-800 flex items-center justify-between bg-[#121422] shrink-0">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-purple-600 via-indigo-600 to-amber-600 flex items-center justify-center shadow-lg shadow-purple-950/60 shrink-0">
-              <SlidersHorizontal className="w-5 h-5 text-white" />
+        <div className="p-3.5 sm:p-5 border-b border-slate-800 bg-[#121422] shrink-0 space-y-2.5 sm:space-y-0 sm:flex sm:items-center sm:justify-between">
+          <div className="flex items-center justify-between sm:justify-start gap-3">
+            <div className="flex items-center gap-2.5">
+              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-gradient-to-br from-purple-600 via-indigo-600 to-amber-600 flex items-center justify-center shadow-lg shadow-purple-950/60 shrink-0">
+                <SlidersHorizontal className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+              </div>
+              <div>
+                <h2 className="font-cinzel font-black text-sm sm:text-lg text-slate-100 flex items-center gap-2">
+                  THIẾT LẬP VÁN CHƠI
+                </h2>
+                <p className="text-[10px] sm:text-[11px] text-slate-400 hidden sm:block">
+                  Chọn người chơi và bộ bài phù hợp để bắt đầu ván đấu
+                </p>
+              </div>
             </div>
-            <div>
-              <h2 className="font-cinzel font-black text-base sm:text-lg text-slate-100 flex items-center gap-2">
-                THIẾT LẬP VÁN CHƠI
-              </h2>
-              <p className="text-[11px] text-slate-400 hidden sm:block">
-                Chọn người chơi và bộ bài phù hợp để bắt đầu ván đấu
-              </p>
-            </div>
+
+            {/* Close button on mobile sits in row 1 top-right */}
+            <button
+              type="button"
+              onClick={onClose}
+              aria-label="Đóng"
+              title="Đóng cửa sổ (Esc)"
+              className="sm:hidden w-8 h-8 rounded-xl bg-slate-900 hover:bg-rose-950/80 border border-slate-700/80 hover:border-rose-600/80 text-slate-300 hover:text-rose-200 transition-all flex items-center justify-center cursor-pointer shrink-0 shadow-sm active:scale-95"
+            >
+              <X className="w-4 h-4 stroke-[2.5]" />
+            </button>
           </div>
 
-          <div className="flex items-center gap-2.5">
+          <div className="flex items-center justify-between sm:justify-end gap-2.5">
             {/* Segmented Top Tabs */}
-            <div className="flex items-center bg-[#090a12] p-1 rounded-xl border border-slate-800 shrink-0">
+            <div className="flex items-center bg-[#090a12] p-1 rounded-xl border border-slate-800 w-full sm:w-auto justify-between sm:justify-start">
               <button
                 type="button"
                 onClick={() => setActiveTab('setup')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                className={`flex-1 sm:flex-initial px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
                   activeTab === 'setup'
                     ? 'bg-purple-900 border border-purple-500 text-white shadow-sm'
                     : 'text-slate-400 hover:text-slate-200'
@@ -288,37 +301,37 @@ export default function UnifiedGameSetupModal({
               <button
                 type="button"
                 onClick={() => setActiveTab('rosters')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                className={`flex-1 sm:flex-initial px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
                   activeTab === 'rosters'
                     ? 'bg-purple-900 border border-purple-500 text-white shadow-sm'
                     : 'text-slate-400 hover:text-slate-200'
                 }`}
               >
                 <Users className="w-3.5 h-3.5 text-purple-300" />
-                <span className="hidden sm:inline">Nhóm Người</span>
+                <span>Nhóm Người</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => setActiveTab('templates')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                className={`flex-1 sm:flex-initial px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
                   activeTab === 'templates'
                     ? 'bg-purple-900 border border-purple-500 text-white shadow-sm'
                     : 'text-slate-400 hover:text-slate-200'
                 }`}
               >
                 <Layers className="w-3.5 h-3.5 text-blue-300" />
-                <span className="hidden sm:inline">Bộ Bài</span>
+                <span>Bộ Bài</span>
               </button>
             </div>
 
-            {/* HIGH-CONTRAST, PROMINENT CLOSE BUTTON */}
+            {/* Close button on desktop sits beside tabs */}
             <button
               type="button"
               onClick={onClose}
               aria-label="Đóng"
               title="Đóng cửa sổ (Esc)"
-              className="w-9 h-9 rounded-xl bg-slate-900 hover:bg-rose-950/80 border border-slate-700/80 hover:border-rose-600/80 text-slate-300 hover:text-rose-200 transition-all flex items-center justify-center cursor-pointer shrink-0 shadow-sm active:scale-95 ml-1"
+              className="hidden sm:flex w-9 h-9 rounded-xl bg-slate-900 hover:bg-rose-950/80 border border-slate-700/80 hover:border-rose-600/80 text-slate-300 hover:text-rose-200 transition-all items-center justify-center cursor-pointer shrink-0 shadow-sm active:scale-95 ml-1"
             >
               <X className="w-5 h-5 stroke-[2.5]" />
             </button>
@@ -676,7 +689,7 @@ export default function UnifiedGameSetupModal({
         {/* TAB 2: QUẢN LÝ NHÓM NGƯỜI (ROSTERS MANAGER) */}
         {/* ============================================================== */}
         {activeTab === 'rosters' && (
-          <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4">
+          <div className="flex-1 overflow-y-auto p-4 sm:p-6 pb-6 sm:pb-8 space-y-4">
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="text-sm font-bold text-slate-200">Danh Sách Nhóm Người Chơi</h3>
@@ -832,7 +845,7 @@ export default function UnifiedGameSetupModal({
         {/* TAB 3: QUẢN LÝ BỘ BÀI MẪU (DECK TEMPLATES) */}
         {/* ============================================================== */}
         {activeTab === 'templates' && (
-          <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4">
+          <div className="flex-1 overflow-y-auto p-4 sm:p-6 pb-6 sm:pb-8 space-y-4">
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="text-sm font-bold text-slate-200">Danh Sách Bộ Bài Mẫu</h3>

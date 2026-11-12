@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { ROLES, PRESETS } from './data/roles';
 import { getRoleCapacity } from './utils/deckUtils';
 import { getRole, getPlayerRole, getPlayerOriginalRole, isWolfPlayer, WOLF_ROLE_IDS } from './utils/roleUtils';
@@ -100,8 +100,22 @@ export default function App() {
   // Load saved state synchronously on first render to prevent any layout flash
   const savedInitial = getInitialSavedState();
 
-  // Navigation tabs
+  // Navigation tabs & position preservation across switches
   const [activeTab, setActiveTab] = useState(() => savedInitial?.activeTab || (savedInitial?.isNight === false ? 'day' : 'night'));
+  const tabScrollPositions = useRef({});
+
+  const handleTabSwitch = (newTab) => {
+    if (newTab === activeTab) return;
+    tabScrollPositions.current[activeTab] = window.scrollY;
+    setActiveTab(newTab);
+  };
+
+  useEffect(() => {
+    const targetY = tabScrollPositions.current[activeTab] ?? 0;
+    requestAnimationFrame(() => {
+      window.scrollTo({ top: targetY, behavior: 'instant' });
+    });
+  }, [activeTab]);
 
   // Neon DB Connection Status
   const [neonStatus, setNeonStatus] = useState({ ok: false, checked: false, branch: 'production' });
@@ -283,6 +297,7 @@ export default function App() {
 
     setRoundNumber(1);
     setIsNight(true);
+    tabScrollPositions.current['night'] = 0;
     setActiveTab('night');
     setNightLogs([]);
     setGameDiary([]);
@@ -362,6 +377,7 @@ export default function App() {
     setPlayers(newPlayers);
     setRoundNumber(1);
     setIsNight(true);
+    tabScrollPositions.current['night'] = 0;
     setActiveTab('night');
     setNightLogs([]);
     setGameDiary([]);
@@ -395,6 +411,7 @@ export default function App() {
     setPlayers(newPlayers);
     setRoundNumber(1);
     setIsNight(true);
+    tabScrollPositions.current['night'] = 0;
     setActiveTab('night');
     setNightLogs([]);
     setGameDiary([]);
@@ -427,6 +444,7 @@ export default function App() {
     setPlayers(newPlayers);
     setRoundNumber(1);
     setIsNight(true);
+    tabScrollPositions.current['night'] = 0;
     setActiveTab('night');
     setNightLogs([]);
     setGameDiary([]);
@@ -958,6 +976,7 @@ export default function App() {
     setPlayers(nextGame.players);
     setNightLogs(logs);
     setIsNight(false);
+    tabScrollPositions.current['day'] = 0;
     setActiveTab('day');
     setLynchedTodayPlayerId(null);
     setCurrentNightStepIdx(0);
@@ -1237,6 +1256,7 @@ export default function App() {
 
     setRoundNumber(r => r + 1);
     setIsNight(true);
+    tabScrollPositions.current['night'] = 0;
     setActiveTab('night');
     setLynchedTodayPlayerId(null);
     setCurrentNightStepIdx(0);
@@ -1438,7 +1458,7 @@ export default function App() {
           <div className="flex items-center gap-0.5 sm:gap-1 bg-[#0a0c16] p-0.5 rounded-lg sm:rounded-xl border border-purple-950/80 shrink-0">
             <button
               type="button"
-              onClick={() => setActiveTab(isNight ? 'night' : 'day')}
+              onClick={() => handleTabSwitch(isNight ? 'night' : 'day')}
               className={`h-7 sm:h-8 px-2 sm:px-3 rounded-md sm:rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 border cursor-pointer ${
                 activeTab === 'night' || activeTab === 'day'
                   ? 'bg-gradient-to-r from-purple-900 to-[#2c084d] border-purple-500 text-white shadow-md'
@@ -1454,7 +1474,7 @@ export default function App() {
 
             <button
               type="button"
-              onClick={() => setActiveTab('table')}
+              onClick={() => handleTabSwitch('table')}
               className={`h-7 sm:h-8 px-2 sm:px-3 rounded-md sm:rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 border cursor-pointer ${
                 activeTab === 'table'
                   ? 'bg-gradient-to-r from-purple-900 to-[#2c084d] border-purple-500 text-white shadow-md'
@@ -1508,7 +1528,7 @@ export default function App() {
 
       {/* Main View Area */}
       <main className="relative z-10 flex-1 max-w-7xl w-full mx-auto p-2 sm:p-4 md:p-6 pb-24 sm:pb-28 ios-safe-bottom">
-        {activeTab === 'night' && (
+        <div style={{ display: activeTab === 'night' ? 'block' : 'none' }}>
           <NightPhaseView
             roundNumber={roundNumber}
             rolesInGame={rolesInGame}
@@ -1532,9 +1552,9 @@ export default function App() {
             onSkipRole={handleSkipRole}
             onAdvanceToDay={handleAdvanceToDay}
           />
-        )}
+        </div>
 
-        {activeTab === 'day' && (
+        <div style={{ display: activeTab === 'day' ? 'block' : 'none' }}>
           <DayPhaseView
             roundNumber={roundNumber}
             nightLogs={nightLogs}
@@ -1548,9 +1568,9 @@ export default function App() {
             lynchedTodayPlayerId={lynchedTodayPlayerId}
             onOpenSheriffModal={handleOpenSheriffModal}
           />
-        )}
+        </div>
 
-        {activeTab === 'table' && (
+        <div style={{ display: activeTab === 'table' ? 'block' : 'none' }}>
           <PlayersGridView
             players={players}
             onOpenRosters={() => {
@@ -1566,7 +1586,7 @@ export default function App() {
               });
             }}
           />
-        )}
+        </div>
       </main>
 
       {/* 1-Step Sheriff Succession Modal */}
