@@ -310,6 +310,11 @@ export class WerewolfGame {
         updatedPlayers = updatedPlayers.map(p => p.id === deadPartner.id ? deadPartner : p);
         loverPartnerDied = deadPartner;
         if (deadPartner.isSheriff) deadSheriff = deadPartner;
+
+        // Luật Ma Sói chuẩn: Nếu người yêu chết theo là Thợ Săn và chưa mất phép -> Kích hoạt phát súng hấp hối
+        if (deadPartner.getRole()?.id === 'tho-san' && !isVillageCursed) {
+          hunterTrigger = deadPartner;
+        }
       }
     }
 
@@ -447,7 +452,13 @@ export class WerewolfGame {
     if (!target) return this;
 
     const updatedPlayers = this.players.map(p => {
-      if (p.id === playerId || p.loverId === playerId) {
+      // Hồi sinh người bị treo, người yêu chết chùm, và nạn nhân bị Thợ Săn bắn trong chuỗi lynch ngày hôm nay
+      if (
+        p.id === playerId || 
+        p.loverId === playerId ||
+        (p.deathReason && p.deathReason.includes('Thợ Săn') && p.deathPhase === `Ngày ${this.roundNumber}`) ||
+        (p.deathReason && p.deathReason.includes('đau buồn') && p.deathPhase === `Ngày ${this.roundNumber}`)
+      ) {
         return p.clone({ isAlive: true, deathReason: null, deathPhase: null });
       }
       return p;

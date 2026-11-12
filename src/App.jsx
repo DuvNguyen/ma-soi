@@ -153,6 +153,8 @@ export default function App() {
   const [lynchedTodayPlayerId, setLynchedTodayPlayerId] = useState(() => savedInitial?.lynchedTodayPlayerId ?? null);
   const [isVillageCursed, setIsVillageCursed] = useState(() => savedInitial?.isVillageCursed || false);
   const [wolfCanKillDouble, setWolfCanKillDouble] = useState(() => savedInitial?.wolfCanKillDouble || false);
+  const [pendingHunterShot, setPendingHunterShot] = useState(() => savedInitial?.pendingHunterShot || null);
+  const [preLynchSnapshot, setPreLynchSnapshot] = useState(() => savedInitial?.preLynchSnapshot || null);
   const [canWolvesKillTeammates, setCanWolvesKillTeammates] = useState(() => {
     try {
       const saved = localStorage.getItem('werewolf_rule_wolves_can_kill_teammates');
@@ -230,6 +232,10 @@ export default function App() {
         gameDiary,
         lynchedTodayPlayerId,
         gameEndResult,
+        isVillageCursed,
+        wolfCanKillDouble,
+        pendingHunterShot,
+        preLynchSnapshot,
         currentNightStepIdx,
         canWolvesKillTeammates,
         updatedAt: new Date().toISOString()
@@ -245,7 +251,7 @@ export default function App() {
       // 2. Cloud DB sync (Neon)
       syncGameStateApi(stateToSave);
     }
-  }, [roundNumber, isNight, activeTab, players, deckRoleIds, rolesInGame, nightState, lynchedTodayPlayerId, gameEndResult, currentNightStepIdx, gameDiary, canWolvesKillTeammates]);
+  }, [roundNumber, isNight, activeTab, players, deckRoleIds, rolesInGame, nightState, lynchedTodayPlayerId, gameEndResult, isVillageCursed, wolfCanKillDouble, pendingHunterShot, preLynchSnapshot, currentNightStepIdx, gameDiary, canWolvesKillTeammates]);
 
   // Helper canonical diary chronologist: merges & sorts chapters strictly by round number and phase (Night before Day)
   const appendToDiary = (prevDiary, newEntry) => {
@@ -303,6 +309,10 @@ export default function App() {
     setGameDiary([]);
     setGameEndResult(null);
     setLynchedTodayPlayerId(null);
+    setPendingHunterShot(null);
+    setPreLynchSnapshot(null);
+    setIsVillageCursed(false);
+    setWolfCanKillDouble(false);
     setCurrentNightStepIdx(0);
     try {
       localStorage.removeItem('werewolf_current_night_step');
@@ -343,6 +353,8 @@ export default function App() {
     setLynchedTodayPlayerId(null);
     setIsVillageCursed(false);
     setWolfCanKillDouble(false);
+    setPendingHunterShot(null);
+    setPreLynchSnapshot(null);
     setCurrentNightStepIdx(0);
     setGameDiary([]);
     setNightState({ ...DEFAULT_NIGHT_STATE });
@@ -394,6 +406,10 @@ export default function App() {
     setGameDiary([]);
     setGameEndResult(null);
     setLynchedTodayPlayerId(null);
+    setPendingHunterShot(null);
+    setPreLynchSnapshot(null);
+    setIsVillageCursed(false);
+    setWolfCanKillDouble(false);
     setCurrentNightStepIdx(0);
     try {
       localStorage.removeItem('werewolf_current_night_step');
@@ -428,6 +444,10 @@ export default function App() {
     setGameDiary([]);
     setGameEndResult(null);
     setLynchedTodayPlayerId(null);
+    setPendingHunterShot(null);
+    setPreLynchSnapshot(null);
+    setIsVillageCursed(false);
+    setWolfCanKillDouble(false);
     setCurrentNightStepIdx(0);
     try {
       localStorage.removeItem('werewolf_current_night_step');
@@ -461,6 +481,10 @@ export default function App() {
     setGameDiary([]);
     setGameEndResult(null);
     setLynchedTodayPlayerId(null);
+    setPendingHunterShot(null);
+    setPreLynchSnapshot(null);
+    setIsVillageCursed(false);
+    setWolfCanKillDouble(false);
     setCurrentNightStepIdx(0);
     try {
       localStorage.removeItem('werewolf_current_night_step');
@@ -769,6 +793,12 @@ export default function App() {
             variant: 'danger'
           });
         }
+
+        let shotLover = null;
+        if (shotPlayer?.loverId) {
+          shotLover = players.find(p => p.id === shotPlayer.loverId);
+        }
+
         setPlayers(current => {
           const updated = current.map(p => {
             if (p.id === payload) {
@@ -779,11 +809,23 @@ export default function App() {
                 deathPhase: isNight ? `Đêm ${roundNumber}` : `Ngày ${roundNumber}`
               };
             }
+            if (shotLover && p.id === shotLover.id && p.isAlive) {
+              return {
+                ...p,
+                isAlive: false,
+                deathReason: `Chết vì quá đau buồn khi người yêu (${shotPlayer.name}) bị Thợ Săn bắn chết`,
+                deathPhase: isNight ? `Đêm ${roundNumber}` : `Ngày ${roundNumber}`
+              };
+            }
             return p;
           });
           evaluateGameEnd(updated);
           return updated;
         });
+
+        setPendingHunterShot(null);
+      } else if (type === 'skip_hunter') {
+        setPendingHunterShot(null);
       }
       return next;
     });
@@ -1116,6 +1158,16 @@ export default function App() {
   };
 
   const handleLynchPlayer = (playerId) => {
+    // Lưu snapshot trước khi treo cổ để hỗ trợ hoàn tác trọn vẹn mọi chuỗi chết phát sinh
+    setPreLynchSnapshot({
+      players: players.map(p => p instanceof Player ? p.toJSON() : p),
+      isVillageCursed,
+      wolfCanKillDouble,
+      gameEndResult,
+      lynchedTodayPlayerId,
+      roundNumber
+    });
+
     const game = new WerewolfGame({
       roundNumber,
       isNight,
@@ -1221,6 +1273,10 @@ export default function App() {
     }
 
     if (hunterTrigger) {
+      setPendingHunterShot({
+        hunterId: hunterTrigger.id,
+        hunterName: hunterTrigger.name
+      });
       setActionModal({
         isOpen: true,
         actionType: 'hunter',
@@ -1292,6 +1348,19 @@ export default function App() {
   };
 
   const handleUndoLynch = (playerId) => {
+    // Nếu có snapshot đầy đủ của toàn bộ trạng thái trước khi lynch -> Khôi phục chuẩn xác
+    if (preLynchSnapshot && preLynchSnapshot.players) {
+      setPlayers(preLynchSnapshot.players.map(p => Player.fromJSON(p)));
+      setIsVillageCursed(Boolean(preLynchSnapshot.isVillageCursed));
+      setWolfCanKillDouble(Boolean(preLynchSnapshot.wolfCanKillDouble));
+      setGameEndResult(preLynchSnapshot.gameEndResult || null);
+      setLynchedTodayPlayerId(preLynchSnapshot.lynchedTodayPlayerId || null);
+      setPendingHunterShot(null);
+      setPreLynchSnapshot(null);
+      setActionModal(prev => ({ ...prev, isOpen: false }));
+      return;
+    }
+
     const game = new WerewolfGame({
       roundNumber,
       isNight,
@@ -1309,9 +1378,37 @@ export default function App() {
     setPlayers(nextGame.players);
     setLynchedTodayPlayerId(null);
     setGameEndResult(nextGame.gameEndResult);
+    setPendingHunterShot(null);
+    setPreLynchSnapshot(null);
+    setActionModal(prev => ({ ...prev, isOpen: false }));
+  };
+
+  const handleSkipHunterShot = () => {
+    setPendingHunterShot(null);
+    setActionModal(prev => ({ ...prev, isOpen: false }));
   };
 
   const handleAdvanceToNight = () => {
+    // Chặn nếu Thợ Săn đã ngã xuống nhưng chưa bắn phát súng cuối cùng
+    if (pendingHunterShot) {
+      triggerHaptic('error');
+      showAlert({
+        title: 'THỢ SĂN CHƯA BẮN!',
+        message: `Thợ Săn (${pendingHunterShot.hunterName}) đã ngã xuống nhưng chưa thực hiện phát súng cuối cùng.\n\nVui lòng giải quyết phát súng hoặc bấm Bỏ Qua trước khi kết thúc ngày.`,
+        variant: 'warning'
+      });
+      const hunter = players.find(p => p.id === pendingHunterShot.hunterId);
+      if (hunter) {
+        setActionModal({
+          isOpen: true,
+          actionType: 'hunter',
+          role: getPlayerRole(hunter),
+          player: hunter
+        });
+      }
+      return;
+    }
+
     // Chặn nếu Cảnh Sát Trưởng đã hy sinh mà chưa chỉ định người kế nhiệm
     const sheriff = players.find(p => p.isSheriff);
     const sheriffDead = sheriff && !sheriff.isAlive;
@@ -1320,6 +1417,10 @@ export default function App() {
       handleOpenSheriffModal(sheriff, true);
       return;
     }
+
+    // Reset lynch snapshot & pending actions khi chuyển sang đêm mới
+    setPreLynchSnapshot(null);
+    setPendingHunterShot(null);
 
     // Ghi nhận nhật ký Ban Ngày vừa qua vào quyển nhật ký
     const lynchedP = players.find(p => p.id === lynchedTodayPlayerId);
@@ -1655,6 +1756,21 @@ export default function App() {
             nightState={nightState}
             lynchedTodayPlayerId={lynchedTodayPlayerId}
             onOpenSheriffModal={handleOpenSheriffModal}
+            pendingHunterShot={pendingHunterShot}
+            onOpenHunterModal={() => {
+              if (pendingHunterShot) {
+                const hunter = players.find(p => p.id === pendingHunterShot.hunterId);
+                if (hunter) {
+                  setActionModal({
+                    isOpen: true,
+                    actionType: 'hunter',
+                    role: getPlayerRole(hunter),
+                    player: hunter
+                  });
+                }
+              }
+            }}
+            onSkipHunterShot={handleSkipHunterShot}
             onOpenAssignRole={(p) => {
               setActionModal({
                 isOpen: true,

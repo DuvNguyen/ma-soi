@@ -555,6 +555,19 @@ export default function ActionModal({
                 );
               })}
             </div>
+
+            <div className="pt-2 border-t border-slate-800 flex justify-end">
+              <button
+                type="button"
+                onClick={() => {
+                  onSaveAction('skip_hunter');
+                  onClose();
+                }}
+                className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:text-slate-200 border border-slate-800 hover:border-slate-700 transition-colors cursor-pointer"
+              >
+                Bỏ qua phát súng (Không bắn)
+              </button>
+            </div>
           </div>
         );
       }

@@ -258,6 +258,43 @@ console.log('🧪 Starting Phase 1 Domain Model & Strategy Tests...\n');
     assert.strictEqual(hunterLynch.hunterTrigger, null, 'Hunter cannot shoot when village is cursed');
     console.log('✅ Test 14: Elder lynch triggers Village Curse -> Powers sealed (Protection fails, Witch poison fails, Hunter trigger blocked).');
 
-    console.log('\n🎉 ALL 14 DOMAIN ENGINE TESTS PASSED PERFECTLY!\n');
+    // Test 15: Hunter dies from lover death -> triggers hunterTrigger
+    const loverGame = new WerewolfGame({
+      roundNumber: 1,
+      isNight: false,
+      players: [
+        new Player({ id: 1, name: 'Bảo Ngọc (Hunter)', currentRoleId: 'tho-san', roleId: 'tho-san', loverId: 2 }),
+        new Player({ id: 2, name: 'Anh Quân (Villager)', currentRoleId: 'dan-lang', roleId: 'dan-lang', loverId: 1 }),
+        new Player({ id: 3, name: 'Minh Hùng (Wolf)', currentRoleId: 'soi-thuong', roleId: 'soi-thuong' })
+      ]
+    });
+    const loverLynch = loverGame.lynchPlayer(2); // Lynch Villager
+    assert.strictEqual(loverLynch.target.id, 2);
+    assert.strictEqual(loverLynch.loverPartnerDied?.id, 1, 'Hunter partner should die of heartbreak');
+    assert.strictEqual(loverLynch.hunterTrigger?.id, 1, 'Hunter must trigger dying shot even when dying from heartbreak');
+    console.log('✅ Test 15: Hunter dying from lover heartbreak triggers hunter shot passed.');
+
+    // Test 16: Undo Lynch restores full chain: Lynched lover + Hunter lover + Hunter shot victim
+    const chainGame = loverLynch.game;
+    // Simulate Hunter shot killed Wolf (#3)
+    const afterHunterShotGame = chainGame.clone({
+      players: chainGame.players.map(p => {
+        if (p.id === 3) {
+          return p.clone({ isAlive: false, deathReason: 'Bị Thợ Săn nổ súng bắn chết', deathPhase: 'Ngày 1' });
+        }
+        return p;
+      })
+    });
+    assert.strictEqual(afterHunterShotGame.getPlayer(1).isAlive, false);
+    assert.strictEqual(afterHunterShotGame.getPlayer(2).isAlive, false);
+    assert.strictEqual(afterHunterShotGame.getPlayer(3).isAlive, false);
+
+    const undoneChain = afterHunterShotGame.undoLynch(2);
+    assert.strictEqual(undoneChain.getPlayer(2).isAlive, true, 'Lynched lover resurrected');
+    assert.strictEqual(undoneChain.getPlayer(1).isAlive, true, 'Heartbroken hunter resurrected');
+    assert.strictEqual(undoneChain.getPlayer(3).isAlive, true, 'Hunter victim resurrected');
+    console.log('✅ Test 16: Undo lynch restores full chain of lover and hunter casualties.');
+
+    console.log('\n🎉 ALL 16 DOMAIN ENGINE TESTS PASSED PERFECTLY!\n');
   });
 }

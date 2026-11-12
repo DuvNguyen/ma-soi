@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Sun, Skull, Flame, ShieldAlert, Clock, Moon, AlertTriangle, Check, UserX, RotateCcw, Gavel, Play, Pause, Star, Award, ChevronDown, ChevronUp, Swords, Bell, Volume2, Sparkles, Edit3 } from 'lucide-react';
+import { Sun, Skull, Flame, ShieldAlert, Clock, Moon, AlertTriangle, Check, UserX, RotateCcw, Gavel, Play, Pause, Star, Award, ChevronDown, ChevronUp, Swords, Bell, Volume2, Sparkles, Edit3, Crosshair } from 'lucide-react';
 import GothicButton from './ui/GothicButton';
 import GothicBadge from './ui/GothicBadge';
 import WolfIcon from './ui/WolfIcon';
@@ -19,7 +19,10 @@ export default function DayPhaseView({
   nightState,
   lynchedTodayPlayerId,
   onOpenSheriffModal,
-  onOpenAssignRole
+  onOpenAssignRole,
+  pendingHunterShot = null,
+  onOpenHunterModal,
+  onSkipHunterShot
 }) {
   const { showConfirm, showAlert } = useGothicDialog();
   const [timeLeft, setTimeLeft] = useState(180); // 3 minutes discussion
@@ -249,6 +252,45 @@ export default function DayPhaseView({
           </div>
         );
       })()}
+
+      {/* Pending Hunter Shot Warning Banner */}
+      {pendingHunterShot && (
+        <div className="p-3.5 sm:p-4 rounded-2xl bg-gradient-to-r from-amber-950/90 via-[#261205] to-[#120802] border-2 border-amber-500 text-amber-200 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-[0_0_25px_rgba(245,158,11,0.3)] animate-pulse">
+          <div className="flex items-center gap-2.5">
+            <div className="w-9 h-9 rounded-xl bg-amber-900/60 border border-amber-500 flex items-center justify-center shrink-0">
+              <Crosshair className="w-5 h-5 text-amber-400" />
+            </div>
+            <div>
+              <div className="font-cinzel font-black text-sm text-amber-100 flex items-center gap-2">
+                <span>PHÁT SÚNG THỢ SĂN ĐANG CHỜ</span>
+                <span className="text-[10px] px-2 py-0.5 rounded bg-amber-950 border border-amber-600 text-amber-300 font-sans font-bold">
+                  Bắt buộc
+                </span>
+              </div>
+              <p className="text-xs text-amber-300/80">
+                Thợ Săn ({pendingHunterShot.hunterName}) ngã xuống và đang chờ bắn 1 người trước khi sang đêm.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 w-full sm:w-auto">
+            <button
+              type="button"
+              onClick={onOpenHunterModal}
+              className="flex-1 sm:flex-none px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs shadow-md transition-all cursor-pointer active:scale-95 flex items-center justify-center gap-1.5"
+            >
+              <span>Chọn Mục Tiêu Bắn 🎯</span>
+            </button>
+            <button
+              type="button"
+              onClick={onSkipHunterShot}
+              className="px-3 py-2 rounded-xl bg-black/60 hover:bg-black/80 text-amber-400 hover:text-white border border-amber-800 text-xs font-semibold transition-all cursor-pointer"
+            >
+              Bỏ Qua
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Discussion Timer */}
       <div className="p-4 rounded-2xl bg-[#10121d]/60 backdrop-blur-md border border-slate-700/60 flex flex-col sm:flex-row items-center justify-between gap-4">
@@ -698,6 +740,16 @@ export default function DayPhaseView({
           size="lg"
           icon={Moon}
           onClick={() => {
+            if (pendingHunterShot) {
+              triggerHaptic('error');
+              showAlert({
+                title: 'THỢ SĂN CHƯA BẮN!',
+                message: `Thợ Săn (${pendingHunterShot.hunterName}) đã ngã xuống nhưng chưa thực hiện phát súng cuối cùng.\n\nVui lòng giải quyết phát súng hoặc bấm Bỏ Qua trước khi sang đêm.`,
+                variant: 'warning'
+              });
+              if (onOpenHunterModal) onOpenHunterModal();
+              return;
+            }
             if (sheriffDead) {
               triggerHaptic('error');
               if (onOpenSheriffModal) {
