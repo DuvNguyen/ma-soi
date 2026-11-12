@@ -774,7 +774,7 @@ export default function ActionModal({
                         onAssignRole(targetPlayer.id, r);
                         onClose();
                       }}
-                      className={`w-full flex items-center justify-between p-3 rounded-2xl border text-left transition-all cursor-pointer ${
+                      className={`w-full flex items-center justify-between p-2.5 sm:p-3 rounded-2xl border text-left transition-all cursor-pointer ${
                         isCurrent
                           ? 'bg-amber-950/60 border-amber-500 text-amber-200 shadow-[0_0_15px_rgba(245,158,11,0.25)]'
                           : isWolf
@@ -784,37 +784,58 @@ export default function ActionModal({
                           : 'bg-[#0f111a] hover:bg-[#151928] border-slate-800 hover:border-slate-600 text-slate-300'
                       }`}
                     >
-                      <div className="flex items-center gap-3 min-w-0 mr-2">
-                        <div className={`w-9 h-9 rounded-xl flex items-center justify-center font-bold text-sm shrink-0 border ${
+                      <div className="flex items-center gap-2.5 sm:gap-3 min-w-0 mr-2 flex-1">
+                        {/* HÌNH ẢNH LÁ BÀI MINI Ở AVATAR */}
+                        <div className={`w-11 h-14 sm:w-12 sm:h-16 rounded-xl overflow-hidden flex items-center justify-center font-bold text-sm shrink-0 border relative shadow-md ${
                           isWolf
-                            ? 'bg-rose-950 border-rose-700 text-rose-300'
+                            ? 'bg-rose-950 border-rose-700/80'
                             : isFunctional
-                            ? 'bg-purple-950 border-purple-700 text-purple-300'
-                            : 'bg-slate-900 border-slate-700 text-slate-400'
+                            ? 'bg-purple-950 border-purple-700/80'
+                            : 'bg-slate-900 border-slate-700/80'
                         }`}>
-                          {isWolf ? <WolfIcon className="w-5 h-5" /> : isFunctional ? <Sparkles className="w-5 h-5" /> : '👨‍🌾'}
+                          {r.image ? (
+                            <img
+                              src={r.image}
+                              alt={r.name}
+                              className="w-full h-full object-cover"
+                              onError={(e) => {
+                                e.currentTarget.style.display = 'none';
+                              }}
+                            />
+                          ) : (
+                            isWolf ? <WolfIcon className="w-5 h-5 text-rose-400" /> : isFunctional ? <Sparkles className="w-5 h-5 text-purple-400" /> : <span className="text-xl">👨‍🌾</span>
+                          )}
+                          <div className={`absolute bottom-0 inset-x-0 text-[9px] font-black font-mono text-center py-0.5 uppercase ${
+                            isWolf ? 'bg-rose-950/90 text-rose-300' : 'bg-purple-950/90 text-purple-300'
+                          }`}>
+                            {r.teamCode}
+                          </div>
                         </div>
 
-                        <div className="min-w-0">
-                          <div className="font-bold text-sm text-slate-100 flex items-center gap-1.5 truncate">
-                            <span className="truncate">{r.name}</span>
-                            <span className={`text-[10px] px-1.5 py-0.2 rounded font-bold uppercase shrink-0 border ${
+                        {/* TÊN VAI TRÒ & MÔ TẢ */}
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span className="font-black text-sm sm:text-base text-white font-cinzel leading-tight">
+                              {r.name}
+                            </span>
+                            <span className={`text-[9px] sm:text-[10px] px-1.5 py-0.2 rounded font-bold uppercase shrink-0 border ${
                               isWolf
-                                ? 'bg-rose-950 text-rose-300 border-rose-800'
-                                : 'bg-purple-950 text-purple-300 border-purple-800'
+                                ? 'bg-rose-950/80 text-rose-300 border-rose-800'
+                                : 'bg-purple-950/80 text-purple-300 border-purple-800'
                             }`}>
-                              [{r.teamCode}] {r.team || (isWolf ? 'Phe Sói' : 'Dân Làng')}
+                              [{r.teamCode}] {isWolf ? 'Phe Sói' : r.teamCode === '3' ? 'Phe 3' : 'Dân Làng'}
                             </span>
                           </div>
 
-                          <div className="text-xs text-slate-400 mt-0.5 truncate">
+                          <div className="text-[11px] sm:text-xs text-slate-400 mt-1 line-clamp-1">
                             {r.shortDesc || (isFunctional ? 'Vai trò có kỹ năng đặc biệt' : 'Dân thường không có kỹ năng đặc biệt')}
                           </div>
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-2 shrink-0">
-                        <span className={`text-[11px] font-mono px-2 py-0.5 rounded-md border ${
+                      {/* NÚT THAO TÁC BÊN PHẢI */}
+                      <div className="flex flex-col sm:flex-row items-end sm:items-center gap-1.5 shrink-0">
+                        <span className={`text-[10px] sm:text-[11px] font-mono px-2 py-0.5 rounded-md border shrink-0 ${
                           isCurrent
                             ? 'bg-amber-950 border-amber-700 text-amber-300 font-bold'
                             : remainingCount > 0
@@ -824,12 +845,12 @@ export default function ActionModal({
                           {isCurrent ? 'Đang giữ' : `Còn ${remainingCount} lá`}
                         </span>
 
-                        <span className={`text-xs font-bold px-3 py-1.5 rounded-xl border transition-all ${
+                        <span className={`text-xs font-bold px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-xl border transition-all shrink-0 ${
                           isCurrent
-                            ? 'bg-amber-500 text-black border-amber-400'
+                            ? 'bg-amber-500 text-black border-amber-400 font-black'
                             : 'bg-purple-950/80 hover:bg-purple-600 text-purple-200 hover:text-white border-purple-800'
                         }`}>
-                          {isCurrent ? 'Đang chọn' : 'Gán vai này ➔'}
+                          {isCurrent ? '✓ Đang chọn' : 'Gán vai ➔'}
                         </span>
                       </div>
                     </button>
