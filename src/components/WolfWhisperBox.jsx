@@ -176,8 +176,8 @@ export default function WolfWhisperBox({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-[#080102]/98 backdrop-blur-md flex flex-col justify-between overflow-y-auto p-3 sm:p-6 animate-fade-in text-slate-100">
-      <div className="max-w-xl w-full mx-auto space-y-4 my-auto py-2">
+    <div className="fixed inset-0 z-50 bg-[#080102]/98 backdrop-blur-md overflow-y-auto overscroll-contain p-3 sm:p-6 pb-32 sm:pb-16 animate-fade-in text-slate-100 touch-pan-y">
+      <div className="max-w-xl w-full mx-auto space-y-4 py-2">
         <div className="rounded-3xl border border-rose-900/80 bg-gradient-to-b from-[#1c0407] via-[#100204] to-[#0a0102] p-4 sm:p-5 shadow-[0_0_35px_rgba(225,29,72,0.35)] ring-1 ring-rose-500/40 space-y-4">
           {/* Header */}
           <div className="flex flex-wrap items-center justify-between gap-2 border-b border-rose-900/60 pb-3">

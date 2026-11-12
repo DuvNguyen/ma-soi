@@ -1364,8 +1364,8 @@ export default function NightPhaseView({
                   </div>
                 </div>
 
-                {/* SÓI NGUYỀN (NGƯỜI CHA CỦA SÓI) LÂY NHIỄM PANEL - CHỈ HIỆN KHI CÓ SÓI NGUYỀN TRONG BÀI & CÒN SỐNG & CHƯA DÙNG */}
-                {wolfVictim && !nightState.wolfSkipped && canCursedWolfInfect && (
+                {/* SÓI NGUYỀN (NGƯỜI CHA CỦA SÓI) LÂY NHIỄM PANEL - CHỈ HIỆN KHI MỤC TIÊU KHÔNG PHẢI LÀ SÓI & CÒN SỐNG & CHƯA DÙNG */}
+                {wolfVictim && !isWolfPlayer(wolfVictim) && !nightState.wolfSkipped && canCursedWolfInfect && (
                   <div className="p-4 rounded-2xl border transition-all mt-3 bg-gradient-to-r from-[#220736] via-[#160424] to-[#220736] border-purple-600/90 shadow-[0_0_25px_rgba(168,85,247,0.4)] animate-fade-in">
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                       <div className="flex items-center gap-3">

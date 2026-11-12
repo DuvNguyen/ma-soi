@@ -170,8 +170,18 @@ export class Player {
 
   /**
    * Gán vai trò mới cho người chơi
+   * Nếu người chơi đã bị Sói Nguyền lây nhiễm trước đó: giữ nguyên thân phận Ma Sói, chỉ cập nhật vai trò gốc
    */
   assignRole(roleId) {
+    if (this.isCursedWolf) {
+      return new Player({
+        ...this.toJSON(),
+        originalRoleId: roleId,
+        currentRoleId: 'soi-thuong',
+        roleId: 'soi-thuong',
+        isCursedWolf: true
+      });
+    }
     return new Player({
       ...this.toJSON(),
       currentRoleId: roleId,
@@ -184,6 +194,12 @@ export class Player {
    * Hủy gán vai trò
    */
   unassignRole() {
+    if (this.isCursedWolf) {
+      return new Player({
+        ...this.toJSON(),
+        originalRoleId: null
+      });
+    }
     return new Player({
       ...this.toJSON(),
       currentRoleId: null,

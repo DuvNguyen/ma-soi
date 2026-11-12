@@ -717,6 +717,12 @@ export default function App() {
       } else if (type === 'curse_convert') {
         // Immediately convert victim into Werewolf and clear bite target so wolves can pick again
         const victimId = payload;
+        const victim = players.find(p => p.id === victimId);
+        // Bỏ logic Sói nguyền Sói: không cho phép nguyền người đã là Sói
+        if (!victim || isWolfPlayer(victim)) {
+          return prev;
+        }
+
         next.wolfTargetId = null;
         next.isCursedInfect = false;
         next.cursedUsed = true;
@@ -725,7 +731,7 @@ export default function App() {
         setPlayers(current => {
           const updated = current.map(p => {
             if (p.id === victimId) {
-              const origId = p.originalRoleId || p.currentRoleId || p.roleId || 'dan-lang';
+              const origId = p.originalRoleId || p.currentRoleId || p.roleId || null;
               return {
                 ...p,
                 originalRoleId: origId,
@@ -889,10 +895,11 @@ export default function App() {
     }
 
     // Rule: Nếu vai này đã có người giữ và người đó bị Sói Nguyền lây nhiễm thành Sói -> vai đã bị loại khỏi làng, không gán cho người khác
-    if (game.isRoleEliminated(role.id)) {
+    const transformedHolder = players.find(p => p.id !== playerId && p.originalRoleId === role.id && (p.currentRoleId !== role.id || p.roleId !== role.id));
+    if (transformedHolder) {
       showAlert({
         title: 'VAI TRÒ ĐÃ BỊ LOẠI!',
-        message: `Vai trò "${role.name}" đã bị loại khỏi làng vì người giữ vai ban đầu đã bị đồng hóa hoặc biến đổi. Theo luật chơi, lá bài này không được gán cho người khác!`,
+        message: `Vai trò "${role.name}" đã bị loại khỏi làng vì người giữ vai ban đầu (${transformedHolder.name} #${transformedHolder.id}) đã bị đồng hóa hoặc biến đổi. Theo luật chơi, lá bài này không được gán cho người khác!`,
         variant: 'warning'
       });
       return;
@@ -913,10 +920,34 @@ export default function App() {
 
     setPlayers(prev => {
       const targetPlayer = prev.find(p => p.id === playerId);
-      const targetCurrentId = targetPlayer?.currentRoleId || targetPlayer?.roleId;
+      if (!targetPlayer) return prev;
+
+      const isTargetHoldingOriginal = targetPlayer.isCursedWolf && targetPlayer.originalRoleId === role.id;
+      const targetCurrentId = targetPlayer.currentRoleId || targetPlayer.roleId;
+
       // Toggle unassign if clicking current holder
-      if (targetCurrentId === role.id) {
-        return prev.map(p => p.id === playerId ? (p instanceof Player ? p.unassignRole() : { ...p, currentRoleId: null, roleId: null, role: null, elderLives: undefined }) : p);
+      if (isTargetHoldingOriginal || (!targetPlayer.isCursedWolf && targetCurrentId === role.id)) {
+        return prev.map(p => p.id === playerId ? (p instanceof Player ? p.unassignRole() : { ...p, currentRoleId: null, roleId: null, originalRoleId: null, role: null, elderLives: undefined }) : p);
+      }
+
+      // If player was infected by Cursed Wolf prior to assigning their functional role:
+      // Keep their werewolf identity intact, assign role as originalRoleId
+      if (targetPlayer.isCursedWolf) {
+        return prev.map(p => {
+          if (p.id === playerId) {
+            return p instanceof Player ? p.assignRole(role.id) : {
+              ...p,
+              originalRoleId: role.id,
+              currentRoleId: 'soi-thuong',
+              roleId: 'soi-thuong',
+              isCursedWolf: true
+            };
+          }
+          if (p.originalRoleId === role.id) {
+            return p instanceof Player ? p.unassignRole() : { ...p, originalRoleId: null };
+          }
+          return p;
+        });
       }
 
       // Single role capacity (capacity === 1): STRICTLY REVOKE FROM ANY OTHER HOLDER

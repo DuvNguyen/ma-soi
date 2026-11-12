@@ -326,6 +326,35 @@ console.log('🧪 Starting Phase 1 Domain Model & Strategy Tests...\n');
     assert.strictEqual(bbwRes2.game.getPlayer(4).isAlive, false, 'Dân 2 killed by Big Bad Wolf extra bite');
     console.log('✅ Test 17: Big Bad Wolf extra bite and protection interaction passed.');
 
-    console.log('\n🎉 ALL 17 DOMAIN ENGINE TESTS PASSED PERFECTLY!\n');
+    // Test 18: Assigning functional role to player previously infected by Cursed Wolf
+    const unassignedPlayer = new Player({ id: 12, name: 'Duyên', currentRoleId: null, roleId: null });
+    // Duyên gets infected by Cursed Wolf during Night 1
+    const infectedDuyen = unassignedPlayer.infectByCursedWolf(1);
+    assert.strictEqual(infectedDuyen.isWolf(), true);
+    assert.strictEqual(infectedDuyen.isCursedWolf, true);
+    assert.strictEqual(infectedDuyen.currentRoleId, 'soi-thuong');
+
+    // Later in Night 1, Game Master wakes Seer and assigns 'tien-tri' to Duyên
+    const seerDuyen = infectedDuyen.assignRole('tien-tri');
+    assert.strictEqual(seerDuyen.originalRoleId, 'tien-tri', 'Original role set to Seer');
+    assert.strictEqual(seerDuyen.currentRoleId, 'soi-thuong', 'Still a werewolf');
+    assert.strictEqual(seerDuyen.isCursedWolf, true, 'Maintains cursed wolf status');
+    assert.strictEqual(seerDuyen.isWolf(), true, 'Affiliated with wolf team');
+    assert.strictEqual(seerDuyen.getRole().name, 'Sói (Tiên Tri bị nguyền)');
+
+    // In WerewolfGame, Seer role is now eliminated from village and cannot be given to someone else
+    const gameWithCursedSeer = new WerewolfGame({
+      roundNumber: 1,
+      isNight: true,
+      players: [
+        seerDuyen,
+        new Player({ id: 13, name: 'Đức', currentRoleId: null, roleId: null })
+      ]
+    });
+    assert.strictEqual(gameWithCursedSeer.isRoleEliminated('tien-tri'), true, 'Seer role is eliminated from village');
+    assert.strictEqual(gameWithCursedSeer.canRoleBeReassigned('tien-tri', 13), false, 'Cannot be given to another player');
+    console.log('✅ Test 18: Cursed player assigned functional role remains a wolf and seals the role.');
+
+    console.log('\n🎉 ALL 18 DOMAIN ENGINE TESTS PASSED PERFECTLY!\n');
   });
 }
