@@ -19,7 +19,8 @@ import {
   SlidersHorizontal,
   Save,
   RotateCcw,
-  Sparkles
+  Sparkles,
+  Undo2
 } from 'lucide-react';
 import GothicButton from './ui/GothicButton';
 import WolfIcon from './ui/WolfIcon';
@@ -45,6 +46,15 @@ export default function UnifiedGameSetupModal({
   // DB templates & loading
   const [templates, setTemplates] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  // Deleted presets persisted in localStorage
+  const [deletedPresetIds, setDeletedPresetIds] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem('werewolf_deleted_presets') || '[]');
+    } catch (e) {
+      return [];
+    }
+  });
 
   // Selected template & roles
   const [selectedTemplateId, setSelectedTemplateId] = useState('preset-9-11');
@@ -110,15 +120,17 @@ export default function UnifiedGameSetupModal({
     }
   };
 
-  // Combine Presets + Custom templates into one list
+  // Combine Presets (excluding deleted ones) + Custom templates into one list
   const allTemplates = useMemo(() => {
-    const formattedPresets = PRESETS.map(p => ({
-      ...p,
-      isPreset: true,
-      playerNames: DEFAULT_PLAYER_NAMES.slice(0, p.playerCount || p.roleIds.length)
-    }));
+    const formattedPresets = PRESETS
+      .filter(p => !deletedPresetIds.includes(p.id))
+      .map(p => ({
+        ...p,
+        isPreset: true,
+        playerNames: DEFAULT_PLAYER_NAMES.slice(0, p.playerCount || p.roleIds.length)
+      }));
     return [...(templates || []), ...formattedPresets];
-  }, [templates]);
+  }, [templates, deletedPresetIds]);
 
   // Active template info
   const activeTemplate = useMemo(() => {
@@ -132,7 +144,6 @@ export default function UnifiedGameSetupModal({
     if (baseNames.length > count) {
       return baseNames.slice(0, count);
     }
-    // Append default names for new slots
     const extended = [...baseNames];
     for (let i = baseNames.length; i < count; i++) {
       extended.push(DEFAULT_PLAYER_NAMES[i] || `Người chơi ${i + 1}`);
@@ -147,7 +158,6 @@ export default function UnifiedGameSetupModal({
     const newRoleIds = [...template.roleIds];
     setSelectedRoleIds(newRoleIds);
 
-    // Apply template's saved player names if available
     let nextNames = [];
     if (template.playerNames && template.playerNames.length > 0) {
       nextNames = template.playerNames.slice(0, newRoleIds.length);
@@ -194,11 +204,21 @@ export default function UnifiedGameSetupModal({
     });
   };
 
+  // Live split lines for bulk paste with circle number badges
+  const bulkLines = useMemo(() => {
+    if (!bulkNamesInput) return [''];
+    return bulkNamesInput.split('\n');
+  }, [bulkNamesInput]);
+
+  const validBulkLinesCount = useMemo(() => {
+    return bulkLines.filter(s => s.trim().length > 0).length;
+  }, [bulkLines]);
+
   // Bulk paste names in Tab 2
   const handleApplyBulkNames = () => {
     triggerHaptic('success');
     const parsed = bulkNamesInput
-      .split(/[\n,;]+/)
+      .split('\n')
       .map(s => s.trim())
       .filter(Boolean);
 
@@ -228,7 +248,6 @@ export default function UnifiedGameSetupModal({
   const handleSaveNamesToTemplate = async () => {
     triggerHaptic('success');
     if (!activeTemplate || activeTemplate.isPreset) {
-      // If currently a preset, prompt to save as custom template
       setNewTemplateNameInput(`${activeTemplate?.name || 'Bộ bài'} (Tùy chỉnh)`);
       setIsSavingAsNew(true);
       return;
@@ -278,7 +297,7 @@ export default function UnifiedGameSetupModal({
       setNewTemplateNameInput('');
       showAlert({
         title: 'ĐÃ TẠO BỘ BÀI MỚI! ✨',
-        message: `Bộ bài "${newTemplate.name}" gồm ${selectedRoleIds.length} lá và danh sách người chơi đã được lưu thành công vào cơ sở dữ liệu!`,
+        message: `Bộ bài "${newTemplate.name}" gồm ${selectedRoleIds.length} lá và danh sách người chơi đã được lưu thành công!`,
         variant: 'emerald'
       });
     } catch (err) {
@@ -290,27 +309,50 @@ export default function UnifiedGameSetupModal({
     }
   };
 
-  // Delete custom template
-  const handleDeleteTemplate = async (id, e) => {
+  // Delete ANY template (custom or preset)
+  const handleDeleteTemplate = async (template, e) => {
     e.stopPropagation();
     showConfirm({
       title: 'XÓA BỘ BÀI?',
-      message: 'Bạn có chắc chắn muốn xóa bộ bài này khỏi cơ sở dữ liệu?',
+      message: `Bạn có chắc chắn muốn xóa bộ bài "${template.name}" khỏi danh sách?`,
       variant: 'blood',
       confirmText: 'Xóa Vĩnh Viễn 🩸',
       onConfirm: async () => {
         try {
-          await deleteTemplateApi(id);
-          setTemplates(prev => prev.filter(t => t.id !== id));
-          if (selectedTemplateId === id) {
-            setSelectedTemplateId('preset-9-11');
-            setSelectedRoleIds([...PRESETS[1].roleIds]);
-            setPlayerNames(DEFAULT_PLAYER_NAMES.slice(0, PRESETS[1].roleIds.length));
+          if (template.isPreset) {
+            const nextDeleted = [...deletedPresetIds, template.id];
+            setDeletedPresetIds(nextDeleted);
+            try {
+              localStorage.setItem('werewolf_deleted_presets', JSON.stringify(nextDeleted));
+            } catch (err) {}
+          } else {
+            await deleteTemplateApi(template.id);
+            setTemplates(prev => prev.filter(t => t.id !== template.id));
+          }
+
+          if (selectedTemplateId === template.id) {
+            const remaining = allTemplates.filter(t => t.id !== template.id);
+            if (remaining.length > 0) {
+              handleSelectTemplate(remaining[0]);
+            }
           }
         } catch (err) {
           showAlert({ title: 'LỖI XÓA BỘ BÀI', message: err.message, variant: 'blood' });
         }
       }
+    });
+  };
+
+  // Restore deleted presets
+  const handleRestoreDeletedPresets = () => {
+    setDeletedPresetIds([]);
+    try {
+      localStorage.removeItem('werewolf_deleted_presets');
+    } catch (err) {}
+    showAlert({
+      title: 'ĐÃ KHÔI PHỤC BỘ BÀI MẶC ĐỊNH! ✨',
+      message: 'Các bộ bài kịch bản chuẩn của hệ thống đã được khôi phục đầy đủ.',
+      variant: 'emerald'
     });
   };
 
@@ -367,16 +409,16 @@ export default function UnifiedGameSetupModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center modal-safe-overlay bg-black/80 backdrop-blur-md animate-fade-in"
+      className="fixed inset-0 z-50 flex items-center justify-center modal-safe-overlay bg-black/80 backdrop-blur-md animate-fade-in overflow-hidden"
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div className="bg-[#121422] border border-slate-800 rounded-2xl sm:rounded-3xl w-full max-w-4xl overflow-hidden shadow-2xl flex flex-col max-h-full relative my-auto">
+      <div className="bg-[#121422] border border-slate-800 rounded-2xl sm:rounded-3xl w-full max-w-4xl shadow-2xl flex flex-col h-[calc(100dvh-1rem)] sm:h-auto sm:max-h-[90vh] max-h-[calc(100dvh-1rem)] overflow-hidden relative my-auto">
         {/* ============================================================== */}
         {/* PHYSICAL FOLDER TOP TABS: TAB 1 (BỘ BÀI) & TAB 2 (NGƯỜI CHƠI)  */}
         {/* ============================================================== */}
-        <div className="bg-[#090a12] px-3 sm:px-6 pt-3 border-b border-slate-800 flex items-end justify-between shrink-0">
+        <div className="bg-[#090a12] px-3 sm:px-6 pt-2.5 sm:pt-3 border-b border-slate-800 flex items-end justify-between shrink-0">
           <div className="flex items-end gap-1.5 sm:gap-2 -mb-[1px]">
             {/* Tab 1: Folder Ear for Deck Selection */}
             <button
@@ -385,13 +427,13 @@ export default function UnifiedGameSetupModal({
                 triggerHaptic('light');
                 setActiveTab('deck');
               }}
-              className={`px-3.5 sm:px-6 py-2.5 rounded-t-xl sm:rounded-t-2xl font-bold text-xs sm:text-sm transition-all flex items-center gap-1.5 sm:gap-2 cursor-pointer border-t-2 ${
+              className={`px-3.5 sm:px-6 py-2 sm:py-2.5 rounded-t-xl sm:rounded-t-2xl font-bold text-xs sm:text-sm transition-all flex items-center gap-1.5 sm:gap-2 cursor-pointer border-t-2 ${
                 activeTab === 'deck'
                   ? 'bg-[#121422] text-amber-300 border-amber-500 border-x border-slate-800 relative z-10 shadow-[0_-4px_12px_rgba(0,0,0,0.6)]'
                   : 'bg-[#0a0c16]/90 text-slate-400 hover:text-slate-200 border-transparent hover:bg-[#101220]'
               }`}
             >
-              <Layers className="w-4 h-4 text-amber-400 shrink-0" />
+              <Layers className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-400 shrink-0" />
               <span>1. Chọn Bộ Bài</span>
               <span className="text-[10px] sm:text-[11px] px-1.5 py-0.5 rounded-md bg-amber-950/80 border border-amber-800/80 text-amber-300 font-mono">
                 {selectedRoleIds.length} lá
@@ -405,13 +447,13 @@ export default function UnifiedGameSetupModal({
                 triggerHaptic('light');
                 setActiveTab('players');
               }}
-              className={`px-3.5 sm:px-6 py-2.5 rounded-t-xl sm:rounded-t-2xl font-bold text-xs sm:text-sm transition-all flex items-center gap-1.5 sm:gap-2 cursor-pointer border-t-2 ${
+              className={`px-3.5 sm:px-6 py-2 sm:py-2.5 rounded-t-xl sm:rounded-t-2xl font-bold text-xs sm:text-sm transition-all flex items-center gap-1.5 sm:gap-2 cursor-pointer border-t-2 ${
                 activeTab === 'players'
                   ? 'bg-[#121422] text-purple-200 border-purple-500 border-x border-slate-800 relative z-10 shadow-[0_-4px_12px_rgba(0,0,0,0.6)]'
                   : 'bg-[#0a0c16]/90 text-slate-400 hover:text-slate-200 border-transparent hover:bg-[#101220]'
               }`}
             >
-              <Users className="w-4 h-4 text-purple-400 shrink-0" />
+              <Users className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-purple-400 shrink-0" />
               <span>2. Người Chơi</span>
               <span className="text-[10px] sm:text-[11px] px-1.5 py-0.5 rounded-md bg-purple-950/80 border border-purple-800/80 text-purple-300 font-mono">
                 {playerNames.length} slot
@@ -425,16 +467,16 @@ export default function UnifiedGameSetupModal({
             onClick={onClose}
             aria-label="Đóng"
             title="Đóng cửa sổ (Esc)"
-            className="mb-2 w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-slate-900 hover:bg-rose-950/80 border border-slate-700/80 hover:border-rose-600/80 text-slate-300 hover:text-rose-200 transition-all flex items-center justify-center cursor-pointer shrink-0 shadow-sm active:scale-95"
+            className="mb-1.5 sm:mb-2 w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-slate-900 hover:bg-rose-950/80 border border-slate-700/80 hover:border-rose-600/80 text-slate-300 hover:text-rose-200 transition-all flex items-center justify-center cursor-pointer shrink-0 shadow-sm active:scale-95"
           >
             <X className="w-4 h-4 sm:w-5 sm:h-5 stroke-[2.5]" />
           </button>
         </div>
 
         {/* ============================================================== */}
-        {/* FOLDER BODY CONTAINER (STRICTLY VERTICAL SCROLL, NO HORIZONTAL) */}
+        {/* FOLDER BODY CONTAINER (STRICTLY VERTICAL SCROLL, MIN-H-0)       */}
         {/* ============================================================== */}
-        <div className="flex-1 overflow-y-auto overflow-x-hidden p-3.5 sm:p-6 pb-6 sm:pb-8 space-y-4">
+        <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden p-3.5 sm:p-6 pb-6 space-y-4">
           {/* ------------------------------------------------------------ */}
           {/* TAB 1: BỘ BÀI (DECK TEMPLATES & ROLE CUSTOMIZATION)          */}
           {/* ------------------------------------------------------------ */}
@@ -448,7 +490,7 @@ export default function UnifiedGameSetupModal({
                     type="text"
                     value={templateSearchQuery}
                     onChange={(e) => setTemplateSearchQuery(e.target.value)}
-                    placeholder="Tìm kiếm bộ bài mẫu..."
+                    placeholder="Tìm kiếm bộ bài..."
                     className="w-full pl-9 pr-3 py-2 rounded-xl bg-slate-900/90 border border-slate-800 text-xs text-slate-200 focus:outline-none focus:border-purple-500"
                   />
                 </div>
@@ -480,6 +522,21 @@ export default function UnifiedGameSetupModal({
                   </button>
                 </div>
               </div>
+
+              {/* Restore default presets if any were deleted */}
+              {deletedPresetIds.length > 0 && (
+                <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-900/60 border border-slate-800 text-xs text-slate-400">
+                  <span>Bạn đã xóa {deletedPresetIds.length} bộ bài mặc định của hệ thống.</span>
+                  <button
+                    type="button"
+                    onClick={handleRestoreDeletedPresets}
+                    className="text-amber-400 hover:text-amber-300 font-bold flex items-center gap-1 cursor-pointer"
+                  >
+                    <Undo2 className="w-3.5 h-3.5" />
+                    <span>Khôi phục bộ bài mặc định</span>
+                  </button>
+                </div>
+              )}
 
               {/* Form Save New Template Modal Box */}
               {isSavingAsNew && (
@@ -579,7 +636,7 @@ export default function UnifiedGameSetupModal({
               {/* Deck Templates List (1 Column on Mobile, 2 on Desktop) */}
               <div className="space-y-2.5">
                 <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-                  Chọn Bộ Bài Phù Hợp Cho Trận Đấu:
+                  Chọn Bộ Bài Phù Hợp Cho Trận Đấu ({filteredTemplates.length} bộ):
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -639,7 +696,7 @@ export default function UnifiedGameSetupModal({
                           </div>
                         </div>
 
-                        {/* Card Footer: Selection indicator & delete if custom */}
+                        {/* Card Footer: Selection indicator & DELETE BUTTON ON ALL CARDS */}
                         <div className="flex items-center justify-between pt-2.5 mt-2.5 border-t border-slate-800/80">
                           <span className={`text-xs font-bold flex items-center gap-1 ${isSelected ? 'text-amber-400' : 'text-slate-400'}`}>
                             {isSelected ? (
@@ -655,16 +712,15 @@ export default function UnifiedGameSetupModal({
                             )}
                           </span>
 
-                          {!t.isPreset && (
-                            <button
-                              type="button"
-                              onClick={(e) => handleDeleteTemplate(t.id, e)}
-                              title="Xóa bộ bài"
-                              className="p-1 rounded-md text-slate-500 hover:text-rose-400 hover:bg-rose-950/50 transition-all cursor-pointer"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
-                          )}
+                          {/* Delete button available on ALL cards */}
+                          <button
+                            type="button"
+                            onClick={(e) => handleDeleteTemplate(t, e)}
+                            title={`Xóa bộ bài "${t.name}"`}
+                            className="p-1.5 rounded-lg text-slate-500 hover:text-rose-400 hover:bg-rose-950/60 transition-all cursor-pointer"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
                         </div>
                       </div>
                     );
@@ -722,33 +778,68 @@ export default function UnifiedGameSetupModal({
                 </div>
               </div>
 
-              {/* Bulk Paste Multi-line Textarea */}
+              {/* Bulk Paste Multi-line Box WITH NUMBERED CIRCLE BADGES ON THE RIGHT */}
               {showBulkPaste && (
-                <div className="p-3.5 rounded-2xl bg-[#161828] border border-purple-500/60 space-y-2.5 animate-fade-in">
+                <div className="p-3.5 rounded-2xl bg-[#161828] border border-purple-500/60 space-y-3 animate-fade-in">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-purple-300">Dán danh sách tên (mỗi dòng một tên):</span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-bold text-purple-300">Dán danh sách tên (mỗi dòng một tên):</span>
+                      <span className="px-2 py-0.5 rounded-full bg-purple-950 border border-purple-700 text-purple-300 font-bold text-[11px]">
+                        Đã nhập: {validBulkLinesCount} / {playerNames.length} người
+                      </span>
+                    </div>
                     <button type="button" onClick={() => setShowBulkPaste(false)} className="text-slate-400 hover:text-slate-200">
                       <X className="w-4 h-4" />
                     </button>
                   </div>
-                  <textarea
-                    rows={4}
-                    value={bulkNamesInput}
-                    onChange={(e) => setBulkNamesInput(e.target.value)}
-                    placeholder="Quang Tuấn&#10;Minh Hùng&#10;Thùy Linh&#10;Đức Nam..."
-                    className="w-full p-2.5 rounded-xl bg-slate-900 border border-slate-700 text-xs text-slate-200 focus:outline-none focus:border-purple-500 font-mono resize-none"
-                  />
-                  <div className="flex justify-end gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setShowBulkPaste(false)}
-                      className="px-3 py-1.5 rounded-lg border border-slate-700 text-xs text-slate-400"
-                    >
-                      Hủy
-                    </button>
-                    <GothicButton variant="witch" size="sm" onClick={handleApplyBulkNames}>
-                      Cập Nhật {playerNames.length} Tên
-                    </GothicButton>
+
+                  {/* Textarea + Numbered Circle Tags Column on the Right */}
+                  <div className="relative flex gap-2 bg-slate-900 border border-slate-700 rounded-xl p-2.5 focus-within:border-purple-500">
+                    <textarea
+                      rows={Math.max(5, Math.min(12, bulkLines.length))}
+                      value={bulkNamesInput}
+                      onChange={(e) => setBulkNamesInput(e.target.value)}
+                      placeholder="Vĩ&#10;Tiến&#10;Phú..."
+                      className="flex-1 bg-transparent text-xs sm:text-sm text-slate-100 focus:outline-none font-mono resize-none leading-7 tracking-wide"
+                    />
+
+                    {/* Numbered circle tags column on the right for easy line counting */}
+                    <div className="flex flex-col items-center gap-1 shrink-0 pt-0.5 border-l border-slate-800/80 pl-2.5 max-h-56 overflow-y-auto">
+                      {bulkLines.map((line, idx) => {
+                        const hasText = line.trim().length > 0;
+                        return (
+                          <div
+                            key={idx}
+                            className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold border transition-all ${
+                              hasText
+                                ? 'bg-purple-900 border-purple-500 text-purple-200 shadow-[0_0_8px_rgba(168,85,247,0.5)]'
+                                : 'bg-slate-800 border-slate-700 text-slate-500'
+                            }`}
+                            title={`Dòng #${idx + 1}: ${line.trim() || 'Chưa nhập'}`}
+                          >
+                            {idx + 1}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 pt-1">
+                    <div className="text-[11px] text-slate-400 italic">
+                      Mỗi lần Enter xuống dòng, tag số tròn bên phải tự nhảy số tương ứng để dễ đếm.
+                    </div>
+                    <div className="flex justify-end gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setShowBulkPaste(false)}
+                        className="px-3 py-1.5 rounded-lg border border-slate-700 text-xs text-slate-400 hover:text-white"
+                      >
+                        Hủy
+                      </button>
+                      <GothicButton variant="witch" size="sm" onClick={handleApplyBulkNames}>
+                        Cập Nhật ({validBulkLinesCount} Tên)
+                      </GothicButton>
+                    </div>
                   </div>
                 </div>
               )}
@@ -778,11 +869,11 @@ export default function UnifiedGameSetupModal({
         </div>
 
         {/* ============================================================== */}
-        {/* MODAL FOOTER: LIVE SUMMARY & 1-CLICK APPLY AND START           */}
+        {/* MODAL FOOTER: ALWAYS PINNED, PROPER SAFE BOTTOM PADDING        */}
         {/* ============================================================== */}
-        <div className="p-3.5 sm:p-5 border-t border-slate-800 bg-[#0d0e17] flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 shrink-0">
-          <div className="flex items-center justify-center sm:justify-start">
-            <div className="flex items-center gap-2 text-xs font-bold text-amber-300 bg-amber-950/60 border border-amber-800/80 px-3 py-2 rounded-xl max-w-full">
+        <div className="p-3 sm:p-4 border-t border-slate-800 bg-[#0d0e17] flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 shrink-0 z-20 pb-[max(0.75rem,calc(env(safe-area-inset-bottom,0px)+0.5rem))]">
+          <div className="flex items-center justify-center sm:justify-start min-w-0">
+            <div className="flex items-center gap-2 text-xs font-bold text-amber-300 bg-amber-950/60 border border-amber-800/80 px-3 py-2 rounded-xl max-w-full truncate">
               <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
               <span className="truncate">
                 {activeTemplate?.name || 'Bộ bài'}: {playerNames.length} người ⟷ {selectedRoleIds.length} lá ({wolfCount} Sói, {villagerCount} Dân)
@@ -795,7 +886,7 @@ export default function UnifiedGameSetupModal({
             size="md"
             icon={Play}
             onClick={handleApplySetup}
-            className="w-full sm:w-auto shadow-xl h-11 text-xs sm:text-sm font-bold cursor-pointer"
+            className="w-full sm:w-auto shadow-xl h-11 text-xs sm:text-sm font-bold cursor-pointer shrink-0"
           >
             Áp Dụng & Bắt Đầu Ván Đấu Mới
           </GothicButton>
