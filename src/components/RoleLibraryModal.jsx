@@ -473,7 +473,7 @@ export default function RoleLibraryModal({ isOpen, onClose }) {
               </div>
             ) : (
               <div className="h-full flex items-center justify-center text-slate-500">
-                <p className="text-xs">Chạm vào một thẻ bài bên trái để xem chi tiết</p>
+                <p className="text-xs">Chọn vai trò để xem chi tiết</p>
               </div>
             )}
           </div>

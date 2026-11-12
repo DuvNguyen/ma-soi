@@ -70,3 +70,17 @@ Always use GitNexus when performing any of the following:
 
 4. **Checking Rules of the Game Code:**
    - Consult GitNexus execution flows (`gitnexus://repo/ma-soi/processes` or `query`) for game mechanics, night action order, day voting, role permissions, and win conditions before reasoning about or altering game logic.
+
+## Voice & UI/UX Tone Rules (Mandatory)
+
+1. **Zero Over-Instruction / Meta-Text**:
+   - Never write instructional, patronizing, tutorial-like, or "AI-style" meta-text explaining what the user should do or what a button does (e.g. NO "Bấm nút bên dưới để...", NO "Chạm vào ghế để...", NO "Dùng khi chơi trong im lặng...", NO "💡 Chạm vào người đang giữ để...", NO "Hãy sẵn sàng bấm nút...").
+   - Operational game interfaces (night phases, voting, modals, banners) are functional control surfaces, not tutorials. Avoid meta explanations of UI interactions.
+
+2. **Visual Hierarchy Speaks for Itself**:
+   - Let clear layout, concise action verbs on buttons, and precise state counters (`X/Y`, `Đã chọn`, `Chưa gán`) guide the user.
+   - Avoid redundant subheadings, tip callouts, and explanatory tooltips that merely repeat what the visual controls already convey.
+
+3. **Design System Consistency**:
+   - Strictly adhere to Soft Bento Minimalism and the dark gothic palette (warm neutrals, charcoal, deep obsidian, gold/blood accents).
+   - Avoid generic AI-style pulsing green badges (`emerald-50`, `emerald-200`) or decorative clutter that detracts from the gothic ambiance.

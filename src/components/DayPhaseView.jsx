@@ -201,8 +201,8 @@ export default function DayPhaseView({
             {showSheriffSelector && (
               <div className="mt-3 pt-3 border-t border-slate-800 animate-fade-in space-y-2">
                 <div className="text-xs text-slate-300 flex items-center justify-between">
-                  <span>Chạm vào người chơi còn sống để trao huy hiệu Cảnh Sát Trưởng (phiếu x2):</span>
-                  <span className="text-[11px] text-amber-300/80 italic">Chức vụ giữ song song cùng lá nhân vật chính</span>
+                  <span>Chỉ định Cảnh Sát Trưởng (phiếu x2):</span>
+                  <span className="text-[11px] text-amber-300/80">Chức vụ song song</span>
                 </div>
 
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-1.5 max-h-48 overflow-y-auto pr-1">

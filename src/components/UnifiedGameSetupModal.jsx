@@ -605,9 +605,6 @@ export default function UnifiedGameSetupModal({
                           <span>{villagerCount} Dân</span>
                         </span>
                       </div>
-                      <p className="text-[11px] text-slate-400 mt-0.5">
-                        Thêm hoặc bớt lá bài — số slot ở Tab 2 sẽ tự động đồng bộ theo số lượng này!
-                      </p>
                     </div>
 
                     <div className="relative w-full sm:w-44 shrink-0">
@@ -814,7 +811,7 @@ export default function UnifiedGameSetupModal({
                     <span>DANH SÁCH {playerNames.length} NGƯỜI CHƠI ({selectedRoleIds.length} LÁ BÀI)</span>
                   </div>
                   <p className="text-[11px] text-slate-400 mt-0.5">
-                    1 bộ bài = 1 nhóm. Đổi người thì chạm trực tiếp vào ô để sửa tên.
+                    Danh sách người chơi theo từng vị trí ghế.
                   </p>
                 </div>
 
@@ -895,10 +892,7 @@ export default function UnifiedGameSetupModal({
                     </div>
                   </div>
 
-                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 pt-1">
-                    <div className="text-[11px] text-slate-400 italic">
-                      Mỗi lần Enter xuống dòng, tag số tròn bên phải tự nhảy số tương ứng để dễ đếm.
-                    </div>
+                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-2 pt-1">
                     <div className="flex justify-end gap-2">
                       <button
                         type="button"

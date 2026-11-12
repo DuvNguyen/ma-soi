@@ -169,11 +169,8 @@ export default function RoleHolderBanner({
       {/* Quick Assign Dropdown Drawer */}
       {showAssignDropdown && !isWolfStep && (
         <div className="mt-3 pt-3 border-t border-slate-800 animate-fade-in space-y-2">
-          <div className="text-xs text-slate-300 flex flex-col sm:flex-row sm:items-center justify-between gap-1">
-            <span>Bấm vào người chơi để gán vai <strong>{currentRole.name}</strong> (Tối đa {capacity} người):</span>
-            <span className="text-[11px] text-purple-300 italic">
-              💡 Chạm vào người đang giữ để HỦY gán, chạm người khác để CHUYỂN vai
-            </span>
+          <div className="text-xs text-slate-300 flex items-center justify-between gap-1">
+            <span>Người giữ vai <strong>{currentRole.name}</strong> ({currentHolders.length}/{capacity}):</span>
           </div>
 
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-1.5 max-h-48 overflow-y-auto pr-1">

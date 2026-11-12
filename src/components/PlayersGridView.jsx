@@ -195,9 +195,6 @@ export default function PlayersGridView({ players, onOpenAssignRole, onOpenRoste
             <Heart className="w-3.5 h-3.5 text-pink-400 fill-pink-500" />
             <span>Cặp Đôi Yêu Nhau</span>
           </div>
-          <span className="text-slate-500 italic hidden sm:inline">
-            (Chạm vào bất kỳ ghế nào để đổi vai trò)
-          </span>
         </div>
       </div>
     </div>

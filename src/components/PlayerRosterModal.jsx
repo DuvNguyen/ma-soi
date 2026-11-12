@@ -323,7 +323,7 @@ Ngọc, Hoàng, Minh, Linh, Tuấn, Hương, Đạt, Phương, Quân, Trang, Vi�
             <div className="space-y-4">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
                 <p className="text-xs text-slate-400">
-                  Chọn một nhóm người chơi đã lưu để tự động gán tên vào bàn:
+                  Danh sách nhóm người chơi ({rosters.length}):
                 </p>
                 {deckSize > 0 && (
                   <span className="text-xs text-amber-400 font-medium">
@@ -338,7 +338,7 @@ Ngọc, Hoàng, Minh, Linh, Tuấn, Hương, Đạt, Phương, Quân, Trang, Vi�
                 </div>
               ) : rosters.length === 0 ? (
                 <div className="py-12 text-center text-slate-500 text-sm">
-                  Chưa có nhóm người chơi nào được lưu. Bấm "Thêm Nhóm Mới" ở góc phải để tạo!
+                  Chưa có nhóm người chơi nào được lưu.
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
@@ -381,7 +381,7 @@ Ngọc, Hoàng, Minh, Linh, Tuấn, Hương, Đạt, Phương, Quân, Trang, Vi�
                           {!isMatched && (
                             <p className="text-[11px] text-amber-400/90 flex items-center gap-1 font-medium">
                               <AlertCircle className="w-3.5 h-3.5 shrink-0" />
-                              <span>Cần {deckSize} người cho bộ bài này. Bấm "Sửa" để khớp.</span>
+                              <span>{r.playerNames.length}/{deckSize} người (Lệch số lượng)</span>
                             </p>
                           )}
                         </div>

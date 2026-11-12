@@ -68,11 +68,11 @@ export default function SheriffSuccessionModal({
             {deadSheriff ? (
               <>
                 <strong className="text-amber-300 font-cinzel">{deadSheriff.name} (#{deadSheriff.id})</strong> đã hy sinh! 
-                Trước khi trút hơi thở cuối cùng, Cảnh Sát Trưởng phải chỉ định 1 người chơi còn sống để di chúc trao lại huy hiệu.
+                Chỉ định 1 người chơi còn sống kế thừa huy hiệu Cảnh Sát Trưởng (phiếu x2).
               </>
             ) : (
               <>
-                Theo luật Ma Sói, Cảnh Sát Trưởng nắm giữ quyền biểu quyết x2. Hãy chạm trực tiếp vào người chơi còn sống bên dưới để trao huy hiệu.
+                Chỉ định Cảnh Sát Trưởng (phiếu biểu quyết x2):
               </>
             )}
             {isMandatory && (
@@ -87,8 +87,7 @@ export default function SheriffSuccessionModal({
         {/* Living Players Grid */}
         <div className="flex-1 overflow-y-auto pr-1 space-y-2 overscroll-contain">
           <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider flex items-center justify-between">
-            <span>Danh sách người sống ({alivePlayers.length} người):</span>
-            <span className="text-amber-400/80">Chạm 1 lần để trao</span>
+            <span>Danh sách người sống ({alivePlayers.length}):</span>
           </div>
 
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">

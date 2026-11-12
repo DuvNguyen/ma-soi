@@ -284,7 +284,7 @@ export default function RoleClaimBox({
               </span>
             ) : (
               <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-black/60 border border-white/10 text-slate-300 hidden sm:inline">
-                Chạm để gán
+                {assignedPlayer ? 'Đã gán' : 'Chưa gán'}
               </span>
             )}
           </div>
@@ -340,7 +340,7 @@ export default function RoleClaimBox({
                     {targetPlayer ? targetPlayer.name : '— Chưa chọn —'}
                   </div>
                   <div className="text-[10px] text-slate-400">
-                    {targetPlayer ? `Ghế #${targetPlayer.id}` : `Chạm ghế bên dưới`}
+                    {targetPlayer ? `Ghế #${targetPlayer.id}` : `Trống`}
                   </div>
                 </div>
               );
@@ -433,7 +433,7 @@ export default function RoleClaimBox({
               ✕ Xóa chọn lại
             </button>
           ) : (
-            <div className="text-xs text-slate-500 italic">Chạm vào ghế để chọn Ma Sói</div>
+            <div className="text-xs text-slate-500">Chưa chọn Ma Sói</div>
           )}
 
           <GothicButton

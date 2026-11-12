@@ -364,7 +364,7 @@ export default function App() {
 
     showConfirm({
       title: 'HỦY DIỆT VÁN ĐẤU & RESET?',
-      message: 'Bạn có chắc muốn RESET toàn bộ ván chơi về 0 để bắt đầu lại từ đầu?\n\nToàn bộ vai trò sẽ được xóa về trạng thái ẩn danh để Quản trò gọi gán dần từ Đêm 1. Tên người chơi và thứ tự ghế ngồi sẽ được giữ nguyên.',
+      message: 'Khôi phục toàn bộ vai trò về trạng thái ban đầu để chia bài lại từ Đêm 1. Giữ nguyên danh sách người chơi và số ghế.',
       variant: 'blood',
       confirmText: 'Reset Về 0 Ngay 🩸',
       cancelText: 'Giữ Lại Ván Chơi',
@@ -1432,7 +1432,7 @@ export default function App() {
             <button
               type="button"
               onClick={handleResetGame}
-              title="Reset toàn bộ ván chơi về 0 để chơi lại từ đầu"
+              title="Reset ván chơi về 0"
               className="h-7 px-2 sm:h-8 sm:px-2.5 rounded-lg sm:rounded-xl bg-rose-950/70 hover:bg-rose-900 border border-rose-700/80 hover:border-rose-400 text-rose-200 text-xs font-bold transition-all flex items-center justify-center gap-1 cursor-pointer shadow-sm active:scale-95 shrink-0"
             >
               <RefreshCw className="w-3.5 h-3.5 shrink-0 text-rose-300" />
@@ -1510,7 +1510,7 @@ export default function App() {
               <button
                 type="button"
                 onClick={() => setIsLibraryOpen(true)}
-                title="Thư viện hướng dẫn 48 vai trò Ma Sói"
+                title="Thư viện 48 vai trò Ma Sói"
                 className="h-6 w-6.5 sm:h-7 sm:w-auto sm:px-2 rounded-md sm:rounded-lg hover:bg-slate-800 text-slate-300 text-xs font-bold transition-all flex items-center justify-center gap-1 cursor-pointer"
               >
                 <BookOpen className="w-3.5 h-3.5 text-slate-400 shrink-0" />

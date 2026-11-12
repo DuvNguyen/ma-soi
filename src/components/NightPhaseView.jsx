@@ -358,8 +358,8 @@ export default function NightPhaseView({
       case 'tien-tri': {
         return { 
           isValid: true, 
-          message: 'Chạm vào người chơi để xem lá bài & ra dấu cho Tiên Tri',
-          shortMessage: 'Chạm để xem bài'
+          message: 'Lượt Tiên Tri soi bài',
+          shortMessage: 'Soi bài'
         };
       }
 
@@ -821,9 +821,9 @@ export default function NightPhaseView({
                   Người giữ vai ban đầu là <strong className="text-white">#{cursedHolder.id} {cursedHolder.name}</strong> đã bị Sói Nguyền đồng hóa thành <strong className="text-rose-300">Ma Sói ({currentRole.name} bị nguyền)</strong>. Toàn bộ năng lực của vai này đã bị loại bỏ vĩnh viễn và không gán cho người khác theo luật chơi.
                 </div>
                 <div className="p-3 rounded-xl bg-purple-950/90 border border-purple-700/60 text-xs text-amber-200 flex items-start gap-2.5">
-                  <span className="text-base shrink-0 mt-0.5">💡</span>
+                  <span className="text-base shrink-0 mt-0.5">🕯️</span>
                   <div className="leading-relaxed">
-                    <strong>Hướng dẫn Quản trò:</strong> Vẫn đọc to câu gọi <em>"{currentRole.gmCall}"</em> và đếm thầm 3-5 giây để giữ kín bí mật rằng vai này đã biến mất, sau đó bấm <strong>Đã Gọi Xong & Cho Đi Ngủ 💤</strong> bên dưới để tiếp tục.
+                    <strong>Quản trò:</strong> Đọc to <em>"{currentRole.gmCall}"</em> và dừng 3-5 giây để giữ bí mật danh tính.
                   </div>
                 </div>
 
@@ -849,9 +849,9 @@ export default function NightPhaseView({
                   Người chơi giữ vai <strong className="text-white">{currentRole.name}</strong> ({roleHolders.map(p => `#${p.id} ${p.name}`).join(', ')}) đã qua đời. Theo luật Ma Sói, vai trò này <strong>không được thực hiện chức năng nữa</strong>.
                 </div>
                 <div className="p-3 rounded-xl bg-slate-900/90 border border-slate-700/70 text-xs text-amber-200 flex items-start gap-2.5">
-                  <span className="text-base shrink-0 mt-0.5">💡</span>
+                  <span className="text-base shrink-0 mt-0.5">🕯️</span>
                   <div className="leading-relaxed">
-                    <strong>Hướng dẫn Quản trò:</strong> Vẫn đọc to câu gọi <em>"{currentRole.gmCall}"</em> và đếm thầm 3-5 giây để dân làng không đoán được ai đã chết, sau đó bấm <strong>Đã Gọi Xong & Cho Đi Ngủ 💤</strong> bên dưới để tiếp tục.
+                    <strong>Quản trò:</strong> Đọc to <em>"{currentRole.gmCall}"</em> và dừng 3-5 giây để bảo mật ván đấu.
                   </div>
                 </div>
 
@@ -1064,7 +1064,7 @@ export default function NightPhaseView({
                         Chuyền máy bí mật cho bầy Sói
                       </div>
                       <div className="text-[10px] text-rose-400/80 truncate">
-                        {showWolfWhisper ? 'Đang mở chế độ chuyền máy' : 'Dùng khi chơi trong im lặng (không mở mắt cùng nhau)'}
+                        {showWolfWhisper ? 'Chế độ chuyền máy đang mở' : 'Chế độ chuyền máy bí mật'}
                       </div>
                     </div>
                   </div>
@@ -1431,8 +1431,8 @@ export default function NightPhaseView({
                     </div>
                   );
                 })() : (
-                  <div className="p-3 rounded-xl bg-purple-950/30 border border-purple-900/50 text-xs text-purple-300 text-center italic">
-                    Chạm vào bất kỳ người chơi nào trong ma trận ghế dưới đây để lật xem thẻ bài của họ.
+                  <div className="p-2.5 rounded-xl bg-purple-950/30 border border-purple-900/50 text-xs text-purple-300 text-center">
+                    Chọn người chơi trong danh sách để soi vai trò:
                   </div>
                 )}
 
@@ -2185,7 +2185,7 @@ export default function NightPhaseView({
               BÌNH MINH ĐANG ĐẾN VỚI NGÔI LÀNG
             </h3>
             <p className="text-xs text-slate-400 max-w-md mx-auto mt-1">
-              Quản trò đã hoàn tất việc gọi các nhân vật theo đúng thứ tự. Hãy sẵn sàng bấm nút bên dưới để chuyển sang Ban Ngày và công bố kết quả.
+              Tất cả nhân vật trong đêm đã hoàn thành lượt gọi.
             </p>
           </div>
 
