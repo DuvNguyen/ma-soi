@@ -562,7 +562,7 @@ export default function ActionModal({
       // ================= GÁN / LỘ VAI TRÒ CHO NGƯỜI CHƠI =================
       case 'assign_role': {
         const targetPlayer = player;
-        const targetCurrentRoleId = targetPlayer?.currentRoleId || targetPlayer?.roleId;
+        const targetCurrentRoleId = targetPlayer?.originalRoleId || targetPlayer?.currentRoleId || targetPlayer?.roleId;
         const targetCurrentRole = targetPlayer ? getPlayerRole(targetPlayer) : null;
 
         // Fallback: nếu gọi không kèm player mà chỉ có role
@@ -639,9 +639,12 @@ export default function ActionModal({
         const assignedToOthersCounts = {};
         (players || []).forEach(p => {
           if (!targetPlayer || p.id !== targetPlayer.id) {
-            const rid = p.currentRoleId || p.roleId;
-            if (rid) {
-              assignedToOthersCounts[rid] = (assignedToOthersCounts[rid] || 0) + 1;
+            // Lá bài thực tế trong kho bài mà người chơi này sở hữu:
+            // Nếu người chơi có vai gốc (originalRoleId) do bị cắn/nguyền/thức tỉnh (như Nửa Người Nửa Sói bị cắn thành Sói,
+            // Sói Nguyền lây nhiễm, Đứa Trẻ Hoang Dã biến sói, v.v.), lá bài gốc đó vẫn thuộc về họ vĩnh viễn và không thể gán lại!
+            const physicalCardId = p.originalRoleId || p.currentRoleId || p.roleId;
+            if (physicalCardId) {
+              assignedToOthersCounts[physicalCardId] = (assignedToOthersCounts[physicalCardId] || 0) + 1;
             }
           }
         });

@@ -59,24 +59,30 @@ export class WerewolfGame {
   }
 
   /**
-   * Kiểm tra một vai trò có bị loại khỏi làng (do trúng lời nguyền Sói Nguyền) hay không
+   * Kiểm tra một vai trò có bị loại khỏi làng (do trúng lời nguyền Sói Nguyền hoặc biến đổi vai) hay không
    */
   isRoleEliminated(roleId) {
     if (!roleId) return false;
     const hasActiveHolders = this.players.some(p => (p.currentRoleId || p.roleId) === roleId);
-    const cursedHolder = this.players.find(p => p.isCursedWolf && p.originalRoleId === roleId);
-    return Boolean(cursedHolder) && !hasActiveHolders;
+    const transformedHolder = this.players.find(p => p.originalRoleId === roleId && (p.currentRoleId !== roleId || p.roleId !== roleId));
+    return Boolean(transformedHolder) && !hasActiveHolders;
   }
 
   /**
    * Kiểm tra một vai trò có được phép gán cho người khác hay không
-   * (Chặn nếu người giữ vai đã chết hoặc bị Sói Nguyền lây nhiễm)
+   * (Chặn nếu người giữ vai đã chết hoặc đã biến đổi vai)
    */
-  canRoleBeReassigned(roleId) {
+  canRoleBeReassigned(roleId, targetPlayerId = null) {
     if (!roleId) return false;
-    if (this.isRoleEliminated(roleId)) return false;
+    if (roleId === 'dan-lang' || roleId === 'dan-thuong') return true;
     
-    const roleHolders = this.players.filter(p => (p.currentRoleId || p.roleId) === roleId);
+    // Nếu có người khác giữ vai này làm vai gốc đã biến đổi (Bán Sói, Sói Nguyền...)
+    const transformedHolder = this.players.find(p => 
+      p.id !== targetPlayerId && p.originalRoleId === roleId && (p.currentRoleId !== roleId || p.roleId !== roleId)
+    );
+    if (transformedHolder) return false;
+
+    const roleHolders = this.players.filter(p => p.id !== targetPlayerId && (p.currentRoleId || p.roleId) === roleId);
     if (roleHolders.length > 0) {
       const anyAlive = roleHolders.some(p => p.isAlive);
       if (!anyAlive) return false; // Người giữ vai đã chết
@@ -88,8 +94,8 @@ export class WerewolfGame {
    * Gán vai trò cho người chơi với kiểm tra luật nghiêm ngặt
    */
   assignRole(playerId, roleId) {
-    if (!this.canRoleBeReassigned(roleId)) {
-      return { success: false, reason: 'Vai trò này đã bị loại hoặc người giữ vai đã hy sinh, không được gán lại!' };
+    if (!this.canRoleBeReassigned(roleId, playerId)) {
+      return { success: false, reason: 'Vai trò này đã bị loại hoặc người giữ vai đã hy sinh/biến đổi, không được gán lại!' };
     }
 
     const updatedPlayers = this.players.map(p => {

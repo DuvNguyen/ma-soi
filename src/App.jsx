@@ -310,54 +310,65 @@ export default function App() {
     setNightState({ ...DEFAULT_NIGHT_STATE });
   };
 
+  // THỰC THI RESET GAME VỀ 0
+  const executeResetGame = () => {
+    setPlayers(prev => prev.map((p) => {
+      const resetProps = {
+        currentRoleId: null,
+        roleId: null,
+        originalRoleId: null,
+        role: null,
+        isAlive: true,
+        deathReason: null,
+        deathPhase: null,
+        loverId: null,
+        elderLives: undefined,
+        isRevealedIdiot: false,
+        isSheriff: false,
+        isCursedWolf: false,
+        curseNight: null,
+        poisonedByRustySword: false,
+        rustySwordPoisonRound: null,
+        hasUsedKnightDuel: false,
+        shadowHostId: null
+      };
+      return p instanceof Player ? p.clone(resetProps) : new Player({ ...p, ...resetProps });
+    }));
+
+    setRoundNumber(1);
+    setIsNight(true);
+    setActiveTab('night');
+    setNightLogs([]);
+    setGameEndResult(null);
+    setLynchedTodayPlayerId(null);
+    setIsVillageCursed(false);
+    setWolfCanKillDouble(false);
+    setCurrentNightStepIdx(0);
+    setGameDiary([]);
+    setNightState({ ...DEFAULT_NIGHT_STATE });
+
+    try {
+      localStorage.removeItem(STORAGE_KEY);
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
   // RESET GAME DATA TO 0 (CHƠI LẠI TỪ ĐẦU)
-  const handleResetGame = () => {
+  const handleResetGame = (forceImmediate = false) => {
+    // Nếu ván đấu đã có phe thắng (gameEndResult) hoặc được yêu cầu force -> Reset ngay lập tức không confirm
+    if (forceImmediate || gameEndResult?.isEnded) {
+      executeResetGame();
+      return;
+    }
+
     showConfirm({
       title: 'HỦY DIỆT VÁN ĐẤU & RESET?',
       message: 'Bạn có chắc muốn RESET toàn bộ ván chơi về 0 để bắt đầu lại từ đầu?\n\nToàn bộ vai trò sẽ được xóa về trạng thái ẩn danh để Quản trò gọi gán dần từ Đêm 1. Tên người chơi và thứ tự ghế ngồi sẽ được giữ nguyên.',
       variant: 'blood',
       confirmText: 'Reset Về 0 Ngay 🩸',
       cancelText: 'Giữ Lại Ván Chơi',
-      onConfirm: () => {
-        setPlayers(prev => prev.map((p) => {
-          const resetProps = {
-            currentRoleId: null,
-            roleId: null,
-            originalRoleId: null,
-            role: null,
-            isAlive: true,
-            deathReason: null,
-            deathPhase: null,
-            loverId: null,
-            elderLives: undefined,
-            isRevealedIdiot: false,
-            isSheriff: false,
-            isCursedWolf: false,
-            curseNight: null,
-            poisonedByRustySword: false,
-            rustySwordPoisonRound: null,
-            hasUsedKnightDuel: false,
-            shadowHostId: null
-          };
-          return p instanceof Player ? p.clone(resetProps) : new Player({ ...p, ...resetProps });
-        }));
-
-        setRoundNumber(1);
-        setIsNight(true);
-        setActiveTab('night');
-        setNightLogs([]);
-        setGameEndResult(null);
-        setLynchedTodayPlayerId(null);
-        setIsVillageCursed(false);
-        setWolfCanKillDouble(false);
-        setNightState({ ...DEFAULT_NIGHT_STATE });
-
-        try {
-          localStorage.removeItem(STORAGE_KEY);
-        } catch (e) {
-          console.error(e);
-        }
-      }
+      onConfirm: executeResetGame
     });
   };
 
@@ -784,18 +795,31 @@ export default function App() {
       gameEndResult
     });
 
+    // Rule: Nếu vai này là vai độc bản/chức năng và đã có người giữ làm vai gốc (kể cả đã bị cắn/biến đổi thành Sói)
+    if (role.id !== 'dan-lang' && role.id !== 'dan-thuong') {
+      const originalHolder = players.find(p => p.id !== playerId && p.originalRoleId === role.id);
+      if (originalHolder) {
+        showAlert({
+          title: 'VAI TRÒ ĐÃ CÓ CHỦ!',
+          message: `Vai trò "${role.name}" thuộc về ${originalHolder.name} (#${originalHolder.id}) (lá bài gốc thuộc về người này kể cả khi đã biến đổi chức năng hoặc bị cắn). Theo luật chơi, lá bài này không được gán cho người khác!`,
+          variant: 'warning'
+        });
+        return;
+      }
+    }
+
     // Rule: Nếu vai này đã có người giữ và người đó bị Sói Nguyền lây nhiễm thành Sói -> vai đã bị loại khỏi làng, không gán cho người khác
     if (game.isRoleEliminated(role.id)) {
       showAlert({
         title: 'VAI TRÒ ĐÃ BỊ LOẠI!',
-        message: `Vai trò "${role.name}" đã bị loại khỏi làng vì người giữ vai ban đầu đã bị Sói Nguyền đồng hóa thành Ma Sói. Theo luật chơi, lá bài này không được gán cho người khác!`,
+        message: `Vai trò "${role.name}" đã bị loại khỏi làng vì người giữ vai ban đầu đã bị đồng hóa hoặc biến đổi. Theo luật chơi, lá bài này không được gán cho người khác!`,
         variant: 'warning'
       });
       return;
     }
 
     // Rule: Nếu tất cả người giữ vai này trước đó đã chết -> vai đã mất, không gán cho người khác (ngoại trừ Dân Làng)
-    if (role.id !== 'dan-lang' && !game.canRoleBeReassigned(role.id)) {
+    if (role.id !== 'dan-lang' && !game.canRoleBeReassigned(role.id, playerId)) {
       const deadHolders = players.filter(p => (p.currentRoleId || p.roleId) === role.id && !p.isAlive);
       showAlert({
         title: 'NGƯỜI GIỮ VAI ĐÃ HY SINH!',
@@ -1699,7 +1723,7 @@ export default function App() {
       {/* Game Over Banner */}
       <GameOverModal
         gameEndResult={gameEndResult}
-        onRestartGame={handleResetGame}
+        onRestartGame={() => handleResetGame(true)}
       />
 
       {/* Match History Modal */}

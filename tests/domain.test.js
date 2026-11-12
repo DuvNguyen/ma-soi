@@ -153,6 +153,9 @@ console.log('🧪 Starting Phase 1 Domain Model & Strategy Tests...\n');
     assert.strictEqual(halfWolfAfter.isAlive, true);
     assert.strictEqual(halfWolfAfter.isWolf(), true);
     assert.strictEqual(halfWolfAfter.currentRoleId, 'soi-thuong');
+    assert.strictEqual(halfWolfAfter.originalRoleId, 'nua-nguoi-nua-soi');
+    assert.strictEqual(dayGame.canRoleBeReassigned('nua-nguoi-nua-soi'), false);
+    assert.strictEqual(dayGame.isRoleEliminated('nua-nguoi-nua-soi'), true);
     assert.strictEqual(dayGame.getWolves().length, 2);
     console.log('✅ Test 8: WerewolfGame Resolve Night & Half-wolf Awakening passed.');
 
