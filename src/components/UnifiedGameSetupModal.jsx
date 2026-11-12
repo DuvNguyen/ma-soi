@@ -83,9 +83,9 @@ export default function UnifiedGameSetupModal({
   const [showRoleCustomizer, setShowRoleCustomizer] = useState(false);
   const [roleSearchQuery, setRoleSearchQuery] = useState('');
 
-  // Bulk paste names tool state
-  const [showBulkPaste, setShowBulkPaste] = useState(false);
-  const [bulkNamesInput, setBulkNamesInput] = useState('');
+  // Bulk edit modal state
+  const [isBulkEditModalOpen, setIsBulkEditModalOpen] = useState(false);
+  const [bulkEditText, setBulkEditText] = useState('');
 
   // Template creation/saving state
   const [isSavingAsNew, setIsSavingAsNew] = useState(false);
@@ -212,37 +212,59 @@ export default function UnifiedGameSetupModal({
   };
 
   // Live split lines for bulk paste with circle number badges
+  // Open bulk edit modal pre-filled with current names
+  const handleOpenBulkEdit = () => {
+    triggerHaptic('light');
+    setBulkEditText(playerNames.join('\n'));
+    setIsBulkEditModalOpen(true);
+  };
+
   const bulkLines = useMemo(() => {
-    if (!bulkNamesInput) return [''];
-    return bulkNamesInput.split('\n');
-  }, [bulkNamesInput]);
+    if (!bulkEditText) return [''];
+    return bulkEditText.split('\n');
+  }, [bulkEditText]);
 
   const validBulkLinesCount = useMemo(() => {
     return bulkLines.filter(s => s.trim().length > 0).length;
   }, [bulkLines]);
 
-  // Bulk paste names in Tab 2
-  const handleApplyBulkNames = () => {
+  // Apply bulk edited names and sync roles
+  const handleApplyBulkEdit = () => {
     triggerHaptic('success');
-    const parsed = bulkNamesInput
+    const parsed = bulkEditText
       .split('\n')
       .map(s => s.trim())
       .filter(Boolean);
 
-    if (parsed.length === 0) {
-      setShowBulkPaste(false);
+    if (parsed.length < 4) {
+      showAlert({
+        title: 'SỐ LƯỢNG QUÁ ÍT',
+        message: 'Một ván chơi Ma Sói cần tối thiểu 4 người chơi.',
+        variant: 'warning'
+      });
       return;
     }
 
-    const updated = [...playerNames];
-    for (let i = 0; i < updated.length; i++) {
-      if (parsed[i]) {
-        updated[i] = parsed[i];
+    setPlayerNames(parsed);
+
+    // Sync selectedRoleIds to match the count of parsed players
+    if (parsed.length > selectedRoleIds.length) {
+      const extraCount = parsed.length - selectedRoleIds.length;
+      setSelectedRoleIds(prev => [...prev, ...Array(extraCount).fill('dan-lang')]);
+    } else if (parsed.length < selectedRoleIds.length) {
+      let updatedRoles = [...selectedRoleIds];
+      while (updatedRoles.length > parsed.length) {
+        const danLangIdx = updatedRoles.lastIndexOf('dan-lang');
+        if (danLangIdx !== -1) {
+          updatedRoles.splice(danLangIdx, 1);
+        } else {
+          updatedRoles.pop();
+        }
       }
+      setSelectedRoleIds(updatedRoles);
     }
-    setPlayerNames(updated);
-    setShowBulkPaste(false);
-    setBulkNamesInput('');
+
+    setIsBulkEditModalOpen(false);
   };
 
   // Reset all names to defaults
@@ -275,7 +297,7 @@ export default function UnifiedGameSetupModal({
   const handleAddPlayer = () => {
     triggerHaptic('selection');
     setPlayerNames(prev => [...prev, '']);
-    setSelectedRoleIds(prev => [...prev, 'dan_lang']);
+    setSelectedRoleIds(prev => [...prev, 'dan-lang']);
   };
 
   // Delete 1 specific player slot in Tab 2
@@ -291,7 +313,7 @@ export default function UnifiedGameSetupModal({
     }
     setPlayerNames(prev => prev.filter((_, i) => i !== index));
     setSelectedRoleIds(prev => {
-      const danLangIdx = prev.lastIndexOf('dan_lang');
+      const danLangIdx = prev.lastIndexOf('dan-lang');
       if (danLangIdx !== -1) {
         return prev.filter((_, i) => i !== danLangIdx);
       }
@@ -880,11 +902,11 @@ export default function UnifiedGameSetupModal({
 
                   <button
                     type="button"
-                    onClick={() => setShowBulkPaste(!showBulkPaste)}
-                    className="flex-1 sm:flex-initial px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700 text-xs font-bold text-slate-200 transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                    onClick={handleOpenBulkEdit}
+                    className="flex-1 sm:flex-initial px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-purple-950/80 border border-slate-700 hover:border-purple-500 text-xs font-bold text-slate-200 transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-sm active:scale-95"
                   >
                     <Edit3 className="w-3.5 h-3.5 text-purple-400" />
-                    <span>Dán Tên</span>
+                    <span>Sửa Nhiều</span>
                   </button>
 
                   <button
@@ -907,69 +929,6 @@ export default function UnifiedGameSetupModal({
                   </button>
                 </div>
               </div>
-
-              {/* Bulk Paste Multi-line Box WITH NUMBERED CIRCLE BADGES ON THE RIGHT */}
-              {showBulkPaste && (
-                <div className="p-3.5 rounded-2xl bg-[#161828] border border-purple-500/60 space-y-3 animate-fade-in">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs font-bold text-purple-300">Dán danh sách tên (mỗi dòng một tên):</span>
-                      <span className="px-2 py-0.5 rounded-full bg-purple-950 border border-purple-700 text-purple-300 font-bold text-[11px]">
-                        Đã nhập: {validBulkLinesCount} / {playerNames.length} người
-                      </span>
-                    </div>
-                    <button type="button" onClick={() => setShowBulkPaste(false)} className="text-slate-400 hover:text-slate-200">
-                      <X className="w-4 h-4" />
-                    </button>
-                  </div>
-
-                  {/* Textarea + Numbered Circle Tags Column on the Right */}
-                  <div className="relative flex gap-2 bg-slate-900 border border-slate-700 rounded-xl p-2.5 focus-within:border-purple-500">
-                    <textarea
-                      rows={Math.max(5, Math.min(12, bulkLines.length))}
-                      value={bulkNamesInput}
-                      onChange={(e) => setBulkNamesInput(e.target.value)}
-                      placeholder="Vĩ&#10;Tiến&#10;Phú..."
-                      className="flex-1 bg-transparent text-xs sm:text-sm text-slate-100 focus:outline-none font-mono resize-none leading-7 tracking-wide"
-                    />
-
-                    {/* Numbered circle tags column on the right for easy line counting */}
-                    <div className="flex flex-col items-center gap-1 shrink-0 pt-0.5 border-l border-slate-800/80 pl-2.5 max-h-56 overflow-y-auto">
-                      {bulkLines.map((line, idx) => {
-                        const hasText = line.trim().length > 0;
-                        return (
-                          <div
-                            key={idx}
-                            className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold border transition-all ${
-                              hasText
-                                ? 'bg-purple-900 border-purple-500 text-purple-200 shadow-[0_0_8px_rgba(168,85,247,0.5)]'
-                                : 'bg-slate-800 border-slate-700 text-slate-500'
-                            }`}
-                            title={`Dòng #${idx + 1}: ${line.trim() || 'Chưa nhập'}`}
-                          >
-                            {idx + 1}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-
-                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-2 pt-1">
-                    <div className="flex justify-end gap-2">
-                      <button
-                        type="button"
-                        onClick={() => setShowBulkPaste(false)}
-                        className="px-3 py-1.5 rounded-lg border border-slate-700 text-xs text-slate-400 hover:text-white"
-                      >
-                        Hủy
-                      </button>
-                      <GothicButton variant="witch" size="sm" onClick={handleApplyBulkNames}>
-                        Cập Nhật ({validBulkLinesCount} Tên)
-                      </GothicButton>
-                    </div>
-                  </div>
-                </div>
-              )}
 
               {/* Exact N Slots (1 Column on Mobile, 2 Columns on Desktop) */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
@@ -1049,6 +1008,87 @@ export default function UnifiedGameSetupModal({
           </GothicButton>
         </div>
       </div>
+
+      {/* ============================================================== */}
+      {/* POPUP MODAL: SỬA NHIỀU NGƯỜI CHƠI (MỖI DÒNG 1 TÊN)            */}
+      {/* ============================================================== */}
+      {isBulkEditModalOpen && (
+        <div
+          className="fixed inset-0 z-[60] flex items-center justify-center p-3 sm:p-5 bg-black/80 backdrop-blur-md animate-fade-in"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setIsBulkEditModalOpen(false);
+          }}
+        >
+          <div
+            className="bg-[#121422] border-2 border-purple-500/80 rounded-2xl sm:rounded-3xl shadow-2xl max-w-lg w-full p-4 sm:p-5 space-y-3.5 relative animate-scale-up"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="flex items-center justify-between pb-2.5 border-b border-purple-900/60">
+              <div className="flex items-center gap-2">
+                <Edit3 className="w-4 h-4 text-purple-400" />
+                <h3 className="font-cinzel font-bold text-sm sm:text-base text-purple-200">
+                  Sửa Nhiều Người Chơi
+                </h3>
+                <span className="px-2 py-0.5 rounded-full bg-purple-950/80 border border-purple-800 text-purple-300 font-mono text-[11px] font-bold">
+                  {validBulkLinesCount} người
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsBulkEditModalOpen(false)}
+                className="text-slate-400 hover:text-slate-200 p-1 rounded-lg hover:bg-slate-800 transition-colors cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Multi-line editor: Line numbers column + Textarea */}
+            <div className="relative flex gap-2 bg-[#0a0c16] border border-purple-900/80 rounded-xl p-2.5 focus-within:border-purple-500 max-h-72 overflow-hidden">
+              <div className="flex flex-col items-center gap-1 select-none pr-2 border-r border-slate-800 text-[11px] font-mono text-purple-400 font-bold shrink-0 pt-1 overflow-y-hidden">
+                {bulkLines.map((_, idx) => (
+                  <span key={idx} className="h-7 flex items-center justify-center leading-7">
+                    #{idx + 1}
+                  </span>
+                ))}
+              </div>
+              <textarea
+                rows={Math.max(8, Math.min(14, bulkLines.length))}
+                value={bulkEditText}
+                onChange={(e) => setBulkEditText(e.target.value)}
+                placeholder="Mỗi dòng là một người chơi..."
+                className="flex-1 bg-transparent text-xs sm:text-sm text-slate-100 focus:outline-none font-mono resize-none leading-7 tracking-wide pt-1 overflow-y-auto"
+                autoFocus
+              />
+            </div>
+
+            {/* Footer Actions */}
+            <div className="flex items-center justify-between gap-2 pt-1 border-t border-slate-800/80">
+              <span className="text-[11px] text-slate-400 truncate">
+                Tương ứng <strong className="text-purple-300 font-mono">{validBulkLinesCount} slot</strong>
+              </span>
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setIsBulkEditModalOpen(false)}
+                  className="px-4 py-2 rounded-xl border border-slate-700 hover:border-slate-600 bg-slate-900 text-slate-300 text-xs font-bold transition-all cursor-pointer"
+                >
+                  Hủy
+                </button>
+                <GothicButton
+                  variant="witch"
+                  size="sm"
+                  onClick={handleApplyBulkEdit}
+                  icon={Save}
+                >
+                  Lưu & Cập Nhật
+                </GothicButton>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
