@@ -1572,6 +1572,14 @@ export default function App() {
             nightState={nightState}
             lynchedTodayPlayerId={lynchedTodayPlayerId}
             onOpenSheriffModal={handleOpenSheriffModal}
+            onOpenAssignRole={(p) => {
+              setActionModal({
+                isOpen: true,
+                actionType: 'assign_role',
+                role: getPlayerRole(p),
+                player: p
+              });
+            }}
           />
         </div>
 

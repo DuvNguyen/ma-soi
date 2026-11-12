@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Sun, Skull, Flame, ShieldAlert, Clock, Moon, AlertTriangle, Check, UserX, RotateCcw, Gavel, Play, Pause, Star, Award, ChevronDown, ChevronUp, Swords, Bell, Volume2 } from 'lucide-react';
+import { Sun, Skull, Flame, ShieldAlert, Clock, Moon, AlertTriangle, Check, UserX, RotateCcw, Gavel, Play, Pause, Star, Award, ChevronDown, ChevronUp, Swords, Bell, Volume2, Sparkles, Edit3 } from 'lucide-react';
 import GothicButton from './ui/GothicButton';
 import GothicBadge from './ui/GothicBadge';
 import WolfIcon from './ui/WolfIcon';
@@ -18,7 +18,8 @@ export default function DayPhaseView({
   onKnightDuel,
   nightState,
   lynchedTodayPlayerId,
-  onOpenSheriffModal
+  onOpenSheriffModal,
+  onOpenAssignRole
 }) {
   const { showConfirm, showAlert } = useGothicDialog();
   const [timeLeft, setTimeLeft] = useState(180); // 3 minutes discussion
@@ -60,6 +61,8 @@ export default function DayPhaseView({
   const alivePlayers = players.filter(p => p.isAlive);
   const lynchedPlayer = players.find(p => p.id === lynchedTodayPlayerId);
   const hasLynchedToday = !!lynchedTodayPlayerId && !extraLynchAllowed;
+  const sheriff = players.find(p => p.isSheriff);
+  const sheriffDead = sheriff && !sheriff.isAlive;
 
   // Stuttering judge exists in game
   const hasStutteringJudge = players.some(p => getPlayerRole(p)?.id === 'tham-phan-lap-bap' && p.isAlive);
@@ -519,6 +522,33 @@ export default function DayPhaseView({
                   onClick={() => onUndoLynch(lynchedTodayPlayerId)}
                 >
                   Hoàn tác treo cổ
+                </GothicButton>
+              )}
+
+              {/* SỬA / GÁN VAI TRÒ CHO NẠN NHÂN TRỰC TIẾP TẠI CHỖ */}
+              {onOpenAssignRole && lynchedPlayer && (
+                <GothicButton
+                  variant="witch"
+                  size="sm"
+                  icon={Sparkles}
+                  onClick={() => onOpenAssignRole(lynchedPlayer)}
+                >
+                  {getPlayerRole(lynchedPlayer) ? 'Đổi Vai Trò Nạn Nhân' : 'Gán / Lộ Vai Cho Nạn Nhân'}
+                </GothicButton>
+              )}
+
+              {/* ĐỔI NGƯỜI BỊ TREO CỔ (CHỌN LẠI NGƯỜI KHÁC) */}
+              {onUndoLynch && (
+                <GothicButton
+                  variant="gold"
+                  size="sm"
+                  icon={Edit3}
+                  onClick={() => {
+                    onUndoLynch(lynchedTodayPlayerId);
+                    setExtraLynchAllowed(false);
+                  }}
+                >
+                  Đổi Người Khác
                 </GothicButton>
               )}
 
