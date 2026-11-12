@@ -20,7 +20,8 @@ import {
   Save,
   RotateCcw,
   Sparkles,
-  Undo2
+  Undo2,
+  Star
 } from 'lucide-react';
 import GothicButton from './ui/GothicButton';
 import WolfIcon from './ui/WolfIcon';
@@ -56,11 +57,11 @@ export default function UnifiedGameSetupModal({
     }
   });
 
-  // Selected template & roles
+  // Selected template & roles (Exclude appointed titles like Cảnh Sát Trưởng)
   const [selectedTemplateId, setSelectedTemplateId] = useState('preset-9-11');
   const [selectedRoleIds, setSelectedRoleIds] = useState(() => {
     if (currentDeckRoleIds && currentDeckRoleIds.length > 0) {
-      return [...currentDeckRoleIds];
+      return currentDeckRoleIds.filter(id => id !== 'canh-sat-truong' && id !== 'canh-sat-characters');
     }
     return [...PRESETS[1].roleIds];
   });
@@ -127,9 +128,14 @@ export default function UnifiedGameSetupModal({
       .map(p => ({
         ...p,
         isPreset: true,
+        roleIds: (p.roleIds || []).filter(id => id !== 'canh-sat-truong' && id !== 'canh-sat-characters'),
         playerNames: DEFAULT_PLAYER_NAMES.slice(0, p.playerCount || p.roleIds.length)
       }));
-    return [...(templates || []), ...formattedPresets];
+    const sanitizedCustom = (templates || []).map(t => ({
+      ...t,
+      roleIds: (t.roleIds || []).filter(id => id !== 'canh-sat-truong' && id !== 'canh-sat-characters')
+    }));
+    return [...sanitizedCustom, ...formattedPresets];
   }, [templates, deletedPresetIds]);
 
   // Active template info
@@ -156,7 +162,7 @@ export default function UnifiedGameSetupModal({
   const handleSelectTemplate = (template) => {
     triggerHaptic('light');
     setSelectedTemplateId(template.id);
-    const newRoleIds = [...template.roleIds];
+    const newRoleIds = (template.roleIds || []).filter(id => id !== 'canh-sat-truong' && id !== 'canh-sat-characters');
     setSelectedRoleIds(newRoleIds);
 
     let nextNames = [];
@@ -454,9 +460,11 @@ export default function UnifiedGameSetupModal({
   }, [allTemplates, templateSearchQuery]);
 
   const filteredAvailableRoles = useMemo(() => {
-    if (!roleSearchQuery.trim()) return ROLES;
+    // Only playable character roles dealt into the deck: exclude appointed titles like Cảnh Sát Trưởng
+    const deckRoles = ROLES.filter(r => r.isPlayableDeckCard !== false && !r.isAppointedTitle && !r.team?.includes('phong thêm') && r.id !== 'canh-sat-truong' && r.id !== 'canh-sat-characters');
+    if (!roleSearchQuery.trim()) return deckRoles;
     const q = roleSearchQuery.toLowerCase();
-    return ROLES.filter(r => r.name.toLowerCase().includes(q) || r.id.toLowerCase().includes(q));
+    return deckRoles.filter(r => r.name.toLowerCase().includes(q) || r.id.toLowerCase().includes(q));
   }, [roleSearchQuery]);
 
   if (!isOpen) return null;
@@ -692,6 +700,10 @@ export default function UnifiedGameSetupModal({
                                 <span className="px-2 py-0.5 rounded-full bg-purple-950/80 border border-purple-800 text-purple-300 font-mono text-[11px] flex items-center gap-1">
                                   <Sparkles className="w-3 h-3 text-purple-400" />
                                   <span>{villagerCount} Dân</span>
+                                </span>
+                                <span className="px-2 py-0.5 rounded-full bg-amber-950/60 border border-amber-800/80 text-amber-300 font-medium text-[11px] flex items-center gap-1" title="Cảnh Sát Trưởng là chức danh mặc định có sẵn trong trận đấu (bầu ban ngày, phiếu x2) và không chiếm slot lá bài">
+                                  <Star className="w-3 h-3 text-amber-400 fill-amber-400" />
+                                  <span>Cảnh Sát Trưởng (Mặc định)</span>
                                 </span>
                               </div>
 

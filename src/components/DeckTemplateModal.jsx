@@ -340,7 +340,7 @@ export default function DeckTemplateModal({
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5 max-h-[45vh] overflow-y-auto pr-1">
-                  {ROLES.filter(r => !roleSearchQuery || r.name.toLowerCase().includes(roleSearchQuery.toLowerCase())).map(role => {
+                  {ROLES.filter(r => (!roleSearchQuery || r.name.toLowerCase().includes(roleSearchQuery.toLowerCase())) && r.isPlayableDeckCard !== false && !r.isAppointedTitle && r.id !== 'canh-sat-truong' && r.id !== 'canh-sat-characters').map(role => {
                     const count = roleCounts[role.id] || 0;
                     const isWolf = role.teamCode === 'W';
 
