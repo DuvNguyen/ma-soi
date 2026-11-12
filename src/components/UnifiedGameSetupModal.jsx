@@ -1,13 +1,10 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { ROLES, PRESETS } from '../data/roles';
 import { DEFAULT_PLAYER_NAMES } from '../data/defaultPlayers';
-import { fetchTemplates, saveTemplateApi, deleteTemplateApi, fetchRosters, saveRosterApi, deleteRosterApi } from '../services/api';
+import { fetchTemplates, saveTemplateApi, deleteTemplateApi } from '../services/api';
 import {
-  SlidersHorizontal,
-  Users,
   Layers,
-  Sparkles,
-  Check,
+  Users,
   Plus,
   Minus,
   Trash2,
@@ -15,51 +12,41 @@ import {
   Play,
   ArrowRight,
   Search,
-  AlertCircle,
+  Check,
   CheckCircle2,
+  AlertCircle,
   Edit3,
-  ChevronDown,
-  ChevronUp,
-  Settings2
+  SlidersHorizontal,
+  Save,
+  RotateCcw,
+  Sparkles
 } from 'lucide-react';
 import GothicButton from './ui/GothicButton';
 import WolfIcon from './ui/WolfIcon';
 import { useGothicDialog } from '../context/GothicDialogContext';
+import triggerHaptic from '../utils/haptics';
 
 export default function UnifiedGameSetupModal({
   isOpen,
   onClose,
-  initialTab = 'setup',
+  initialTab = 'deck',
   currentPlayers = [],
   currentDeckRoleIds = [],
   onApplyGameSetup,
-  onApplyTemplate,
-  onApplyRoster
+  onApplyTemplate
 }) {
   const { showConfirm, showAlert } = useGothicDialog();
 
-  // Active top-level tab
-  const [activeTab, setActiveTab] = useState(initialTab);
+  // Normalize initial tab: 'deck' (Tab 1: Bộ bài) or 'players' (Tab 2: Người chơi)
+  const [activeTab, setActiveTab] = useState(() => {
+    return initialTab === 'players' || initialTab === 'rosters' ? 'players' : 'deck';
+  });
 
-  // Data sources
+  // DB templates & loading
   const [templates, setTemplates] = useState([]);
-  const [rosters, setRosters] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // Setup tab states
-  const [playerMode, setPlayerMode] = useState('quick'); // 'quick' | 'roster'
-  const [selectedRosterId, setSelectedRosterId] = useState('current');
-  const [playerCount, setPlayerCount] = useState(() => {
-    return (currentPlayers && currentPlayers.length > 0) ? currentPlayers.length : 10;
-  });
-
-  const [playerNames, setPlayerNames] = useState(() => {
-    if (currentPlayers && currentPlayers.length > 0) {
-      return currentPlayers.map(p => p.name);
-    }
-    return DEFAULT_PLAYER_NAMES.slice(0, 10);
-  });
-
+  // Selected template & roles
   const [selectedTemplateId, setSelectedTemplateId] = useState('preset-9-11');
   const [selectedRoleIds, setSelectedRoleIds] = useState(() => {
     if (currentDeckRoleIds && currentDeckRoleIds.length > 0) {
@@ -68,18 +55,38 @@ export default function UnifiedGameSetupModal({
     return [...PRESETS[1].roleIds];
   });
 
-  // Toggles for optional advanced panels
-  const [showAdvancedRoles, setShowAdvancedRoles] = useState(false);
-  const [showNamesList, setShowNamesList] = useState(false);
-  const [isEditingNames, setIsEditingNames] = useState(false);
-  const [rawNamesInput, setRawNamesInput] = useState('');
+  // Player names: STRICT 1:1 mapping with selectedRoleIds.length
+  const [playerNames, setPlayerNames] = useState(() => {
+    const targetCount = (currentDeckRoleIds && currentDeckRoleIds.length > 0)
+      ? currentDeckRoleIds.length
+      : PRESETS[1].roleIds.length;
+    if (currentPlayers && currentPlayers.length >= targetCount) {
+      return currentPlayers.slice(0, targetCount).map(p => p.name);
+    }
+    const baseNames = currentPlayers.map(p => p.name);
+    return [...baseNames, ...DEFAULT_PLAYER_NAMES].slice(0, targetCount);
+  });
+
+  // Search & customizer states
+  const [templateSearchQuery, setTemplateSearchQuery] = useState('');
+  const [showRoleCustomizer, setShowRoleCustomizer] = useState(false);
   const [roleSearchQuery, setRoleSearchQuery] = useState('');
 
-  // Roster Manager form
-  const [isCreatingRoster, setIsCreatingRoster] = useState(false);
-  const [editingRosterId, setEditingRosterId] = useState(null);
-  const [rosterFormName, setRosterFormName] = useState('');
-  const [rosterFormNamesText, setRosterFormNamesText] = useState('');
+  // Bulk paste names tool state
+  const [showBulkPaste, setShowBulkPaste] = useState(false);
+  const [bulkNamesInput, setBulkNamesInput] = useState('');
+
+  // Template creation/saving state
+  const [isSavingAsNew, setIsSavingAsNew] = useState(false);
+  const [newTemplateNameInput, setNewTemplateNameInput] = useState('');
+
+  // Load templates on open
+  useEffect(() => {
+    if (isOpen) {
+      loadTemplatesData();
+      setActiveTab(initialTab === 'players' || initialTab === 'rosters' ? 'players' : 'deck');
+    }
+  }, [isOpen, initialTab]);
 
   // Keyboard shortcut: Escape to close
   useEffect(() => {
@@ -91,137 +98,241 @@ export default function UnifiedGameSetupModal({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, onClose]);
 
-  useEffect(() => {
-    if (isOpen) {
-      loadAllData();
-      setActiveTab(initialTab);
-    }
-  }, [isOpen, initialTab]);
-
-  const loadAllData = async () => {
+  const loadTemplatesData = async () => {
     setLoading(true);
     try {
-      const [tplData, rosterData] = await Promise.all([
-        fetchTemplates(),
-        fetchRosters()
-      ]);
-      setTemplates(tplData || []);
-      setRosters(rosterData || []);
-    } catch (err) {
-      console.warn('Failed to load templates or rosters:', err);
+      const data = await fetchTemplates();
+      setTemplates(data || []);
+    } catch (e) {
+      console.error('Error fetching templates:', e);
     } finally {
       setLoading(false);
     }
   };
 
-  // Combine built-in presets with user saved templates
-  const allAvailableTemplates = useMemo(() => {
-    const list = [...PRESETS.map(p => ({ ...p, isPreset: true }))];
-    templates.forEach(t => {
-      if (!list.some(item => item.id === t.id)) {
-        list.push({ ...t, isPreset: false });
-      }
-    });
-    return list;
+  // Combine Presets + Custom templates into one list
+  const allTemplates = useMemo(() => {
+    const formattedPresets = PRESETS.map(p => ({
+      ...p,
+      isPreset: true,
+      playerNames: DEFAULT_PLAYER_NAMES.slice(0, p.playerCount || p.roleIds.length)
+    }));
+    return [...(templates || []), ...formattedPresets];
   }, [templates]);
 
-  // Adjust player count and sync role deck
-  const handleCountChange = (newCount, explicitNames = null) => {
-    const count = Math.max(4, Math.min(24, newCount));
-    setPlayerCount(count);
+  // Active template info
+  const activeTemplate = useMemo(() => {
+    return allTemplates.find(t => t.id === selectedTemplateId) || allTemplates[0] || null;
+  }, [allTemplates, selectedTemplateId]);
 
-    let updatedNames = explicitNames ? [...explicitNames] : [...playerNames];
-    if (count > updatedNames.length) {
-      for (let i = updatedNames.length; i < count; i++) {
-        updatedNames.push(DEFAULT_PLAYER_NAMES[i] || `Người chơi ${i + 1}`);
+  // Ensure playerNames strictly matches selectedRoleIds.length
+  const syncNamesCount = (newRoleIds, baseNames = playerNames) => {
+    const count = newRoleIds.length;
+    if (baseNames.length === count) return baseNames;
+    if (baseNames.length > count) {
+      return baseNames.slice(0, count);
+    }
+    // Append default names for new slots
+    const extended = [...baseNames];
+    for (let i = baseNames.length; i < count; i++) {
+      extended.push(DEFAULT_PLAYER_NAMES[i] || `Người chơi ${i + 1}`);
+    }
+    return extended;
+  };
+
+  // Select a deck template
+  const handleSelectTemplate = (template) => {
+    triggerHaptic('light');
+    setSelectedTemplateId(template.id);
+    const newRoleIds = [...template.roleIds];
+    setSelectedRoleIds(newRoleIds);
+
+    // Apply template's saved player names if available
+    let nextNames = [];
+    if (template.playerNames && template.playerNames.length > 0) {
+      nextNames = template.playerNames.slice(0, newRoleIds.length);
+      while (nextNames.length < newRoleIds.length) {
+        nextNames.push(DEFAULT_PLAYER_NAMES[nextNames.length] || `Người chơi ${nextNames.length + 1}`);
       }
     } else {
-      updatedNames = updatedNames.slice(0, count);
+      nextNames = syncNamesCount(newRoleIds, playerNames);
     }
-    setPlayerNames(updatedNames);
+    setPlayerNames(nextNames);
+  };
 
-    // Auto-select exact matching template if available
-    const exactMatch = allAvailableTemplates.find(
-      t => (t.playerCount === count || t.roleIds?.length === count)
-    );
-    if (exactMatch) {
-      setSelectedTemplateId(exactMatch.id);
-      setSelectedRoleIds([...exactMatch.roleIds]);
+  // Modify roles in the selected deck: +1 or -1
+  const handleModifyRoleCount = (roleId, delta) => {
+    triggerHaptic('selection');
+    if (delta > 0) {
+      const updatedRoles = [...selectedRoleIds, roleId];
+      setSelectedRoleIds(updatedRoles);
+      setPlayerNames(syncNamesCount(updatedRoles, playerNames));
     } else {
-      // Keep deck length matched by adjusting dan-lang count
-      setSelectedRoleIds(prev => {
-        let next = [...prev];
-        while (next.length < count) next.push('dan-lang');
-        while (next.length > count && next.includes('dan-lang')) {
-          const idx = next.lastIndexOf('dan-lang');
-          next.splice(idx, 1);
+      const idx = selectedRoleIds.lastIndexOf(roleId);
+      if (idx !== -1) {
+        const updatedRoles = selectedRoleIds.filter((_, i) => i !== idx);
+        if (updatedRoles.length >= 4) {
+          setSelectedRoleIds(updatedRoles);
+          setPlayerNames(syncNamesCount(updatedRoles, playerNames));
+        } else {
+          showAlert({
+            title: 'SỐ LƯỢNG QUÁ ÍT',
+            message: 'Một ván chơi Ma Sói cần tối thiểu 4 người chơi.',
+            variant: 'warning'
+          });
         }
-        if (next.length > count) next = next.slice(0, count);
-        return next;
-      });
+      }
     }
   };
 
-  // Handle selecting a saved roster
-  const handleSelectRoster = (rosterId) => {
-    setSelectedRosterId(rosterId);
-    if (rosterId === 'current') {
-      const names = currentPlayers.map(p => p.name);
-      handleCountChange(names.length, names);
-      return;
-    }
-    const target = rosters.find(r => r.id === rosterId);
-    if (target && target.playerNames) {
-      handleCountChange(target.playerNames.length, target.playerNames);
-    }
+  // Change individual slot name in Tab 2
+  const handleSlotNameChange = (index, newName) => {
+    setPlayerNames(prev => {
+      const copy = [...prev];
+      copy[index] = newName;
+      return copy;
+    });
   };
 
-  // Handle selecting a deck template
-  const handleSelectTemplate = (template) => {
-    setSelectedTemplateId(template.id);
-    setSelectedRoleIds([...template.roleIds]);
-  };
-
-  // Add/remove individual roles
-  const handleAddRoleToSetup = (roleId) => {
-    setSelectedRoleIds(prev => [...prev, roleId]);
-  };
-
-  const handleRemoveRoleFromSetup = (index) => {
-    setSelectedRoleIds(prev => prev.filter((_, i) => i !== index));
-  };
-
-  // Save manual names from textarea
-  const handleSaveEditedNames = () => {
-    const parsed = rawNamesInput
+  // Bulk paste names in Tab 2
+  const handleApplyBulkNames = () => {
+    triggerHaptic('success');
+    const parsed = bulkNamesInput
       .split(/[\n,;]+/)
       .map(s => s.trim())
       .filter(Boolean);
-    if (parsed.length > 0) {
-      handleCountChange(parsed.length, parsed);
-    }
-    setIsEditingNames(false);
-  };
 
-  // Start the match with unified setup
-  const handleApplySetup = () => {
-    if (playerCount !== selectedRoleIds.length) {
-      showAlert({
-        title: 'SỐ LƯỢNG CHƯA KHỚP!',
-        message: `Bàn chơi có ${playerCount} người nhưng bộ bài có ${selectedRoleIds.length} lá. Vui lòng thêm/bớt lá bài để số lượng khớp trước khi bắt đầu!`,
-        variant: 'warning'
-      });
+    if (parsed.length === 0) {
+      setShowBulkPaste(false);
       return;
     }
 
-    onApplyGameSetup({
-      playerNames,
-      roleIds: selectedRoleIds
+    const updated = [...playerNames];
+    for (let i = 0; i < updated.length; i++) {
+      if (parsed[i]) {
+        updated[i] = parsed[i];
+      }
+    }
+    setPlayerNames(updated);
+    setShowBulkPaste(false);
+    setBulkNamesInput('');
+  };
+
+  // Reset all names to defaults
+  const handleResetNamesToDefault = () => {
+    triggerHaptic('light');
+    setPlayerNames(DEFAULT_PLAYER_NAMES.slice(0, selectedRoleIds.length));
+  };
+
+  // Save current names into the selected template (Neon DB)
+  const handleSaveNamesToTemplate = async () => {
+    triggerHaptic('success');
+    if (!activeTemplate || activeTemplate.isPreset) {
+      // If currently a preset, prompt to save as custom template
+      setNewTemplateNameInput(`${activeTemplate?.name || 'Bộ bài'} (Tùy chỉnh)`);
+      setIsSavingAsNew(true);
+      return;
+    }
+
+    try {
+      const updatedTemplate = {
+        ...activeTemplate,
+        roleIds: selectedRoleIds,
+        playerCount: selectedRoleIds.length,
+        playerNames: playerNames
+      };
+      await saveTemplateApi(updatedTemplate);
+      await loadTemplatesData();
+      showAlert({
+        title: 'ĐÃ LƯU TÊN VÀO BỘ BÀI! ✨',
+        message: `Đã lưu danh sách ${playerNames.length} người chơi vào bộ bài "${activeTemplate.name}". Lần sau khi chọn bộ bài này, tên sẽ tự động nạp lại!`,
+        variant: 'emerald'
+      });
+    } catch (err) {
+      showAlert({
+        title: 'LỖI LƯU BỘ BÀI',
+        message: err.message,
+        variant: 'blood'
+      });
+    }
+  };
+
+  // Save as new custom template
+  const handleSaveAsNewTemplate = async (e) => {
+    e.preventDefault();
+    if (!newTemplateNameInput.trim()) return;
+
+    try {
+      const newTemplate = {
+        id: `template-${Date.now()}`,
+        name: newTemplateNameInput.trim(),
+        desc: `${selectedRoleIds.length} lá bài tự chọn (${selectedRoleIds.length} người chơi)`,
+        playerCount: selectedRoleIds.length,
+        roleIds: selectedRoleIds,
+        playerNames: playerNames
+      };
+      await saveTemplateApi(newTemplate);
+      await loadTemplatesData();
+      setSelectedTemplateId(newTemplate.id);
+      setIsSavingAsNew(false);
+      setNewTemplateNameInput('');
+      showAlert({
+        title: 'ĐÃ TẠO BỘ BÀI MỚI! ✨',
+        message: `Bộ bài "${newTemplate.name}" gồm ${selectedRoleIds.length} lá và danh sách người chơi đã được lưu thành công vào cơ sở dữ liệu!`,
+        variant: 'emerald'
+      });
+    } catch (err) {
+      showAlert({
+        title: 'LỖI TẠO BỘ BÀI',
+        message: err.message,
+        variant: 'blood'
+      });
+    }
+  };
+
+  // Delete custom template
+  const handleDeleteTemplate = async (id, e) => {
+    e.stopPropagation();
+    showConfirm({
+      title: 'XÓA BỘ BÀI?',
+      message: 'Bạn có chắc chắn muốn xóa bộ bài này khỏi cơ sở dữ liệu?',
+      variant: 'blood',
+      confirmText: 'Xóa Vĩnh Viễn 🩸',
+      onConfirm: async () => {
+        try {
+          await deleteTemplateApi(id);
+          setTemplates(prev => prev.filter(t => t.id !== id));
+          if (selectedTemplateId === id) {
+            setSelectedTemplateId('preset-9-11');
+            setSelectedRoleIds([...PRESETS[1].roleIds]);
+            setPlayerNames(DEFAULT_PLAYER_NAMES.slice(0, PRESETS[1].roleIds.length));
+          }
+        } catch (err) {
+          showAlert({ title: 'LỖI XÓA BỘ BÀI', message: err.message, variant: 'blood' });
+        }
+      }
     });
+  };
+
+  // Final Action: Apply Game Setup and Start Game
+  const handleApplySetup = () => {
+    triggerHaptic('success');
+    if (onApplyGameSetup) {
+      onApplyGameSetup({
+        playerNames,
+        roleIds: selectedRoleIds
+      });
+    } else if (onApplyTemplate) {
+      onApplyTemplate({
+        playerCount: selectedRoleIds.length,
+        roleIds: selectedRoleIds,
+        playerNames
+      });
+    }
     onClose();
   };
 
-  // Stats calculation
+  // Stats on selected deck
   const wolfCount = selectedRoleIds.filter(id => {
     const r = ROLES.find(x => x.id === id);
     return r?.teamCode === 'W';
@@ -232,10 +343,21 @@ export default function UnifiedGameSetupModal({
     return r?.teamCode === 'V';
   }).length;
 
-  const isCountMatched = playerCount === selectedRoleIds.length;
+  const roleCountsMap = useMemo(() => {
+    const counts = {};
+    selectedRoleIds.forEach(id => {
+      counts[id] = (counts[id] || 0) + 1;
+    });
+    return counts;
+  }, [selectedRoleIds]);
 
-  // Filter roles for custom search
-  const filteredRoles = useMemo(() => {
+  const filteredTemplates = useMemo(() => {
+    if (!templateSearchQuery.trim()) return allTemplates;
+    const q = templateSearchQuery.toLowerCase();
+    return allTemplates.filter(t => t.name.toLowerCase().includes(q) || (t.desc && t.desc.toLowerCase().includes(q)));
+  }, [allTemplates, templateSearchQuery]);
+
+  const filteredAvailableRoles = useMemo(() => {
     if (!roleSearchQuery.trim()) return ROLES;
     const q = roleSearchQuery.toLowerCase();
     return ROLES.filter(r => r.name.toLowerCase().includes(q) || r.id.toLowerCase().includes(q));
@@ -250,678 +372,434 @@ export default function UnifiedGameSetupModal({
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div className="bg-[#0f111a] border border-slate-800 rounded-2xl sm:rounded-3xl w-full max-w-4xl overflow-hidden shadow-2xl flex flex-col max-h-full relative my-auto">
+      <div className="bg-[#121422] border border-slate-800 rounded-2xl sm:rounded-3xl w-full max-w-4xl overflow-hidden shadow-2xl flex flex-col max-h-full relative my-auto">
         {/* ============================================================== */}
-        {/* HEADER: TITLE + NAVIGATION + PROMINENT CLOSE BUTTON */}
+        {/* PHYSICAL FOLDER TOP TABS: TAB 1 (BỘ BÀI) & TAB 2 (NGƯỜI CHƠI)  */}
         {/* ============================================================== */}
-        <div className="p-3.5 sm:p-5 border-b border-slate-800 bg-[#121422] shrink-0 space-y-2.5 sm:space-y-0 sm:flex sm:items-center sm:justify-between">
-          <div className="flex items-center justify-between sm:justify-start gap-3">
-            <div className="flex items-center gap-2.5">
-              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-gradient-to-br from-purple-600 via-indigo-600 to-amber-600 flex items-center justify-center shadow-lg shadow-purple-950/60 shrink-0">
-                <SlidersHorizontal className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
-              </div>
-              <div>
-                <h2 className="font-cinzel font-black text-sm sm:text-lg text-slate-100 flex items-center gap-2">
-                  THIẾT LẬP VÁN CHƠI
-                </h2>
-                <p className="text-[10px] sm:text-[11px] text-slate-400 hidden sm:block">
-                  Chọn người chơi và bộ bài phù hợp để bắt đầu ván đấu
-                </p>
-              </div>
-            </div>
-
-            {/* Close button on mobile sits in row 1 top-right */}
+        <div className="bg-[#090a12] px-3 sm:px-6 pt-3 border-b border-slate-800 flex items-end justify-between shrink-0">
+          <div className="flex items-end gap-1.5 sm:gap-2 -mb-[1px]">
+            {/* Tab 1: Folder Ear for Deck Selection */}
             <button
               type="button"
-              onClick={onClose}
-              aria-label="Đóng"
-              title="Đóng cửa sổ (Esc)"
-              className="sm:hidden w-8 h-8 rounded-xl bg-slate-900 hover:bg-rose-950/80 border border-slate-700/80 hover:border-rose-600/80 text-slate-300 hover:text-rose-200 transition-all flex items-center justify-center cursor-pointer shrink-0 shadow-sm active:scale-95"
+              onClick={() => {
+                triggerHaptic('light');
+                setActiveTab('deck');
+              }}
+              className={`px-3.5 sm:px-6 py-2.5 rounded-t-xl sm:rounded-t-2xl font-bold text-xs sm:text-sm transition-all flex items-center gap-1.5 sm:gap-2 cursor-pointer border-t-2 ${
+                activeTab === 'deck'
+                  ? 'bg-[#121422] text-amber-300 border-amber-500 border-x border-slate-800 relative z-10 shadow-[0_-4px_12px_rgba(0,0,0,0.6)]'
+                  : 'bg-[#0a0c16]/90 text-slate-400 hover:text-slate-200 border-transparent hover:bg-[#101220]'
+              }`}
             >
-              <X className="w-4 h-4 stroke-[2.5]" />
+              <Layers className="w-4 h-4 text-amber-400 shrink-0" />
+              <span>1. Chọn Bộ Bài</span>
+              <span className="text-[10px] sm:text-[11px] px-1.5 py-0.5 rounded-md bg-amber-950/80 border border-amber-800/80 text-amber-300 font-mono">
+                {selectedRoleIds.length} lá
+              </span>
+            </button>
+
+            {/* Tab 2: Folder Ear for Players & Names (1 Deck = 1 Group) */}
+            <button
+              type="button"
+              onClick={() => {
+                triggerHaptic('light');
+                setActiveTab('players');
+              }}
+              className={`px-3.5 sm:px-6 py-2.5 rounded-t-xl sm:rounded-t-2xl font-bold text-xs sm:text-sm transition-all flex items-center gap-1.5 sm:gap-2 cursor-pointer border-t-2 ${
+                activeTab === 'players'
+                  ? 'bg-[#121422] text-purple-200 border-purple-500 border-x border-slate-800 relative z-10 shadow-[0_-4px_12px_rgba(0,0,0,0.6)]'
+                  : 'bg-[#0a0c16]/90 text-slate-400 hover:text-slate-200 border-transparent hover:bg-[#101220]'
+              }`}
+            >
+              <Users className="w-4 h-4 text-purple-400 shrink-0" />
+              <span>2. Người Chơi</span>
+              <span className="text-[10px] sm:text-[11px] px-1.5 py-0.5 rounded-md bg-purple-950/80 border border-purple-800/80 text-purple-300 font-mono">
+                {playerNames.length} slot
+              </span>
             </button>
           </div>
 
-          <div className="flex items-center justify-between sm:justify-end gap-2.5">
-            {/* Segmented Top Tabs */}
-            <div className="flex items-center bg-[#090a12] p-1 rounded-xl border border-slate-800 w-full sm:w-auto justify-between sm:justify-start">
-              <button
-                type="button"
-                onClick={() => setActiveTab('setup')}
-                className={`flex-1 sm:flex-initial px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
-                  activeTab === 'setup'
-                    ? 'bg-purple-900 border border-purple-500 text-white shadow-sm'
-                    : 'text-slate-400 hover:text-slate-200'
-                }`}
-              >
-                <Sparkles className="w-3.5 h-3.5 text-amber-300" />
-                <span>Thiết Lập</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setActiveTab('rosters')}
-                className={`flex-1 sm:flex-initial px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
-                  activeTab === 'rosters'
-                    ? 'bg-purple-900 border border-purple-500 text-white shadow-sm'
-                    : 'text-slate-400 hover:text-slate-200'
-                }`}
-              >
-                <Users className="w-3.5 h-3.5 text-purple-300" />
-                <span>Nhóm Người</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setActiveTab('templates')}
-                className={`flex-1 sm:flex-initial px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
-                  activeTab === 'templates'
-                    ? 'bg-purple-900 border border-purple-500 text-white shadow-sm'
-                    : 'text-slate-400 hover:text-slate-200'
-                }`}
-              >
-                <Layers className="w-3.5 h-3.5 text-blue-300" />
-                <span>Bộ Bài</span>
-              </button>
-            </div>
-
-            {/* Close button on desktop sits beside tabs */}
-            <button
-              type="button"
-              onClick={onClose}
-              aria-label="Đóng"
-              title="Đóng cửa sổ (Esc)"
-              className="hidden sm:flex w-9 h-9 rounded-xl bg-slate-900 hover:bg-rose-950/80 border border-slate-700/80 hover:border-rose-600/80 text-slate-300 hover:text-rose-200 transition-all items-center justify-center cursor-pointer shrink-0 shadow-sm active:scale-95 ml-1"
-            >
-              <X className="w-5 h-5 stroke-[2.5]" />
-            </button>
-          </div>
+          {/* Close button X */}
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Đóng"
+            title="Đóng cửa sổ (Esc)"
+            className="mb-2 w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-slate-900 hover:bg-rose-950/80 border border-slate-700/80 hover:border-rose-600/80 text-slate-300 hover:text-rose-200 transition-all flex items-center justify-center cursor-pointer shrink-0 shadow-sm active:scale-95"
+          >
+            <X className="w-4 h-4 sm:w-5 sm:h-5 stroke-[2.5]" />
+          </button>
         </div>
 
         {/* ============================================================== */}
-        {/* TAB 1: UNIFIED SETUP (CLEAN & INTUITIVE 2-STEP UX) */}
+        {/* FOLDER BODY CONTAINER (STRICTLY VERTICAL SCROLL, NO HORIZONTAL) */}
         {/* ============================================================== */}
-        {activeTab === 'setup' && (
-          <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-5">
-            {/* ------------------------------------------------------------ */}
-            {/* BƯỚC 1: SỐ LƯỢNG & DANH SÁCH NGƯỜI CHƠI */}
-            {/* ------------------------------------------------------------ */}
-            <div className="p-4 sm:p-5 rounded-2xl bg-[#141624] border border-slate-800 space-y-4">
-              <div className="flex items-center justify-between border-b border-slate-800/80 pb-3">
-                <div className="flex items-center gap-2">
-                  <span className="w-6 h-6 rounded-lg bg-purple-950 border border-purple-700/60 flex items-center justify-center text-xs font-bold text-purple-300">
-                    1
-                  </span>
-                  <span className="text-xs font-black uppercase tracking-wider text-slate-200">
-                    Số Lượng Người Chơi
-                  </span>
+        <div className="flex-1 overflow-y-auto overflow-x-hidden p-3.5 sm:p-6 pb-6 sm:pb-8 space-y-4">
+          {/* ------------------------------------------------------------ */}
+          {/* TAB 1: BỘ BÀI (DECK TEMPLATES & ROLE CUSTOMIZATION)          */}
+          {/* ------------------------------------------------------------ */}
+          {activeTab === 'deck' && (
+            <div className="space-y-4 animate-fade-in">
+              {/* Header Bar: Search & Create New Button */}
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5">
+                <div className="relative flex-1">
+                  <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="text"
+                    value={templateSearchQuery}
+                    onChange={(e) => setTemplateSearchQuery(e.target.value)}
+                    placeholder="Tìm kiếm bộ bài mẫu..."
+                    className="w-full pl-9 pr-3 py-2 rounded-xl bg-slate-900/90 border border-slate-800 text-xs text-slate-200 focus:outline-none focus:border-purple-500"
+                  />
                 </div>
 
-                <div className="flex items-center bg-[#090a12] p-0.5 rounded-lg border border-slate-800 text-xs">
+                <div className="flex items-center gap-2">
                   <button
                     type="button"
-                    onClick={() => setPlayerMode('quick')}
-                    className={`px-2.5 py-1 rounded-md font-bold transition-all cursor-pointer ${
-                      playerMode === 'quick' ? 'bg-purple-900 text-white' : 'text-slate-400 hover:text-slate-200'
-                    }`}
+                    onClick={() => {
+                      setNewTemplateNameInput(`Bộ bài ${selectedRoleIds.length} người mới`);
+                      setIsSavingAsNew(true);
+                    }}
+                    className="flex-1 sm:flex-initial px-3 py-2 rounded-xl bg-slate-900 hover:bg-purple-950/80 border border-slate-700 hover:border-purple-500 text-slate-200 text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer"
                   >
-                    Chọn Nhanh
+                    <Plus className="w-3.5 h-3.5 text-purple-400" />
+                    <span>Lưu Bộ Bài Mới</span>
                   </button>
+
                   <button
                     type="button"
-                    onClick={() => setPlayerMode('roster')}
-                    className={`px-2.5 py-1 rounded-md font-bold transition-all cursor-pointer ${
-                      playerMode === 'roster' ? 'bg-purple-900 text-white' : 'text-slate-400 hover:text-slate-200'
+                    onClick={() => setShowRoleCustomizer(!showRoleCustomizer)}
+                    className={`px-3 py-2 rounded-xl border text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                      showRoleCustomizer
+                        ? 'bg-amber-950/80 border-amber-500 text-amber-200'
+                        : 'bg-slate-900 hover:bg-slate-800 border-slate-700 text-slate-300'
                     }`}
                   >
-                    Nhóm Đã Lưu ({rosters.length})
+                    <SlidersHorizontal className="w-3.5 h-3.5 text-amber-400" />
+                    <span>{showRoleCustomizer ? 'Đóng Sửa Lá' : 'Sửa Lá Bài'}</span>
                   </button>
                 </div>
               </div>
 
-              {playerMode === 'quick' ? (
-                /* Chế độ chọn nhanh bằng nút +/- và thanh kéo */
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 py-2">
-                  <div className="flex items-center gap-3">
-                    <button
-                      type="button"
-                      onClick={() => handleCountChange(playerCount - 1)}
-                      className="w-10 h-10 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-300 hover:text-white flex items-center justify-center text-lg font-bold transition-all active:scale-95 cursor-pointer"
-                    >
-                      <Minus className="w-4 h-4" />
-                    </button>
-
-                    <div className="min-w-28 text-center">
-                      <span className="font-cinzel font-black text-3xl text-purple-400 block leading-none">
-                        {playerCount}
-                      </span>
-                      <span className="text-[11px] text-slate-400 font-bold uppercase tracking-wider">
-                        Người chơi
-                      </span>
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={() => handleCountChange(playerCount + 1)}
-                      className="w-10 h-10 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-300 hover:text-white flex items-center justify-center text-lg font-bold transition-all active:scale-95 cursor-pointer"
-                    >
-                      <Plus className="w-4 h-4" />
+              {/* Form Save New Template Modal Box */}
+              {isSavingAsNew && (
+                <form onSubmit={handleSaveAsNewTemplate} className="p-3.5 rounded-2xl bg-[#161828] border border-purple-500/60 space-y-3 animate-fade-in">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-purple-300">Lưu cấu hình hiện tại thành bộ bài mới:</span>
+                    <button type="button" onClick={() => setIsSavingAsNew(false)} className="text-slate-400 hover:text-slate-200">
+                      <X className="w-4 h-4" />
                     </button>
                   </div>
-
-                  <div className="flex-1 max-w-md space-y-1.5">
+                  <div className="flex gap-2">
                     <input
-                      type="range"
-                      min="4"
-                      max="24"
-                      value={playerCount}
-                      onChange={(e) => handleCountChange(parseInt(e.target.value))}
-                      className="w-full h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-purple-500"
+                      type="text"
+                      value={newTemplateNameInput}
+                      onChange={(e) => setNewTemplateNameInput(e.target.value)}
+                      placeholder="Đặt tên bộ bài..."
+                      className="flex-1 p-2 rounded-xl bg-slate-900 border border-slate-700 text-xs text-white focus:outline-none focus:border-purple-500"
+                      autoFocus
                     />
-                    <div className="flex justify-between text-[10px] text-slate-500 font-medium">
-                      <span>4 người</span>
-                      <span>8</span>
-                      <span>10 (chuẩn)</span>
-                      <span>12</span>
-                      <span>16</span>
-                      <span>24</span>
-                    </div>
+                    <GothicButton variant="gold" size="sm" type="submit" icon={Save}>
+                      Lưu Bộ Bài
+                    </GothicButton>
                   </div>
-                </div>
-              ) : (
-                /* Chế độ chọn nhóm bạn bè đã lưu */
-                <div className="space-y-2 py-1">
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                    <button
-                      type="button"
-                      onClick={() => handleSelectRoster('current')}
-                      className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
-                        selectedRosterId === 'current'
-                          ? 'bg-purple-950/70 border-purple-500 text-purple-200'
-                          : 'bg-slate-900/60 hover:bg-slate-800 border-slate-800 text-slate-300'
-                      }`}
-                    >
-                      <div className="font-bold text-xs truncate">Bàn Hiện Tại</div>
-                      <div className="text-[10px] text-slate-400 mt-0.5">{currentPlayers.length} người</div>
-                    </button>
-
-                    {rosters.map(r => (
-                      <button
-                        key={r.id}
-                        type="button"
-                        onClick={() => handleSelectRoster(r.id)}
-                        className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
-                          selectedRosterId === r.id
-                            ? 'bg-purple-950/70 border-purple-500 text-purple-200'
-                            : 'bg-slate-900/60 hover:bg-slate-800 border-slate-800 text-slate-300'
-                        }`}
-                      >
-                        <div className="font-bold text-xs truncate">{r.name}</div>
-                        <div className="text-[10px] text-slate-400 mt-0.5">{r.playerNames?.length || 0} người</div>
-                      </button>
-                    ))}
-                  </div>
-                </div>
+                </form>
               )}
 
-              {/* Tên người chơi preview & quick edit toggle */}
-              <div className="pt-2 border-t border-slate-800/60 flex items-center justify-between text-xs text-slate-400">
-                <span className="truncate mr-2">
-                  Danh sách: <strong className="text-slate-200">{playerNames.slice(0, 5).join(', ')}</strong>
-                  {playerNames.length > 5 && ` và ${playerNames.length - 5} người khác`}
-                </span>
-                <button
-                  type="button"
-                  onClick={() => setShowNamesList(!showNamesList)}
-                  className="text-purple-400 hover:text-purple-300 font-bold shrink-0 flex items-center gap-1 cursor-pointer"
-                >
-                  <Edit3 className="w-3.5 h-3.5" />
-                  <span>{showNamesList ? 'Ẩn tên' : 'Sửa tên'}</span>
-                </button>
-              </div>
-
-              {/* Expanded name editor */}
-              {showNamesList && (
-                <div className="p-3 rounded-xl bg-slate-950/80 border border-slate-800 space-y-3 animate-fade-in">
-                  {isEditingNames ? (
-                    <div className="space-y-2">
-                      <textarea
-                        rows={4}
-                        value={rawNamesInput}
-                        onChange={(e) => setRawNamesInput(e.target.value)}
-                        placeholder="Mỗi dòng một tên người chơi..."
-                        className="w-full p-2.5 rounded-lg bg-slate-900 border border-slate-700 text-xs text-slate-200 focus:outline-none focus:border-purple-500 font-mono resize-none"
+              {/* Collapsible Role Cards Customizer (+ / - roles) */}
+              {showRoleCustomizer && (
+                <div className="p-3.5 sm:p-4 rounded-2xl bg-[#0f111d] border border-amber-900/60 space-y-3 animate-fade-in">
+                  <div className="flex items-center justify-between border-b border-slate-800/80 pb-2">
+                    <div>
+                      <span className="text-xs font-bold text-amber-300">Tùy Chỉnh Các Lá Bài Trong Bộ:</span>
+                      <p className="text-[11px] text-slate-400">
+                        Thêm hoặc bớt lá bài — số slot người chơi ở Tab 2 sẽ tự động tăng giảm theo tương ứng!
+                      </p>
+                    </div>
+                    <div className="relative w-36 sm:w-48">
+                      <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
+                      <input
+                        type="text"
+                        value={roleSearchQuery}
+                        onChange={(e) => setRoleSearchQuery(e.target.value)}
+                        placeholder="Tìm vai trò..."
+                        className="w-full pl-7 pr-2 py-1 rounded-lg bg-slate-900 border border-slate-800 text-[11px] text-white focus:outline-none focus:border-amber-500"
                       />
-                      <div className="flex justify-end gap-2">
-                        <button
-                          type="button"
-                          onClick={() => setIsEditingNames(false)}
-                          className="px-3 py-1 rounded-md border border-slate-700 text-xs text-slate-400"
-                        >
-                          Hủy
-                        </button>
-                        <button
-                          type="button"
-                          onClick={handleSaveEditedNames}
-                          className="px-3 py-1 rounded-md bg-purple-700 hover:bg-purple-600 text-xs font-bold text-white"
-                        >
-                          Cập Nhật Tên
-                        </button>
-                      </div>
                     </div>
-                  ) : (
-                    <div>
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-[11px] font-bold text-slate-400">Tên ghế ngồi:</span>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setRawNamesInput(playerNames.join('\n'));
-                            setIsEditingNames(true);
-                          }}
-                          className="text-[11px] text-purple-400 hover:underline font-bold"
+                  </div>
+
+                  {/* Vertical wrap grid of roles */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 max-h-56 overflow-y-auto pr-1">
+                    {filteredAvailableRoles.map(role => {
+                      const count = roleCountsMap[role.id] || 0;
+                      const isWolf = role.teamCode === 'W';
+                      return (
+                        <div
+                          key={role.id}
+                          className={`p-2 rounded-xl border flex items-center justify-between transition-all ${
+                            count > 0
+                              ? isWolf
+                                ? 'bg-rose-950/40 border-rose-800/80 text-rose-200'
+                                : 'bg-purple-950/40 border-purple-800/80 text-purple-200'
+                              : 'bg-slate-900/40 border-slate-800/60 text-slate-400'
+                          }`}
                         >
-                          Nhập hàng loạt (Copy/Paste)
-                        </button>
-                      </div>
-                      <div className="flex flex-wrap gap-1.5 max-h-36 overflow-y-auto">
-                        {playerNames.map((name, i) => (
-                          <span
-                            key={i}
-                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-slate-900 border border-slate-800 text-[11px] text-slate-300"
-                          >
-                            <span className="text-purple-400 font-bold">#{i + 1}</span>
-                            <span>{name}</span>
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  )}
+                          <div className="flex items-center gap-1.5 truncate mr-2">
+                            {isWolf ? <WolfIcon className="w-3.5 h-3.5 text-rose-400 shrink-0" /> : <Sparkles className="w-3.5 h-3.5 text-purple-400 shrink-0" />}
+                            <span className="text-xs font-bold truncate">{role.name}</span>
+                          </div>
+
+                          <div className="flex items-center gap-1 shrink-0">
+                            <button
+                              type="button"
+                              onClick={() => handleModifyRoleCount(role.id, -1)}
+                              disabled={count === 0}
+                              className="w-6 h-6 rounded-lg bg-slate-800 hover:bg-slate-700 disabled:opacity-30 disabled:pointer-events-none text-white text-xs flex items-center justify-center cursor-pointer active:scale-95"
+                            >
+                              <Minus className="w-3 h-3" />
+                            </button>
+                            <span className="w-5 text-center text-xs font-mono font-bold text-white">
+                              {count}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => handleModifyRoleCount(role.id, 1)}
+                              className="w-6 h-6 rounded-lg bg-slate-800 hover:bg-purple-900 text-white text-xs flex items-center justify-center cursor-pointer active:scale-95"
+                            >
+                              <Plus className="w-3 h-3" />
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
               )}
-            </div>
 
-            {/* ------------------------------------------------------------ */}
-            {/* BƯỚC 2: CHỌN BỘ BÀI PHÙ HỢP */}
-            {/* ------------------------------------------------------------ */}
-            <div className="p-4 sm:p-5 rounded-2xl bg-[#141624] border border-slate-800 space-y-4">
-              <div className="flex items-center justify-between border-b border-slate-800/80 pb-3">
-                <div className="flex items-center gap-2">
-                  <span className="w-6 h-6 rounded-lg bg-amber-950 border border-amber-700/60 flex items-center justify-center text-xs font-bold text-amber-300">
-                    2
-                  </span>
-                  <span className="text-xs font-black uppercase tracking-wider text-slate-200">
-                    Bộ Bài Cho {playerCount} Người Chơi
-                  </span>
-                </div>
-
-                <div className="flex items-center gap-2 text-xs font-bold">
-                  <span className="text-rose-400 flex items-center gap-1">
-                    <WolfIcon className="w-3.5 h-3.5" /> {wolfCount} Sói
-                  </span>
-                  <span className="text-slate-600">•</span>
-                  <span className="text-blue-400">
-                    👨‍🌾 {villagerCount} Dân
-                  </span>
-                </div>
-              </div>
-
-              {/* Template cards: Highlight exact matches */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5">
-                {allAvailableTemplates
-                  .filter(t => Math.abs((t.playerCount || t.roleIds?.length || 0) - playerCount) <= 2)
-                  .map(t => {
-                    const isSelected = selectedTemplateId === t.id;
-                    const tplCount = t.playerCount || t.roleIds?.length || 0;
-                    return (
-                      <button
-                        key={t.id}
-                        type="button"
-                        onClick={() => handleSelectTemplate(t)}
-                        className={`p-3 rounded-xl border text-left transition-all flex flex-col justify-between cursor-pointer ${
-                          isSelected
-                            ? 'bg-amber-950/40 border-amber-500 text-amber-200 shadow-md shadow-amber-950/40'
-                            : 'bg-slate-900/60 hover:bg-slate-800/80 border-slate-800 text-slate-300'
-                        }`}
-                      >
-                        <div className="flex items-start justify-between gap-1">
-                          <span className="font-bold text-xs truncate">{t.name}</span>
-                          <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-md shrink-0 ${
-                            tplCount === playerCount
-                              ? 'bg-emerald-950 text-emerald-400 border border-emerald-800'
-                              : 'bg-slate-800 text-slate-400'
-                          }`}>
-                            {tplCount} lá
-                          </span>
-                        </div>
-                        <div className="text-[11px] text-slate-400 line-clamp-2 mt-1.5">
-                          {t.desc || (t.isPreset ? 'Bộ bài kịch bản chuẩn' : 'Bộ bài lưu')}
-                        </div>
-                      </button>
-                    );
-                  })}
-              </div>
-
-              {/* Collapsible custom role tweak drawer */}
-              <div className="pt-2 border-t border-slate-800/60">
-                <button
-                  type="button"
-                  onClick={() => setShowAdvancedRoles(!showAdvancedRoles)}
-                  className="w-full flex items-center justify-between text-xs font-bold text-slate-400 hover:text-slate-200 py-1 cursor-pointer"
-                >
-                  <div className="flex items-center gap-1.5">
-                    <Settings2 className="w-3.5 h-3.5 text-amber-400" />
-                    <span>Xem & Tùy chỉnh chi tiết từng lá bài ({selectedRoleIds.length} lá)</span>
-                  </div>
-                  {showAdvancedRoles ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-                </button>
-
-                {showAdvancedRoles && (
-                  <div className="mt-3 p-3.5 rounded-xl bg-slate-950/80 border border-slate-800 space-y-3 animate-fade-in">
-                    <div>
-                      <div className="text-[11px] font-bold text-slate-400 mb-1.5">
-                        Lá bài trong bộ hiện tại (bấm x để bỏ):
-                      </div>
-                      <div className="flex flex-wrap gap-1.5 max-h-36 overflow-y-auto">
-                        {selectedRoleIds.map((id, index) => {
-                          const r = ROLES.find(x => x.id === id);
-                          const isWolf = r?.teamCode === 'W';
-                          return (
-                            <span
-                              key={`${id}-${index}`}
-                              className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-xs font-semibold border ${
-                                isWolf
-                                  ? 'bg-rose-950/80 border-rose-800 text-rose-200'
-                                  : 'bg-blue-950/80 border-blue-800 text-blue-200'
-                              }`}
-                            >
-                              <span>{r?.name || id}</span>
-                              <button
-                                type="button"
-                                onClick={() => handleRemoveRoleFromSetup(index)}
-                                className="text-slate-400 hover:text-white cursor-pointer"
-                              >
-                                <X className="w-3 h-3" />
-                              </button>
-                            </span>
-                          );
-                        })}
-                      </div>
-                    </div>
-
-                    <div>
-                      <div className="flex items-center justify-between mb-1.5">
-                        <span className="text-[11px] font-bold text-slate-400">Thêm vai trò khác:</span>
-                        <div className="relative w-40">
-                          <Search className="w-3 h-3 absolute left-2 top-2 text-slate-500" />
-                          <input
-                            type="text"
-                            value={roleSearchQuery}
-                            onChange={(e) => setRoleSearchQuery(e.target.value)}
-                            placeholder="Tìm kiếm..."
-                            className="w-full pl-6 pr-2 py-0.5 rounded-md bg-slate-900 border border-slate-800 text-[11px] text-slate-200 focus:outline-none"
-                          />
-                        </div>
-                      </div>
-
-                      <div className="flex flex-wrap gap-1 max-h-24 overflow-y-auto">
-                        {filteredRoles.slice(0, 16).map(r => (
-                          <button
-                            key={r.id}
-                            type="button"
-                            onClick={() => handleAddRoleToSetup(r.id)}
-                            className="px-2 py-0.5 rounded-md bg-slate-900 hover:bg-slate-800 border border-slate-800 text-[10px] text-slate-300 flex items-center gap-1 cursor-pointer"
-                          >
-                            <Plus className="w-2.5 h-2.5 text-slate-500" />
-                            <span>{r.name}</span>
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* ============================================================== */}
-        {/* TAB 2: QUẢN LÝ NHÓM NGƯỜI (ROSTERS MANAGER) */}
-        {/* ============================================================== */}
-        {activeTab === 'rosters' && (
-          <div className="flex-1 overflow-y-auto p-4 sm:p-6 pb-6 sm:pb-8 space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-sm font-bold text-slate-200">Danh Sách Nhóm Người Chơi</h3>
-                <p className="text-xs text-slate-400">Tạo nhóm để nạp tên bạn bè vào ván chơi nhanh chóng</p>
-              </div>
-              <GothicButton
-                variant="gold"
-                size="sm"
-                icon={Plus}
-                onClick={() => {
-                  setEditingRosterId(null);
-                  setRosterFormName('');
-                  setRosterFormNamesText('');
-                  setIsCreatingRoster(true);
-                }}
-              >
-                Tạo Nhóm Mới
-              </GothicButton>
-            </div>
-
-            {isCreatingRoster && (
-              <div className="p-4 rounded-2xl bg-[#141624] border border-purple-500/50 space-y-3 animate-fade-in">
-                <div className="flex items-center justify-between border-b border-slate-800 pb-2">
-                  <span className="text-xs font-bold text-purple-300">
-                    {editingRosterId ? 'Chỉnh Sửa Nhóm' : 'Tạo Nhóm Mới'}
-                  </span>
-                  <button onClick={() => setIsCreatingRoster(false)} className="text-slate-400 hover:text-white cursor-pointer">
-                    <X className="w-4 h-4" />
-                  </button>
+              {/* Deck Templates List (1 Column on Mobile, 2 on Desktop) */}
+              <div className="space-y-2.5">
+                <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                  Chọn Bộ Bài Phù Hợp Cho Trận Đấu:
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <label className="text-[11px] font-bold text-slate-400 block mb-1">Tên nhóm:</label>
-                    <input
-                      type="text"
-                      value={rosterFormName}
-                      onChange={(e) => setRosterFormName(e.target.value)}
-                      placeholder="VD: Nhóm Thứ 7, Bạn Đại Học..."
-                      className="w-full p-2 rounded-xl bg-slate-900 border border-slate-700 text-xs text-slate-200 focus:outline-none focus:border-purple-500"
-                    />
+                  {filteredTemplates.map(t => {
+                    const isSelected = selectedTemplateId === t.id;
+                    const cardCount = t.roleIds?.length || t.playerCount || 0;
+                    const tRoles = (t.roleIds || []).map(id => ROLES.find(r => r.id === id)).filter(Boolean);
+                    const wolfs = tRoles.filter(r => r.teamCode === 'W').length;
+                    const villagers = tRoles.filter(r => r.teamCode === 'V').length;
+
+                    return (
+                      <div
+                        key={t.id}
+                        onClick={() => handleSelectTemplate(t)}
+                        className={`p-3.5 rounded-2xl border text-left transition-all cursor-pointer relative flex flex-col justify-between ${
+                          isSelected
+                            ? 'bg-gradient-to-br from-purple-950/70 via-[#181a2e] to-amber-950/40 border-amber-500 shadow-lg shadow-purple-950/50'
+                            : 'bg-[#141624] hover:bg-[#1a1c2e] border-slate-800 hover:border-slate-700 text-slate-300'
+                        }`}
+                      >
+                        <div>
+                          <div className="flex items-center justify-between mb-1.5">
+                            <span className="font-bold text-sm text-slate-100 truncate mr-2">
+                              {t.name}
+                            </span>
+                            <span className="text-[11px] font-mono font-bold text-amber-300 bg-amber-950/80 px-2 py-0.5 rounded-md border border-amber-800/80 shrink-0">
+                              {cardCount} lá
+                            </span>
+                          </div>
+
+                          <p className="text-[11px] text-slate-400 line-clamp-2 mb-2">
+                            {t.desc || (t.isPreset ? 'Bộ bài kịch bản tiêu chuẩn' : 'Bộ bài lưu')}
+                          </p>
+
+                          {/* Role badges summary */}
+                          <div className="flex flex-wrap gap-1 max-h-16 overflow-hidden">
+                            {wolfs > 0 && (
+                              <span className="text-[10px] px-1.5 py-0.5 rounded bg-rose-950/80 text-rose-300 border border-rose-900/60 font-medium">
+                                🐺 {wolfs} Sói
+                              </span>
+                            )}
+                            {villagers > 0 && (
+                              <span className="text-[10px] px-1.5 py-0.5 rounded bg-purple-950/80 text-purple-300 border border-purple-900/60 font-medium">
+                                🛡️ {villagers} Dân
+                              </span>
+                            )}
+                            {tRoles.slice(0, 4).map((r, i) => (
+                              <span key={i} className="text-[10px] px-1.5 py-0.5 rounded bg-slate-900 text-slate-300 border border-slate-800">
+                                {r.name}
+                              </span>
+                            ))}
+                            {tRoles.length > 4 && (
+                              <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-900 text-slate-500 border border-slate-800">
+                                +{tRoles.length - 4}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Card Footer: Selection indicator & delete if custom */}
+                        <div className="flex items-center justify-between pt-2.5 mt-2.5 border-t border-slate-800/80">
+                          <span className={`text-xs font-bold flex items-center gap-1 ${isSelected ? 'text-amber-400' : 'text-slate-400'}`}>
+                            {isSelected ? (
+                              <>
+                                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                                <span>Đang Chọn Cho Ván</span>
+                              </>
+                            ) : (
+                              <>
+                                <span>Chọn bộ này</span>
+                                <ArrowRight className="w-3 h-3" />
+                              </>
+                            )}
+                          </span>
+
+                          {!t.isPreset && (
+                            <button
+                              type="button"
+                              onClick={(e) => handleDeleteTemplate(t.id, e)}
+                              title="Xóa bộ bài"
+                              className="p-1 rounded-md text-slate-500 hover:text-rose-400 hover:bg-rose-950/50 transition-all cursor-pointer"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ------------------------------------------------------------ */}
+          {/* TAB 2: NGƯỜI CHƠI (EXACT N SLOTS FOR N CARDS)                */}
+          {/* ------------------------------------------------------------ */}
+          {activeTab === 'players' && (
+            <div className="space-y-4 animate-fade-in">
+              {/* Header Box: 1 Deck = 1 Group Explanation & Tools */}
+              <div className="p-3.5 rounded-2xl bg-[#0f111d] border border-purple-900/60 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+                <div>
+                  <div className="text-xs font-bold text-purple-300 flex items-center gap-2">
+                    <Users className="w-4 h-4 text-purple-400" />
+                    <span>DANH SÁCH {playerNames.length} NGƯỜI CHƠI ({selectedRoleIds.length} LÁ BÀI)</span>
                   </div>
-                  <div>
-                    <label className="text-[11px] font-bold text-slate-400 block mb-1">Danh sách tên (mỗi dòng 1 tên):</label>
-                    <textarea
-                      rows={4}
-                      value={rosterFormNamesText}
-                      onChange={(e) => setRosterFormNamesText(e.target.value)}
-                      placeholder="Mỗi dòng một tên hoặc ngăn cách bằng dấu phẩy..."
-                      className="w-full p-2 rounded-xl bg-slate-900 border border-slate-700 text-xs text-slate-200 focus:outline-none focus:border-purple-500 font-mono resize-none"
-                    />
-                  </div>
+                  <p className="text-[11px] text-slate-400 mt-0.5">
+                    1 bộ bài = 1 nhóm. Đổi người thì chạm trực tiếp vào ô để sửa tên.
+                  </p>
                 </div>
 
-                <div className="flex justify-end gap-2 pt-2">
+                <div className="flex items-center gap-2 shrink-0">
                   <button
                     type="button"
-                    onClick={() => setIsCreatingRoster(false)}
-                    className="px-3 py-1.5 rounded-lg border border-slate-700 text-xs text-slate-400 hover:text-white cursor-pointer"
+                    onClick={() => setShowBulkPaste(!showBulkPaste)}
+                    className="flex-1 sm:flex-initial px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700 text-xs font-bold text-slate-200 transition-all flex items-center justify-center gap-1.5 cursor-pointer"
                   >
-                    Hủy
+                    <Edit3 className="w-3.5 h-3.5 text-purple-400" />
+                    <span>Dán Tên (Copy/Paste)</span>
                   </button>
+
                   <button
                     type="button"
-                    onClick={async () => {
-                      if (!rosterFormName.trim()) return;
-                      const names = rosterFormNamesText.split(/[\n,;]+/).map(s => s.trim()).filter(Boolean);
-                      if (names.length === 0) return;
-                      const rosterData = {
-                        id: editingRosterId || `roster-${Date.now()}`,
-                        name: rosterFormName.trim(),
-                        playerNames: names
-                      };
-                      await saveRosterApi(rosterData);
-                      await loadAllData();
-                      setIsCreatingRoster(false);
-                    }}
-                    className="px-4 py-1.5 rounded-lg bg-purple-700 hover:bg-purple-600 text-xs font-bold text-white cursor-pointer"
+                    onClick={handleResetNamesToDefault}
+                    title="Đặt lại tên mặc định"
+                    className="p-2 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-400 hover:text-slate-200 transition-all cursor-pointer"
                   >
-                    Lưu Nhóm
+                    <RotateCcw className="w-3.5 h-3.5" />
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleSaveNamesToTemplate}
+                    title="Lưu danh sách tên vào bộ bài này"
+                    className="px-3 py-1.5 rounded-xl bg-purple-950 hover:bg-purple-900 border border-purple-700 text-xs font-bold text-purple-200 transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                  >
+                    <Save className="w-3.5 h-3.5 text-purple-300" />
+                    <span className="hidden sm:inline">Lưu Vào Bộ Này</span>
                   </button>
                 </div>
               </div>
-            )}
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-              {rosters.map(r => (
-                <div key={r.id} className="p-3.5 rounded-2xl bg-[#141624] border border-slate-800 flex flex-col justify-between">
-                  <div>
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="font-bold text-sm text-slate-200 truncate">{r.name}</span>
-                      <span className="text-[11px] font-bold text-purple-400 bg-purple-950 px-2 py-0.5 rounded-md border border-purple-800">
-                        {r.playerNames?.length || 0} người
-                      </span>
-                    </div>
-                    <div className="text-[11px] text-slate-400 line-clamp-2 mt-1">
-                      {(r.playerNames || []).join(', ')}
-                    </div>
-                  </div>
-
-                  <div className="flex items-center justify-between pt-3 mt-3 border-t border-slate-800/80">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        handleSelectRoster(r.id);
-                        setActiveTab('setup');
-                      }}
-                      className="text-xs font-bold text-purple-400 hover:text-purple-300 flex items-center gap-1 cursor-pointer"
-                    >
-                      <span>Chọn cho ván</span>
-                      <ArrowRight className="w-3 h-3" />
-                    </button>
-
-                    <div className="flex items-center gap-1">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setEditingRosterId(r.id);
-                          setRosterFormName(r.name);
-                          setRosterFormNamesText((r.playerNames || []).join('\n'));
-                          setIsCreatingRoster(true);
-                        }}
-                        className="p-1 text-slate-400 hover:text-white cursor-pointer"
-                      >
-                        <Edit3 className="w-3.5 h-3.5" />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          showConfirm({
-                            title: 'XÓA NHÓM NGƯỜI CHƠI?',
-                            message: `Bạn có chắc muốn xóa nhóm "${r.name}"?`,
-                            variant: 'destructive',
-                            onConfirm: async () => {
-                              await deleteRosterApi(r.id);
-                              await loadAllData();
-                            }
-                          });
-                        }}
-                        className="p-1 text-slate-400 hover:text-rose-400 cursor-pointer"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* ============================================================== */}
-        {/* TAB 3: QUẢN LÝ BỘ BÀI MẪU (DECK TEMPLATES) */}
-        {/* ============================================================== */}
-        {activeTab === 'templates' && (
-          <div className="flex-1 overflow-y-auto p-4 sm:p-6 pb-6 sm:pb-8 space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-sm font-bold text-slate-200">Danh Sách Bộ Bài Mẫu</h3>
-                <p className="text-xs text-slate-400">Bao gồm bộ bài kịch bản chuẩn và bộ bài tùy chỉnh</p>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-              {allAvailableTemplates.map(t => (
-                <div key={t.id} className="p-3.5 rounded-2xl bg-[#141624] border border-slate-800 flex flex-col justify-between">
-                  <div>
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="font-bold text-sm text-slate-200 truncate">{t.name}</span>
-                      <span className="text-[11px] font-bold text-amber-400 bg-amber-950 px-2 py-0.5 rounded-md border border-amber-800">
-                        {t.playerCount || t.roleIds?.length || 0} lá
-                      </span>
-                    </div>
-                    <div className="text-[11px] text-slate-400 line-clamp-2 mt-1">
-                      {t.desc || (t.isPreset ? 'Bộ bài tiêu chuẩn' : 'Bộ bài lưu')}
-                    </div>
-                  </div>
-
-                  <div className="flex items-center justify-between pt-3 mt-3 border-t border-slate-800/80">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        handleSelectTemplate(t);
-                        setActiveTab('setup');
-                      }}
-                      className="text-xs font-bold text-amber-400 hover:text-amber-300 flex items-center gap-1 cursor-pointer"
-                    >
-                      <span>Chọn cho ván</span>
-                      <ArrowRight className="w-3 h-3" />
+              {/* Bulk Paste Multi-line Textarea */}
+              {showBulkPaste && (
+                <div className="p-3.5 rounded-2xl bg-[#161828] border border-purple-500/60 space-y-2.5 animate-fade-in">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-purple-300">Dán danh sách tên (mỗi dòng một tên):</span>
+                    <button type="button" onClick={() => setShowBulkPaste(false)} className="text-slate-400 hover:text-slate-200">
+                      <X className="w-4 h-4" />
                     </button>
                   </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* ============================================================== */}
-        {/* FOOTER: LIVE MATCH SUMMARY & 1-CLICK START */}
-        {/* ============================================================== */}
-        {activeTab === 'setup' && (
-          <div className="p-3.5 sm:p-5 border-t border-slate-800 bg-[#0c0d16] flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 shrink-0">
-            <div className="flex items-center justify-center sm:justify-start">
-              {isCountMatched ? (
-                <div className="flex items-center gap-2 text-xs font-bold text-emerald-400 bg-emerald-950/70 border border-emerald-800 px-3 py-1.5 rounded-xl">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                  <span>
-                    Khớp hoàn hảo: {playerCount} người ⟷ {selectedRoleIds.length} lá bài ({wolfCount} Sói, {villagerCount} Dân)
-                  </span>
-                </div>
-              ) : (
-                <div className="flex items-center gap-2 text-xs font-bold text-amber-400 bg-amber-950/70 border border-amber-800 px-3 py-1.5 rounded-xl">
-                  <AlertCircle className="w-4 h-4 text-amber-400 shrink-0" />
-                  <span>
-                    Lệch {Math.abs(playerCount - selectedRoleIds.length)} lá: {playerCount} người nhưng có {selectedRoleIds.length} lá bài
-                  </span>
+                  <textarea
+                    rows={4}
+                    value={bulkNamesInput}
+                    onChange={(e) => setBulkNamesInput(e.target.value)}
+                    placeholder="Quang Tuấn&#10;Minh Hùng&#10;Thùy Linh&#10;Đức Nam..."
+                    className="w-full p-2.5 rounded-xl bg-slate-900 border border-slate-700 text-xs text-slate-200 focus:outline-none focus:border-purple-500 font-mono resize-none"
+                  />
+                  <div className="flex justify-end gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setShowBulkPaste(false)}
+                      className="px-3 py-1.5 rounded-lg border border-slate-700 text-xs text-slate-400"
+                    >
+                      Hủy
+                    </button>
+                    <GothicButton variant="witch" size="sm" onClick={handleApplyBulkNames}>
+                      Cập Nhật {playerNames.length} Tên
+                    </GothicButton>
+                  </div>
                 </div>
               )}
-            </div>
 
-            <GothicButton
-              variant="witch"
-              size="md"
-              icon={Play}
-              onClick={handleApplySetup}
-              disabled={!isCountMatched}
-              className="w-full sm:w-auto shadow-xl h-11 text-xs sm:text-sm font-bold"
-            >
-              Áp Dụng & Bắt Đầu Ván Đấu Mới
-            </GothicButton>
+              {/* Exact N Slots (1 Column on Mobile, 2 Columns on Desktop) */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                {playerNames.map((name, idx) => (
+                  <div
+                    key={idx}
+                    className="flex items-center gap-2 p-2 rounded-xl bg-[#141624] border border-slate-800 focus-within:border-purple-500 transition-colors"
+                  >
+                    <span className="w-8 h-8 rounded-lg bg-purple-950/80 border border-purple-800/80 text-purple-300 font-bold text-xs flex items-center justify-center shrink-0">
+                      #{idx + 1}
+                    </span>
+                    <input
+                      type="text"
+                      value={name}
+                      onChange={(e) => handleSlotNameChange(idx, e.target.value)}
+                      className="flex-1 bg-transparent text-xs sm:text-sm text-slate-100 font-medium focus:outline-none min-w-0"
+                      placeholder={`Tên người chơi #${idx + 1}...`}
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* ============================================================== */}
+        {/* MODAL FOOTER: LIVE SUMMARY & 1-CLICK APPLY AND START           */}
+        {/* ============================================================== */}
+        <div className="p-3.5 sm:p-5 border-t border-slate-800 bg-[#0d0e17] flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 shrink-0">
+          <div className="flex items-center justify-center sm:justify-start">
+            <div className="flex items-center gap-2 text-xs font-bold text-amber-300 bg-amber-950/60 border border-amber-800/80 px-3 py-2 rounded-xl max-w-full">
+              <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+              <span className="truncate">
+                {activeTemplate?.name || 'Bộ bài'}: {playerNames.length} người ⟷ {selectedRoleIds.length} lá ({wolfCount} Sói, {villagerCount} Dân)
+              </span>
+            </div>
           </div>
-        )}
+
+          <GothicButton
+            variant="witch"
+            size="md"
+            icon={Play}
+            onClick={handleApplySetup}
+            className="w-full sm:w-auto shadow-xl h-11 text-xs sm:text-sm font-bold cursor-pointer"
+          >
+            Áp Dụng & Bắt Đầu Ván Đấu Mới
+          </GothicButton>
+        </div>
       </div>
     </div>
   );
