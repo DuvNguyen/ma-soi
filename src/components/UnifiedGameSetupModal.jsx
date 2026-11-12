@@ -244,6 +244,26 @@ export default function UnifiedGameSetupModal({
     setPlayerNames(DEFAULT_PLAYER_NAMES.slice(0, selectedRoleIds.length));
   };
 
+  // Save deck configuration and move to Tab 2 to add players
+  const handleSaveAndGoToPlayers = async () => {
+    triggerHaptic('success');
+    if (activeTemplate && !activeTemplate.isPreset) {
+      try {
+        const updatedTemplate = {
+          ...activeTemplate,
+          roleIds: selectedRoleIds,
+          playerCount: selectedRoleIds.length,
+          playerNames: playerNames.slice(0, selectedRoleIds.length)
+        };
+        await saveTemplateApi(updatedTemplate);
+        await loadTemplatesData();
+      } catch (err) {
+        console.error('Auto save template error:', err);
+      }
+    }
+    setActiveTab('players');
+  };
+
   // Save current names into the selected template (Neon DB)
   const handleSaveNamesToTemplate = async () => {
     triggerHaptic('success');
@@ -409,12 +429,12 @@ export default function UnifiedGameSetupModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center modal-safe-overlay bg-black/80 backdrop-blur-md animate-fade-in overflow-hidden"
+      className="fixed inset-0 z-50 flex items-center justify-center modal-safe-overlay bg-black/80 backdrop-blur-md animate-fade-in overflow-y-auto"
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div className="bg-[#121422] border border-slate-800 rounded-2xl sm:rounded-3xl w-full max-w-4xl shadow-2xl flex flex-col h-[calc(100dvh-1rem)] sm:h-auto sm:max-h-[90vh] max-h-[calc(100dvh-1rem)] overflow-hidden relative my-auto">
+      <div className="bg-[#121422] border border-slate-800 rounded-2xl sm:rounded-3xl w-full max-w-4xl shadow-2xl flex flex-col h-full max-h-full sm:max-h-[90vh] overflow-hidden relative my-auto">
         {/* ============================================================== */}
         {/* PHYSICAL FOLDER TOP TABS: TAB 1 (BỘ BÀI) & TAB 2 (NGƯỜI CHƠI)  */}
         {/* ============================================================== */}
@@ -565,15 +585,32 @@ export default function UnifiedGameSetupModal({
 
               {/* Collapsible Role Cards Customizer (+ / - roles) */}
               {showRoleCustomizer && (
-                <div className="p-3.5 sm:p-4 rounded-2xl bg-[#0f111d] border border-amber-900/60 space-y-3 animate-fade-in">
-                  <div className="flex items-center justify-between border-b border-slate-800/80 pb-2">
+                <div className="p-3 sm:p-4 rounded-2xl bg-[#0f111d] border border-amber-900/60 space-y-3 animate-fade-in shadow-inner">
+                  {/* Customizer Header with Live Card Counter */}
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 border-b border-slate-800/80 pb-2.5">
                     <div>
-                      <span className="text-xs font-bold text-amber-300">Tùy Chỉnh Các Lá Bài Trong Bộ:</span>
-                      <p className="text-[11px] text-slate-400">
-                        Thêm hoặc bớt lá bài — số slot người chơi ở Tab 2 sẽ tự động tăng giảm theo tương ứng!
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-xs sm:text-sm font-bold text-amber-300">Tùy Chỉnh Các Lá Bài:</span>
+                        {/* LIVE CARD COUNT TAGS */}
+                        <span className="px-2.5 py-0.5 rounded-full bg-amber-500/20 border border-amber-500/60 text-amber-300 font-mono font-bold text-xs flex items-center gap-1 shadow-sm">
+                          <Layers className="w-3.5 h-3.5 text-amber-400" />
+                          <span>{selectedRoleIds.length} lá bài</span>
+                        </span>
+                        <span className="px-2 py-0.5 rounded-full bg-rose-950/80 border border-rose-800 text-rose-300 font-mono text-[11px] flex items-center gap-1">
+                          <WolfIcon className="w-3 h-3 text-rose-400" />
+                          <span>{wolfCount} Sói</span>
+                        </span>
+                        <span className="px-2 py-0.5 rounded-full bg-purple-950/80 border border-purple-800 text-purple-300 font-mono text-[11px] flex items-center gap-1">
+                          <Sparkles className="w-3 h-3 text-purple-400" />
+                          <span>{villagerCount} Dân</span>
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-slate-400 mt-0.5">
+                        Thêm hoặc bớt lá bài — số slot ở Tab 2 sẽ tự động đồng bộ theo số lượng này!
                       </p>
                     </div>
-                    <div className="relative w-36 sm:w-48">
+
+                    <div className="relative w-full sm:w-44 shrink-0">
                       <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
                       <input
                         type="text"
@@ -629,6 +666,40 @@ export default function UnifiedGameSetupModal({
                         </div>
                       );
                     })}
+                  </div>
+
+                  {/* ACTION BAR: ĐẾM SỐ LÁ & NÚT LƯU BỘ BÀI ĐỂ QUA ADD NGƯỜI */}
+                  <div className="pt-2.5 border-t border-slate-800/80 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 bg-[#0b0c16]/90 p-2.5 rounded-xl border border-purple-900/50">
+                    <div className="flex items-center gap-2 text-xs text-slate-300">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                      <span>
+                        Cấu hình: <strong className="text-amber-300 font-mono">{selectedRoleIds.length} lá</strong> ⟷ <strong className="text-purple-300 font-mono">{selectedRoleIds.length} slot người chơi</strong>
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setNewTemplateNameInput(`Bộ bài ${selectedRoleIds.length} người mới`);
+                          setIsSavingAsNew(true);
+                        }}
+                        className="px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700 hover:border-amber-500 text-slate-200 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shrink-0"
+                        title="Lưu cấu hình này thành mẫu bộ bài mới trong database"
+                      >
+                        <Save className="w-3.5 h-3.5 text-amber-400" />
+                        <span>Lưu Mẫu Mới</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={handleSaveAndGoToPlayers}
+                        className="flex-1 sm:flex-initial px-4 py-2 rounded-xl bg-gradient-to-r from-purple-700 via-indigo-600 to-purple-800 hover:from-purple-600 hover:to-indigo-500 border border-purple-400 text-white text-xs font-black shadow-[0_0_15px_rgba(168,85,247,0.4)] transition-all flex items-center justify-center gap-1.5 cursor-pointer active:scale-95 shrink-0"
+                      >
+                        <Save className="w-3.5 h-3.5 text-purple-200" />
+                        <span>Lưu & Sang Thêm Người ➔</span>
+                      </button>
+                    </div>
                   </div>
                 </div>
               )}
@@ -871,10 +942,10 @@ export default function UnifiedGameSetupModal({
         {/* ============================================================== */}
         {/* MODAL FOOTER: ALWAYS PINNED, PROPER SAFE BOTTOM PADDING        */}
         {/* ============================================================== */}
-        <div className="p-3 sm:p-4 border-t border-slate-800 bg-[#0d0e17] flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 shrink-0 z-20 pb-[max(0.75rem,calc(env(safe-area-inset-bottom,0px)+0.5rem))]">
+        <div className="p-2.5 sm:p-4 border-t border-slate-800 bg-[#0d0e17] flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 shrink-0 z-20">
           <div className="flex items-center justify-center sm:justify-start min-w-0">
-            <div className="flex items-center gap-2 text-xs font-bold text-amber-300 bg-amber-950/60 border border-amber-800/80 px-3 py-2 rounded-xl max-w-full truncate">
-              <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+            <div className="flex items-center gap-1.5 text-[11px] sm:text-xs font-bold text-amber-300 bg-amber-950/60 border border-amber-800/80 px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-xl max-w-full truncate">
+              <CheckCircle2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-400 shrink-0" />
               <span className="truncate">
                 {activeTemplate?.name || 'Bộ bài'}: {playerNames.length} người ⟷ {selectedRoleIds.length} lá ({wolfCount} Sói, {villagerCount} Dân)
               </span>
@@ -886,7 +957,7 @@ export default function UnifiedGameSetupModal({
             size="md"
             icon={Play}
             onClick={handleApplySetup}
-            className="w-full sm:w-auto shadow-xl h-11 text-xs sm:text-sm font-bold cursor-pointer shrink-0"
+            className="w-full sm:w-auto shadow-xl h-10 sm:h-11 text-xs sm:text-sm font-bold cursor-pointer shrink-0"
           >
             Áp Dụng & Bắt Đầu Ván Đấu Mới
           </GothicButton>
