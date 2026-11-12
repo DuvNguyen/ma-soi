@@ -4,13 +4,17 @@ import GothicButton from './ui/GothicButton';
 import GothicBadge from './ui/GothicBadge';
 import WolfIcon from './ui/WolfIcon';
 import { isWolfPlayer, getPlayerRole } from '../utils/roleUtils';
+import { ROLES } from '../data/roles';
 
 export default function ActionModal({
   isOpen,
   onClose,
   actionType,
   role,
-  players,
+  player,
+  players = [],
+  deckRoleIds = [],
+  rolesInGame = [],
   nightState,
   onSaveAction,
   onAssignRole
@@ -555,90 +559,283 @@ export default function ActionModal({
         );
       }
 
-      // ================= GÁN VAI TRÒ =================
+      // ================= GÁN / LỘ VAI TRÒ CHO NGƯỜI CHƠI =================
       case 'assign_role': {
+        const targetPlayer = player;
+        const targetCurrentRoleId = targetPlayer?.currentRoleId || targetPlayer?.roleId;
+        const targetCurrentRole = targetPlayer ? getPlayerRole(targetPlayer) : null;
+
+        // Fallback: nếu gọi không kèm player mà chỉ có role
+        if (!targetPlayer && role) {
+          return (
+            <div className="space-y-4">
+              <div className="flex items-center gap-3 p-3.5 bg-gradient-to-r from-purple-950/80 to-slate-950 border border-purple-800/80 rounded-2xl shadow-[0_0_20px_rgba(168,85,247,0.3)]">
+                <User className="w-5 h-5 text-purple-300" />
+                <div>
+                  <h4 className="font-bold text-purple-200 text-sm font-cinzel">GÁN VAI TRÒ CHO NGƯỜI CHƠI</h4>
+                  <p className="text-xs text-purple-300/80 mt-0.5">
+                    Vai trò: <strong className="text-white">{role?.name}</strong> ([{role?.teamCode}] {role?.team})
+                  </p>
+                </div>
+              </div>
+
+              <div className="space-y-2 max-h-[52vh] overflow-y-auto pr-1">
+                {players.map(p => {
+                  const pCurrentId = p.currentRoleId || p.roleId;
+                  const isAssigned = pCurrentId === role?.id;
+                  const hasOtherRole = Boolean(pCurrentId && !isAssigned);
+                  const isWolf = isWolfPlayer(p);
+
+                  return (
+                    <button
+                      key={p.id}
+                      disabled={hasOtherRole}
+                      onClick={() => {
+                        onAssignRole(p.id, role);
+                        onClose();
+                      }}
+                      className={`w-full flex items-center justify-between p-3 rounded-2xl border text-left transition-all ${
+                        isAssigned
+                          ? 'bg-purple-950 border-purple-500 text-white shadow-[0_0_15px_rgba(168,85,247,0.4)] cursor-pointer'
+                          : hasOtherRole
+                          ? 'bg-[#0a0c16] border-slate-900/90 text-slate-500 opacity-40 cursor-not-allowed select-none'
+                          : isWolf
+                          ? 'bg-[#18080a] border-rose-800/80 hover:border-rose-500 shadow-[0_0_12px_rgba(225,29,72,0.35)] text-slate-200 cursor-pointer'
+                          : 'bg-[#111320] hover:bg-slate-900 border-slate-800 text-slate-200 cursor-pointer'
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-lg bg-slate-900 border border-slate-800 text-slate-300 flex items-center justify-center font-bold text-xs">
+                          {p.id}
+                        </div>
+                        <div>
+                          <div className="font-bold text-sm text-slate-100">{p.name}</div>
+                          <div className="text-xs text-slate-400">
+                            Đang giữ: {hasOtherRole ? `🔒 ${getPlayerRole(p)?.name || pCurrentId}` : isAssigned ? `✓ ${role?.name}` : 'Chưa có vai'}
+                          </div>
+                        </div>
+                      </div>
+                      <span className="text-xs font-bold px-3 py-1 rounded-lg border text-purple-300 bg-purple-950/60 border-purple-800/60">
+                        Chọn người này
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        }
+
+        // CHẾ ĐỘ CHÍNH: FETCH CÁC VAI TRÒ CHƯA GÁN TẠI STATE HIỆN TẠI CỦA TRẬN ĐẤU
+        const totalCardsInDeck = deckRoleIds?.length || players.length;
+
+        // Đếm số lượng từng lá bài trong bộ bài ván đấu
+        const deckCounts = {};
+        (deckRoleIds || []).forEach(id => {
+          deckCounts[id] = (deckCounts[id] || 0) + 1;
+        });
+
+        // Đếm số lượng vai đã được gán cho các người chơi KHÁC (loại trừ targetPlayer)
+        const assignedToOthersCounts = {};
+        (players || []).forEach(p => {
+          if (!targetPlayer || p.id !== targetPlayer.id) {
+            const rid = p.currentRoleId || p.roleId;
+            if (rid) {
+              assignedToOthersCounts[rid] = (assignedToOthersCounts[rid] || 0) + 1;
+            }
+          }
+        });
+
+        // Danh sách các vai trò còn lại trong kho bài chưa có chủ
+        const uniqueDeckRoleIds = Array.from(new Set(deckRoleIds || []));
+        const availableRoleEntries = [];
+
+        uniqueDeckRoleIds.forEach(roleId => {
+          const totalInDeck = deckCounts[roleId] || 0;
+          const takenByOthers = assignedToOthersCounts[roleId] || 0;
+          const remainingCount = Math.max(0, totalInDeck - takenByOthers);
+
+          const roleObj = ROLES.find(r => r.id === roleId) || {
+            id: roleId,
+            name: roleId === 'dan-lang' ? 'Dân Làng' : roleId,
+            teamCode: 'V',
+            team: 'Phe Dân Làng'
+          };
+
+          const isCurrent = targetCurrentRoleId === roleId;
+          const isFunctional = roleId !== 'dan-lang' && roleId !== 'dan-thuong';
+
+          if (remainingCount > 0 || isCurrent) {
+            availableRoleEntries.push({
+              role: roleObj,
+              totalInDeck,
+              remainingCount,
+              isCurrent,
+              isFunctional
+            });
+          }
+        });
+
+        // Sắp xếp: vai chức năng (Già Làng, Thợ Săn, Bảo Vệ, Tiên Tri, Sói...) trước, Dân Làng sau
+        availableRoleEntries.sort((a, b) => {
+          if (a.isFunctional && !b.isFunctional) return -1;
+          if (!a.isFunctional && b.isFunctional) return 1;
+          return a.role.name.localeCompare(b.role.name);
+        });
+
+        const remainingFunctionalCount = availableRoleEntries
+          .filter(e => e.isFunctional && !e.isCurrent)
+          .reduce((sum, e) => sum + e.remainingCount, 0);
+
+        const villagerEntry = availableRoleEntries.find(e => !e.isFunctional);
+        const remainingVillagersCount = villagerEntry ? villagerEntry.remainingCount : 0;
+
         return (
           <div className="space-y-4">
-            <div className="flex items-center gap-3 p-3.5 bg-gradient-to-r from-purple-950/80 to-slate-950 border border-purple-800/80 rounded-2xl shadow-[0_0_20px_rgba(168,85,247,0.3)]">
-              <User className="w-5 h-5 text-purple-300" />
-              <div>
-                <h4 className="font-bold text-purple-200 text-sm font-cinzel">GÁN VAI TRÒ CHO NGƯỜI CHƠI</h4>
-                <p className="text-xs text-purple-300/80 mt-0.5">
-                  Vai trò: <strong className="text-white">{role?.name}</strong> ([{role?.teamCode}] {role?.team})
-                </p>
+            {/* Header: Thông tin người chơi được gán */}
+            <div className="p-3.5 bg-gradient-to-r from-purple-950/90 via-[#1d0d2a] to-slate-950 border border-purple-700/80 rounded-2xl shadow-[0_0_20px_rgba(168,85,247,0.25)] space-y-2">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-9 h-9 rounded-xl bg-purple-900/80 border border-purple-500 text-purple-200 flex items-center justify-center font-bold text-sm shrink-0">
+                    #{targetPlayer?.id}
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-white text-sm sm:text-base font-cinzel flex items-center gap-2">
+                      <span>{targetPlayer?.name}</span>
+                      {!targetPlayer?.isAlive && (
+                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-rose-950/90 border border-rose-700 text-rose-300 font-sans font-bold">
+                          💀 Đã chết
+                        </span>
+                      )}
+                    </h4>
+                    <p className="text-xs text-purple-200/80">
+                      Hiện tại: <strong className={targetCurrentRole ? 'text-amber-300' : 'text-slate-400'}>
+                        {targetCurrentRole ? `${targetCurrentRole.name} ([${targetCurrentRole.teamCode}])` : 'Chưa có vai trò'}
+                      </strong>
+                    </p>
+                  </div>
+                </div>
+
+                {targetCurrentRoleId && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onAssignRole(targetPlayer.id, null);
+                      onClose();
+                    }}
+                    title="Gỡ vai trò này"
+                    className="px-2.5 py-1 rounded-lg bg-rose-950/70 hover:bg-rose-900 border border-rose-700/80 text-rose-300 text-xs font-bold transition-all flex items-center gap-1 cursor-pointer shrink-0 active:scale-95"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                    <span>Gỡ vai</span>
+                  </button>
+                )}
+              </div>
+
+              {/* Status Hint */}
+              <div className="pt-1.5 border-t border-purple-900/50 flex flex-wrap items-center justify-between gap-1 text-[11px] text-slate-300">
+                <span>Kho bài: <strong>{totalCardsInDeck} lá</strong></span>
+                {remainingFunctionalCount > 0 ? (
+                  <span className="text-amber-300 font-medium">
+                    Còn <strong>{remainingFunctionalCount}</strong> vai chức năng chưa gán
+                  </span>
+                ) : (
+                  <span className="text-emerald-400 font-semibold">
+                    ✓ Đã gán hết chức năng! Còn lại là Dân Làng ({remainingVillagersCount} lá)
+                  </span>
+                )}
               </div>
             </div>
 
-            <div className="space-y-2 max-h-[52vh] overflow-y-auto pr-1">
-              {players.map(p => {
-                const pCurrentId = p.currentRoleId || p.roleId;
-                const isAssigned = pCurrentId === role?.id;
-                const hasOtherRole = Boolean(pCurrentId && !isAssigned);
-                const isWolf = isWolfPlayer(p);
+            {/* Thông báo nếu đã hết vai chức năng */}
+            {remainingFunctionalCount === 0 && (
+              <div className="p-2.5 rounded-xl bg-blue-950/50 border border-blue-800/60 text-blue-200 text-xs flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-blue-400 shrink-0" />
+                <span>
+                  Các vai chức năng trong bộ bài đã có chủ. Tất cả slot còn lại đều là <strong>Dân Làng</strong>.
+                </span>
+              </div>
+            )}
 
-                return (
-                  <button
-                    key={p.id}
-                    disabled={hasOtherRole}
-                    onClick={() => {
-                      onAssignRole(p.id, role);
-                      onClose();
-                    }}
-                    className={`w-full flex items-center justify-between p-3 rounded-2xl border text-left transition-all ${
-                      isAssigned
-                        ? 'bg-purple-950 border-purple-500 text-white shadow-[0_0_15px_rgba(168,85,247,0.4)] cursor-pointer'
-                        : hasOtherRole
-                        ? 'bg-[#0a0c16] border-slate-900/90 text-slate-500 opacity-40 cursor-not-allowed select-none'
-                        : isWolf
-                        ? 'bg-[#18080a] border-rose-800/80 hover:border-rose-500 shadow-[0_0_12px_rgba(225,29,72,0.35)] text-slate-200 cursor-pointer'
-                        : 'bg-[#111320] hover:bg-slate-900 border-slate-800 text-slate-200 cursor-pointer'
-                    }`}
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center font-bold text-xs border ${
-                        isAssigned
-                          ? 'bg-purple-900 border-purple-400 text-purple-200'
-                          : hasOtherRole
-                          ? 'bg-slate-950 border-slate-900 text-slate-600'
-                          : 'bg-slate-900 border-slate-800 text-slate-300'
-                      }`}>
-                        {p.id}
-                      </div>
-                      <div>
-                        <div className="font-bold text-sm flex items-center gap-1.5">
-                          <span className={hasOtherRole ? 'text-slate-500' : 'text-slate-100'}>
-                            {p.name}
-                          </span>
-                          {isWolf && (
-                            <span className="text-[9px] px-1.5 py-0.2 rounded font-bold uppercase bg-rose-950 text-rose-300 border border-rose-600 flex items-center gap-1">
-                              <WolfIcon className="w-2.5 h-2.5" /> Sói
+            {/* Danh sách các vai trò còn khả dụng trong kho bài */}
+            <div className="space-y-2 max-h-[50vh] overflow-y-auto pr-1">
+              {availableRoleEntries.length === 0 ? (
+                <div className="text-center py-8 text-xs text-slate-500">
+                  Toàn bộ lá bài trong bộ bài ván đấu đã được gán đầy đủ.
+                </div>
+              ) : (
+                availableRoleEntries.map(({ role: r, remainingCount, isCurrent, isFunctional }) => {
+                  const isWolf = r.teamCode === 'W';
+                  return (
+                    <button
+                      key={r.id}
+                      type="button"
+                      onClick={() => {
+                        onAssignRole(targetPlayer.id, r);
+                        onClose();
+                      }}
+                      className={`w-full flex items-center justify-between p-3 rounded-2xl border text-left transition-all cursor-pointer ${
+                        isCurrent
+                          ? 'bg-amber-950/60 border-amber-500 text-amber-200 shadow-[0_0_15px_rgba(245,158,11,0.25)]'
+                          : isWolf
+                          ? 'bg-[#18080a] hover:bg-[#250c10] border-rose-900/80 hover:border-rose-500 text-slate-200'
+                          : isFunctional
+                          ? 'bg-[#111320] hover:bg-[#1a1e35] border-purple-900/80 hover:border-purple-500 text-slate-200'
+                          : 'bg-[#0f111a] hover:bg-[#151928] border-slate-800 hover:border-slate-600 text-slate-300'
+                      }`}
+                    >
+                      <div className="flex items-center gap-3 min-w-0 mr-2">
+                        <div className={`w-9 h-9 rounded-xl flex items-center justify-center font-bold text-sm shrink-0 border ${
+                          isWolf
+                            ? 'bg-rose-950 border-rose-700 text-rose-300'
+                            : isFunctional
+                            ? 'bg-purple-950 border-purple-700 text-purple-300'
+                            : 'bg-slate-900 border-slate-700 text-slate-400'
+                        }`}>
+                          {isWolf ? <WolfIcon className="w-5 h-5" /> : isFunctional ? <Sparkles className="w-5 h-5" /> : '👨‍🌾'}
+                        </div>
+
+                        <div className="min-w-0">
+                          <div className="font-bold text-sm text-slate-100 flex items-center gap-1.5 truncate">
+                            <span className="truncate">{r.name}</span>
+                            <span className={`text-[10px] px-1.5 py-0.2 rounded font-bold uppercase shrink-0 border ${
+                              isWolf
+                                ? 'bg-rose-950 text-rose-300 border-rose-800'
+                                : 'bg-purple-950 text-purple-300 border-purple-800'
+                            }`}>
+                              [{r.teamCode}] {r.team || (isWolf ? 'Phe Sói' : 'Dân Làng')}
                             </span>
-                          )}
-                        </div>
-                        <div className="text-xs text-slate-400 mt-0.5">
-                          Đang giữ: {hasOtherRole ? (
-                            <span className="font-medium text-purple-400/80">🔒 {getPlayerRole(p)?.name || pCurrentId}</span>
-                          ) : isAssigned ? (
-                            <span className="font-medium text-purple-200">✓ {role?.name}</span>
-                          ) : (
-                            <span className="font-medium text-slate-500">Chưa có vai</span>
-                          )}
+                          </div>
+
+                          <div className="text-xs text-slate-400 mt-0.5 truncate">
+                            {r.shortDesc || (isFunctional ? 'Vai trò có kỹ năng đặc biệt' : 'Dân thường không có kỹ năng đặc biệt')}
+                          </div>
                         </div>
                       </div>
-                    </div>
 
-                    <span className={`text-xs font-bold px-3 py-1 rounded-lg border transition-colors ${
-                      isAssigned
-                        ? 'text-purple-200 bg-purple-900/80 border-purple-400 hover:bg-purple-800'
-                        : hasOtherRole
-                        ? 'text-slate-600 bg-slate-950 border-slate-900'
-                        : 'text-purple-300 bg-purple-950/60 border-purple-800/60 hover:bg-purple-600 hover:text-white'
-                    }`}>
-                      {isAssigned ? '✓ Bỏ gán vai này' : hasOtherRole ? '🔒 Đã có vai khác' : 'Chọn người này'}
-                    </span>
-                  </button>
-                );
-              })}
+                      <div className="flex items-center gap-2 shrink-0">
+                        <span className={`text-[11px] font-mono px-2 py-0.5 rounded-md border ${
+                          isCurrent
+                            ? 'bg-amber-950 border-amber-700 text-amber-300 font-bold'
+                            : remainingCount > 0
+                            ? 'bg-slate-900 border-slate-800 text-slate-300'
+                            : 'bg-slate-950 border-slate-900 text-slate-600'
+                        }`}>
+                          {isCurrent ? 'Đang giữ' : `Còn ${remainingCount} lá`}
+                        </span>
+
+                        <span className={`text-xs font-bold px-3 py-1.5 rounded-xl border transition-all ${
+                          isCurrent
+                            ? 'bg-amber-500 text-black border-amber-400'
+                            : 'bg-purple-950/80 hover:bg-purple-600 text-purple-200 hover:text-white border-purple-800'
+                        }`}>
+                          {isCurrent ? 'Đang chọn' : 'Gán vai này ➔'}
+                        </span>
+                      </div>
+                    </button>
+                  );
+                })
+              )}
             </div>
           </div>
         );

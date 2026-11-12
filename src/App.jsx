@@ -760,7 +760,15 @@ export default function App() {
   };
 
   const handleAssignRole = (playerId, role) => {
-    if (!role) return;
+    if (!role) {
+      setPlayers(prev => prev.map(p => {
+        if (p.id === playerId) {
+          return p instanceof Player ? p.unassignRole() : { ...p, currentRoleId: null, roleId: null, role: null, elderLives: undefined };
+        }
+        return p;
+      }));
+      return;
+    }
 
     const game = new WerewolfGame({
       roundNumber,
@@ -786,8 +794,8 @@ export default function App() {
       return;
     }
 
-    // Rule: Nếu tất cả người giữ vai này trước đó đã chết -> vai đã mất, không gán cho người khác
-    if (!game.canRoleBeReassigned(role.id)) {
+    // Rule: Nếu tất cả người giữ vai này trước đó đã chết -> vai đã mất, không gán cho người khác (ngoại trừ Dân Làng)
+    if (role.id !== 'dan-lang' && !game.canRoleBeReassigned(role.id)) {
       const deadHolders = players.filter(p => (p.currentRoleId || p.roleId) === role.id && !p.isAlive);
       showAlert({
         title: 'NGƯỜI GIỮ VAI ĐÃ HY SINH!',
@@ -804,13 +812,7 @@ export default function App() {
       const targetCurrentId = targetPlayer?.currentRoleId || targetPlayer?.roleId;
       // Toggle unassign if clicking current holder
       if (targetCurrentId === role.id) {
-        return prev.map(p => p.id === playerId ? (p instanceof Player ? p.unassignRole() : { ...p, currentRoleId: null, roleId: null, role: null }) : p);
-      }
-
-      // STRICT "ONE PERSON 1 ROLE" RULE:
-      // If target player already has ANOTHER character role, block assigning!
-      if (targetCurrentId && targetCurrentId !== role.id) {
-        return prev;
+        return prev.map(p => p.id === playerId ? (p instanceof Player ? p.unassignRole() : { ...p, currentRoleId: null, roleId: null, role: null, elderLives: undefined }) : p);
       }
 
       // Single role capacity (capacity === 1): STRICTLY REVOKE FROM ANY OTHER HOLDER
@@ -867,6 +869,33 @@ export default function App() {
         return p;
       });
     });
+
+    // Special check: Nếu gán vai cho người vừa bị treo cổ hôm nay
+    if (playerId === lynchedTodayPlayerId) {
+      if (role.id === 'gia-lang') {
+        setIsVillageCursed(true);
+        showAlert({
+          title: '⚡ LỜI NGUYỀN GIÀ LÀNG GIÁNG XUỐNG!',
+          message: 'Nạn nhân bị treo cổ chính là GIÀ LÀNG!\n\nNỗi oán hận biến thành lời nguyền: Toàn bộ phe Dân Làng bị tước đoạt toàn bộ chức năng đặc biệt từ nay về sau!',
+          variant: 'danger'
+        });
+      } else if (role.id === 'tho-san' && !isVillageCursed) {
+        const deadHunter = players.find(p => p.id === playerId);
+        setActionModal({
+          isOpen: true,
+          actionType: 'hunter',
+          role,
+          player: deadHunter
+        });
+      } else if (role.id === 'soi-con') {
+        setWolfCanKillDouble(true);
+        showAlert({
+          title: '🐺 SÓI CON ĐÃ BỊ TREO CỔ!',
+          message: 'Bầy Ma Sói nổi cơn cuồng sát: Đêm tiếp theo bầy Sói được cắn 2 người!',
+          variant: 'warning'
+        });
+      }
+    }
 
     setRolesInGame(prev => {
       if (!prev.some(r => r.id === role.id)) {
@@ -1629,7 +1658,10 @@ export default function App() {
         onClose={() => setActionModal(prev => ({ ...prev, isOpen: false }))}
         actionType={actionModal.actionType}
         role={actionModal.role}
+        player={actionModal.player}
         players={players}
+        deckRoleIds={deckRoleIds}
+        rolesInGame={rolesInGame}
         nightState={nightState}
         onSaveAction={handleSaveAction}
         onAssignRole={handleAssignRole}
