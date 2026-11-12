@@ -932,14 +932,14 @@ export default function App() {
 
       // If player was infected by Cursed Wolf prior to assigning their functional role:
       // Keep their werewolf identity intact, assign role as originalRoleId
-      if (targetPlayer.isCursedWolf) {
+      if (targetPlayer.isCursedWolf || targetPlayer.currentRoleId === 'soi-bi-nguyen') {
         return prev.map(p => {
           if (p.id === playerId) {
             return p instanceof Player ? p.assignRole(role.id) : {
               ...p,
               originalRoleId: role.id,
-              currentRoleId: 'soi-thuong',
-              roleId: 'soi-thuong',
+              currentRoleId: 'soi-bi-nguyen',
+              roleId: 'soi-bi-nguyen',
               isCursedWolf: true
             };
           }

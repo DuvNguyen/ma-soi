@@ -81,12 +81,16 @@ export class Player {
     const role = getRole(roleId);
     if (!role) return null;
 
-    if (this.isCursedWolf) {
+    if (this.isCursedWolf || roleId === 'soi-bi-nguyen') {
       const orig = this.getOriginalRole();
-      const cleanOrigName = orig ? (orig.name || '').split(' (')[0].trim() : 'Dân Làng';
+      const hasFunctionalOrig = orig && orig.id !== 'soi-bi-nguyen' && orig.id !== 'soi-thuong' && orig.id !== 'dan-lang' && orig.id !== 'dan-thuong';
+      const cleanOrigName = hasFunctionalOrig ? (orig.name || '').split(' (')[0].trim() : null;
+      const baseRole = getRole('soi-bi-nguyen') || getRole('soi-thuong');
       return {
-        ...role,
-        name: `Sói (${cleanOrigName} bị nguyền)`,
+        ...baseRole,
+        id: 'soi-bi-nguyen',
+        name: cleanOrigName ? `Sói (${cleanOrigName} bị nguyền)` : 'Sói Bị Nguyền',
+        enName: cleanOrigName ? `Cursed ${orig.enName || 'Werewolf'}` : 'Cursed Werewolf',
         teamCode: 'W',
         team: 'Phe Sói',
         originalRole: orig
@@ -158,11 +162,12 @@ export class Player {
    * Bị Sói Nguyền / Sói Quỷ đồng hóa thành Ma Sói
    */
   infectByCursedWolf(roundNumber = 1) {
+    const origId = this.originalRoleId || (this.currentRoleId !== 'soi-thuong' && this.currentRoleId !== 'soi-bi-nguyen' ? this.currentRoleId : null) || null;
     return new Player({
       ...this.toJSON(),
-      originalRoleId: this.originalRoleId || this.currentRoleId || this.roleId,
-      currentRoleId: 'soi-thuong',
-      roleId: 'soi-thuong',
+      originalRoleId: origId,
+      currentRoleId: 'soi-bi-nguyen',
+      roleId: 'soi-bi-nguyen',
       isCursedWolf: true,
       curseNight: roundNumber
     });
@@ -173,12 +178,12 @@ export class Player {
    * Nếu người chơi đã bị Sói Nguyền lây nhiễm trước đó: giữ nguyên thân phận Ma Sói, chỉ cập nhật vai trò gốc
    */
   assignRole(roleId) {
-    if (this.isCursedWolf) {
+    if (this.isCursedWolf || this.currentRoleId === 'soi-bi-nguyen') {
       return new Player({
         ...this.toJSON(),
         originalRoleId: roleId,
-        currentRoleId: 'soi-thuong',
-        roleId: 'soi-thuong',
+        currentRoleId: 'soi-bi-nguyen',
+        roleId: 'soi-bi-nguyen',
         isCursedWolf: true
       });
     }
@@ -194,10 +199,13 @@ export class Player {
    * Hủy gán vai trò
    */
   unassignRole() {
-    if (this.isCursedWolf) {
+    if (this.isCursedWolf || this.currentRoleId === 'soi-bi-nguyen') {
       return new Player({
         ...this.toJSON(),
-        originalRoleId: null
+        originalRoleId: null,
+        currentRoleId: 'soi-bi-nguyen',
+        roleId: 'soi-bi-nguyen',
+        isCursedWolf: true
       });
     }
     return new Player({

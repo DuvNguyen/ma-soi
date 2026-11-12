@@ -88,7 +88,7 @@ console.log('🧪 Starting Phase 1 Domain Model & Strategy Tests...\n');
   assert.strictEqual(cursedSeer.isWolf(), true);
   assert.strictEqual(cursedSeer.isCursedWolf, true);
   assert.strictEqual(cursedSeer.originalRoleId, 'tien-tri');
-  assert.strictEqual(cursedSeer.currentRoleId, 'soi-thuong');
+  assert.strictEqual(cursedSeer.currentRoleId, 'soi-bi-nguyen');
   assert.strictEqual(cursedSeer.getRole().name, 'Sói (Tiên Tri bị nguyền)');
   assert.strictEqual(cursedSeer.getSeerAffiliation(), 'WOLF');
 
@@ -332,12 +332,13 @@ console.log('🧪 Starting Phase 1 Domain Model & Strategy Tests...\n');
     const infectedDuyen = unassignedPlayer.infectByCursedWolf(1);
     assert.strictEqual(infectedDuyen.isWolf(), true);
     assert.strictEqual(infectedDuyen.isCursedWolf, true);
-    assert.strictEqual(infectedDuyen.currentRoleId, 'soi-thuong');
+    assert.strictEqual(infectedDuyen.currentRoleId, 'soi-bi-nguyen');
+    assert.strictEqual(infectedDuyen.getRole().name, 'Sói Bị Nguyền');
 
     // Later in Night 1, Game Master wakes Seer and assigns 'tien-tri' to Duyên
     const seerDuyen = infectedDuyen.assignRole('tien-tri');
     assert.strictEqual(seerDuyen.originalRoleId, 'tien-tri', 'Original role set to Seer');
-    assert.strictEqual(seerDuyen.currentRoleId, 'soi-thuong', 'Still a werewolf');
+    assert.strictEqual(seerDuyen.currentRoleId, 'soi-bi-nguyen', 'Still a werewolf');
     assert.strictEqual(seerDuyen.isCursedWolf, true, 'Maintains cursed wolf status');
     assert.strictEqual(seerDuyen.isWolf(), true, 'Affiliated with wolf team');
     assert.strictEqual(seerDuyen.getRole().name, 'Sói (Tiên Tri bị nguyền)');

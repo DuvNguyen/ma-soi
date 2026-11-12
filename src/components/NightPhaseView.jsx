@@ -258,7 +258,7 @@ export default function NightPhaseView({
 
   const WOLF_ROLE_IDS = [
     'soi-thuong', 'soi-con', 'soi-lon-xau-xa', 'soi-trang', 
-    'nguoi-cha-cua-soi', 'soi-quy', 'soi-lua', 'anh-em-soi'
+    'nguoi-cha-cua-soi', 'soi-quy', 'soi-lua', 'anh-em-soi', 'soi-bi-nguyen'
   ];
   const maxWolves = deckRoleIds.filter(id => WOLF_ROLE_IDS.includes(id)).length || 2;
   const currentWolves = players.filter(isWolfPlayer);

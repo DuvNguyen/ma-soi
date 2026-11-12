@@ -176,13 +176,20 @@ export default function RoleHolderBanner({
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-1.5 max-h-48 overflow-y-auto pr-1">
             {players.map(p => {
               const pCurrentId = p.currentRoleId || p.roleId;
-              const isCursed = Boolean(p.isCursedWolf);
+              const isCursed = Boolean(p.isCursedWolf || pCurrentId === 'soi-bi-nguyen');
               const isCurrent = isCursed 
                 ? p.originalRoleId === currentRole.id 
                 : pCurrentId === currentRole.id;
 
-              // Người bị Sói Nguyền lây nhiễm nhưng chưa gán vai gốc (hoặc đang là dân thường) thì vẫn được phép gán vai chức năng này!
-              const isCursedUnassigned = isCursed && (!p.originalRoleId || p.originalRoleId === 'dan-lang' || p.originalRoleId === 'dan-thuong');
+              // Người bị Sói Nguyền lây nhiễm nhưng chưa gán vai gốc chức năng thì VẪN ĐƯỢC PHÉP gán vai chức năng này!
+              const hasAssignedFunctionalOrig = isCursed && Boolean(
+                p.originalRoleId && 
+                p.originalRoleId !== 'dan-lang' && 
+                p.originalRoleId !== 'dan-thuong' && 
+                p.originalRoleId !== 'soi-bi-nguyen' && 
+                p.originalRoleId !== 'soi-thuong'
+              );
+              const isCursedUnassigned = isCursed && !hasAssignedFunctionalOrig;
               const hasOtherRole = Boolean(!isCurrent && (isCursed ? !isCursedUnassigned : pCurrentId));
               const isWolf = isWolfPlayer(p);
 

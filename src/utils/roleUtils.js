@@ -9,7 +9,8 @@ export const WOLF_ROLE_IDS = [
   'soi-quy',
   'nguoi-cha-cua-soi',
   'soi-lua',
-  'anh-em-soi'
+  'anh-em-soi',
+  'soi-bi-nguyen'
 ];
 
 /**
@@ -37,19 +38,21 @@ export const getPlayerRole = (player) => {
   const role = getRole(roleId);
   if (!role) return null;
 
-  // Nếu người chơi bị nguyền thành Sói (bởi Sói Nguyền / Sói Quỷ)
-  if (player.isCursedWolf) {
+  // Nếu người chơi bị nguyền thành Sói (bởi Sói Nguyền / Sói Quỷ hoặc có role soi-bi-nguyen)
+  if (player.isCursedWolf || roleId === 'soi-bi-nguyen') {
     const origRole = getPlayerOriginalRole(player);
-    if (origRole && origRole.id !== role.id) {
-      const cleanOrigName = (origRole.name || '').split(' (')[0].trim();
-      return {
-        ...role,
-        name: `Sói (${cleanOrigName} bị nguyền)`,
-        teamCode: 'W',
-        team: 'Phe Sói',
-        originalRole: origRole
-      };
-    }
+    const hasFunctionalOrig = origRole && origRole.id !== 'soi-bi-nguyen' && origRole.id !== 'soi-thuong' && origRole.id !== 'dan-lang' && origRole.id !== 'dan-thuong';
+    const cleanOrigName = hasFunctionalOrig ? (origRole.name || '').split(' (')[0].trim() : null;
+    const baseRole = getRole('soi-bi-nguyen') || getRole('soi-thuong');
+    return {
+      ...baseRole,
+      id: 'soi-bi-nguyen',
+      name: cleanOrigName ? `Sói (${cleanOrigName} bị nguyền)` : 'Sói Bị Nguyền',
+      enName: cleanOrigName ? `Cursed ${origRole.enName || 'Werewolf'}` : 'Cursed Werewolf',
+      teamCode: 'W',
+      team: 'Phe Sói',
+      originalRole: origRole
+    };
   }
 
   return role;
