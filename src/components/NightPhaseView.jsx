@@ -144,6 +144,30 @@ export default function NightPhaseView({
       });
     }
 
+    // Sói Lớn Xấu Xa (Big Bad Wolf) thức dậy riêng mỗi đêm để cắn thêm 1 người khi chưa có Ma Sói nào chết
+    if (rolesInGame.some(r => r.id === 'soi-lon-xau-xa')) {
+      const bigBadWolfPlayer = players.find(p => (p.currentRoleId || p.roleId) === 'soi-lon-xau-xa');
+      const deadWolves = players.filter(p => !p.isAlive && isWolfPlayer(p));
+      const isPowerActive = bigBadWolfPlayer && bigBadWolfPlayer.isAlive && deadWolves.length === 0;
+
+      finalRoles.push({
+        id: 'soi-lon-xau-xa',
+        name: 'Sói Lớn Xấu Xa (Cắn Thêm)',
+        enName: 'Big Bad Wolf',
+        teamCode: 'W',
+        team: 'Phe Sói',
+        isPowerLost: !isPowerActive,
+        powerLostReason: !bigBadWolfPlayer?.isAlive
+          ? 'Sói Lớn Xấu Xa đã tử trận'
+          : deadWolves.length > 0
+          ? `Đã mất năng lực cắn thêm vì có Ma Sói (${deadWolves.map(w => w.name).join(', ')}) đã chết`
+          : null,
+        shortDesc: 'Mỗi đêm cắn thêm 1 nạn nhân khi chưa có bất kỳ Ma Sói nào trong bầy bị tiêu diệt.',
+        gmCall: 'Sói Lớn Xấu Xa thức dậy một mình. Bạn có muốn cắn thêm nạn nhân nào không?',
+        image: '/cards/Nhan_vat_Ma_soi___Soi_lon_xau_xa.PNG'
+      });
+    }
+
     // Sói Trắng thức dậy riêng vào các đêm chẵn (Đêm 2, 4, 6...) sau khi bầy Sói đi ngủ
     if (rolesInGame.some(r => r.id === 'soi-trang') && roundNumber % 2 === 0) {
       finalRoles.push({
@@ -210,7 +234,7 @@ export default function NightPhaseView({
 
   // Active step
   const currentRole = nightSteps[safeStepIdx] || nightSteps[0];
-  const isWolfStep = ['soi-thuong', 'soi-con', 'soi-lon-xau-xa', 'nguoi-cha-cua-soi', 'soi-quy'].includes(currentRole.id);
+  const isWolfStep = currentRole.id === 'soi-thuong';
   const isSummaryStep = currentRole.id === 'night-summary';
 
   // Players assigned to this role
@@ -451,6 +475,28 @@ export default function NightPhaseView({
           isValid: true,
           message: 'Cáo đã kiểm tra nhóm 3 người',
           shortMessage: 'Đã quét xong ✓'
+        };
+      }
+
+      case 'soi-lon-xau-xa': {
+        if (currentRole.isPowerLost) {
+          return {
+            isValid: true,
+            message: currentRole.powerLostReason || 'Năng lực cắn thêm đã mất',
+            shortMessage: 'Mất năng lực'
+          };
+        }
+        if (nightState.bigBadWolfTargetId === null && !nightState.bigBadWolfSkipped) {
+          return {
+            isValid: false,
+            message: 'Sói Lớn Xấu Xa chọn 1 nạn nhân cắn thêm hoặc bấm Bỏ qua',
+            shortMessage: 'Chưa chọn mục tiêu'
+          };
+        }
+        return {
+          isValid: true,
+          message: 'Sói Lớn Xấu Xa đã đưa ra lựa chọn',
+          shortMessage: 'Đã chọn ✓'
         };
       }
 
@@ -2050,6 +2096,72 @@ export default function NightPhaseView({
               );
             })()}
 
+            {/* 10.5. SÓI LỚN XẤU XA (BIG BAD WOLF) - LƯỢT CẮN BỔ SUNG */}
+            {currentRole.id === 'soi-lon-xau-xa' && (() => {
+              if (currentRole.isPowerLost) {
+                return (
+                  <div className="p-4 rounded-2xl bg-gradient-to-r from-red-950/80 via-[#200407] to-[#120204] border border-rose-800 text-rose-200 space-y-2">
+                    <div className="flex items-center gap-2 font-cinzel font-black text-sm text-rose-300">
+                      <Skull className="w-4 h-4 text-rose-400" />
+                      <span>NĂNG LỰC CẮN THÊM ĐÃ MẤT</span>
+                    </div>
+                    <p className="text-xs text-rose-300/80 leading-relaxed">
+                      {currentRole.powerLostReason}
+                    </p>
+                    <div className="pt-2">
+                      <GothicButton
+                        variant="dark"
+                        size="sm"
+                        onClick={() => handleNextStep(false)}
+                      >
+                        Tiếp Tục ➔
+                      </GothicButton>
+                    </div>
+                  </div>
+                );
+              }
+
+              const validVictims = alivePlayers.filter(p => canWolvesKillTeammates ? true : !isWolfPlayer(p));
+
+              return (
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Skull className="w-5 h-5 text-rose-400 animate-pulse" />
+                      <h4 className="font-bold text-sm text-rose-200 font-cinzel">
+                        SÓI LỚN XẤU XA CẮN THÊM 1 NẠN NHÂN:
+                      </h4>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => onSaveAction('bigBadWolf', null, { bigBadWolfSkipped: true })}
+                      className={`text-xs px-3 py-1 rounded-xl border transition-all font-bold cursor-pointer ${
+                        nightState.bigBadWolfSkipped
+                          ? 'bg-rose-950 border-rose-500 text-rose-200 shadow-md'
+                          : 'bg-black/60 border-slate-700 text-slate-400 hover:text-white'
+                      }`}
+                    >
+                      Bỏ Qua (Không Cắn)
+                    </button>
+                  </div>
+
+                  <PlayerSeatPicker
+                    players={validVictims}
+                    selectedIds={!nightState.bigBadWolfSkipped && nightState.bigBadWolfTargetId ? [nightState.bigBadWolfTargetId] : []}
+                    onSelect={(id) => {
+                      if (nightState.bigBadWolfTargetId === id && !nightState.bigBadWolfSkipped) {
+                        onSaveAction('bigBadWolf', null, { bigBadWolfSkipped: false });
+                      } else {
+                        onSaveAction('bigBadWolf', id, { bigBadWolfSkipped: false });
+                      }
+                    }}
+                    variant="blood"
+                    actionLabel="Cắn thêm"
+                  />
+                </div>
+              );
+            })()}
+
             {/* 11. SÓI TRẮNG (WHITE WEREWOLF) - ĐÊM CHẴN CẮN ĐỒNG BỌN */}
             {currentRole.id === 'soi-trang' && (() => {
               const otherWolves = alivePlayers.filter(p => isWolfPlayer(p) && (p.currentRoleId || p.roleId) !== 'soi-trang');
@@ -2227,6 +2339,12 @@ export default function NightPhaseView({
               <span className="text-slate-400">Mục tiêu Sói cắn:</span>
               <strong className="text-rose-400">{wolfVictim?.name || 'Không cắn ai'}</strong>
             </div>
+            {nightState.bigBadWolfTargetId && !nightState.bigBadWolfSkipped && (
+              <div className="flex justify-between">
+                <span className="text-slate-400">Sói Lớn cắn thêm:</span>
+                <strong className="text-rose-400">{players.find(x => x.id === nightState.bigBadWolfTargetId)?.name || 'Không có'}</strong>
+              </div>
+            )}
             <div className="flex justify-between">
               <span className="text-slate-400">Phù Thủy cứu nạn nhân:</span>
               <strong className={nightState.witchSaved ? 'text-emerald-400' : 'text-slate-500'}>

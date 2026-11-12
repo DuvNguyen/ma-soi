@@ -36,6 +36,8 @@ export const DEFAULT_NIGHT_STATE = {
   wolfTargetId: null,
   wolfTargetId2: null,
   wolfSkipped: false,
+  bigBadWolfTargetId: null,
+  bigBadWolfSkipped: false,
   isCursedInfect: false,
   cursedUsed: false,
   lastCursedVictimId: null,
@@ -703,6 +705,15 @@ export default function App() {
           }
         }
         next.wolfTargetId2 = payload;
+      } else if (type === 'bigBadWolf') {
+        if (payload && !canWolvesKillTeammates) {
+          const target = players.find(p => p.id === payload);
+          if (target && isWolfPlayer(target)) {
+            return prev;
+          }
+        }
+        next.bigBadWolfTargetId = payload;
+        next.bigBadWolfSkipped = !!extra.bigBadWolfSkipped;
       } else if (type === 'curse_convert') {
         // Immediately convert victim into Werewolf and clear bite target so wolves can pick again
         const victimId = payload;

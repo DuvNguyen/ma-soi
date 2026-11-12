@@ -295,6 +295,37 @@ console.log('🧪 Starting Phase 1 Domain Model & Strategy Tests...\n');
     assert.strictEqual(undoneChain.getPlayer(3).isAlive, true, 'Hunter victim resurrected');
     console.log('✅ Test 16: Undo lynch restores full chain of lover and hunter casualties.');
 
-    console.log('\n🎉 ALL 16 DOMAIN ENGINE TESTS PASSED PERFECTLY!\n');
+    // Test 17: Big Bad Wolf (Sói Lớn Xấu Xa) extra bite and protection
+    const bbwGame = new WerewolfGame({
+      roundNumber: 1,
+      isNight: true,
+      players: [
+        new Player({ id: 1, name: 'Sói Lớn', currentRoleId: 'soi-lon-xau-xa', roleId: 'soi-lon-xau-xa' }),
+        new Player({ id: 2, name: 'Sói Thường', currentRoleId: 'soi-thuong', roleId: 'soi-thuong' }),
+        new Player({ id: 3, name: 'Dân 1', currentRoleId: 'dan-lang', roleId: 'dan-lang' }),
+        new Player({ id: 4, name: 'Dân 2', currentRoleId: 'dan-lang', roleId: 'dan-lang' }),
+        new Player({ id: 5, name: 'Bảo Vệ', currentRoleId: 'bao-ve', roleId: 'bao-ve' })
+      ]
+    });
+    // Night 1: Pack targets P3, Big Bad Wolf targets P4. Bodyguard protects P4.
+    const bbwRes1 = bbwGame.resolveNight({
+      wolfTargetId: 3,
+      bigBadWolfTargetId: 4,
+      protectedPlayerId: 4
+    });
+    assert.strictEqual(bbwRes1.game.getPlayer(3).isAlive, false, 'Dân 1 killed by wolf pack');
+    assert.strictEqual(bbwRes1.game.getPlayer(4).isAlive, true, 'Dân 2 protected by Bodyguard against Big Bad Wolf');
+
+    // Without protection, Big Bad Wolf kills target
+    const bbwRes2 = bbwGame.resolveNight({
+      wolfTargetId: 3,
+      bigBadWolfTargetId: 4,
+      protectedPlayerId: null
+    });
+    assert.strictEqual(bbwRes2.game.getPlayer(3).isAlive, false);
+    assert.strictEqual(bbwRes2.game.getPlayer(4).isAlive, false, 'Dân 2 killed by Big Bad Wolf extra bite');
+    console.log('✅ Test 17: Big Bad Wolf extra bite and protection interaction passed.');
+
+    console.log('\n🎉 ALL 17 DOMAIN ENGINE TESTS PASSED PERFECTLY!\n');
   });
 }
