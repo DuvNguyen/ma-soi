@@ -1348,20 +1348,24 @@ export default function NightPhaseView({
 
                 {/* THE REVEALED CARD OF INSPECTED PLAYER (MINIMALIST & PROMINENT RED X) */}
                 {selectedSeerTarget ? (() => {
-                  const targetPlayerModel = selectedSeerTarget instanceof Player 
-                    ? selectedSeerTarget 
-                    : Player.fromJSON(selectedSeerTarget);
+                  const livePlayer = players.find(p => p.id === selectedSeerTarget.id) || selectedSeerTarget;
+                  const targetPlayerModel = livePlayer instanceof Player 
+                    ? livePlayer 
+                    : Player.fromJSON(livePlayer);
+                  const isUnassigned = !targetPlayerModel.currentRoleId && !targetPlayerModel.roleId;
                   const targetRole = targetPlayerModel.getRole();
-                  const isTargetWolf = targetPlayerModel.getSeerAffiliation(nightState) === 'WOLF';
+                  const isTargetWolf = !isUnassigned && targetPlayerModel.getSeerAffiliation(nightState) === 'WOLF';
                   
                   // Bán Sói (Nửa Người Nửa Sói) nếu đã bị bầy Sói cắn trong đêm nay
-                  const isBittenHalfWolfTonight = (selectedSeerTarget?.currentRoleId === 'nua-nguoi-nua-soi' || selectedSeerTarget?.roleId === 'nua-nguoi-nua-soi') &&
-                    (nightState?.wolfTargetId === selectedSeerTarget?.id || nightState?.wolfTargetId2 === selectedSeerTarget?.id) &&
+                  const isBittenHalfWolfTonight = (livePlayer?.currentRoleId === 'nua-nguoi-nua-soi' || livePlayer?.roleId === 'nua-nguoi-nua-soi') &&
+                    (nightState?.wolfTargetId === livePlayer?.id || nightState?.wolfTargetId2 === livePlayer?.id) &&
                     !nightState?.wolfSkipped;
 
                   return (
                     <div className={`p-4 rounded-2xl border transition-all animate-fade-in flex flex-col sm:flex-row items-center gap-4 text-center sm:text-left relative ${
-                      isTargetWolf
+                      isUnassigned
+                        ? 'bg-gradient-to-r from-[#181520] via-[#100e17] to-[#08070c] border-amber-600/70 shadow-[0_0_25px_rgba(245,158,11,0.25)]'
+                        : isTargetWolf
                         ? 'bg-gradient-to-r from-[#3b080c] via-[#200305] to-[#120204] border-rose-600 shadow-[0_0_30px_rgba(225,29,72,0.6)]'
                         : 'bg-gradient-to-r from-[#0d1a33] via-[#091224] to-[#050b18] border-blue-500 shadow-[0_0_30px_rgba(59,130,246,0.5)]'
                     }`}>
@@ -1378,7 +1382,11 @@ export default function NightPhaseView({
                       {/* The Big Card */}
                       <div className="relative shrink-0">
                         <div className={`w-24 h-34 sm:w-28 sm:h-40 rounded-xl overflow-hidden border-2 p-1 shadow-2xl flex items-center justify-center bg-black/90 ${
-                          isTargetWolf ? 'border-rose-500 shadow-[0_0_20px_rgba(225,29,72,0.8)]' : 'border-blue-400 shadow-[0_0_20px_rgba(59,130,246,0.6)]'
+                          isUnassigned
+                            ? 'border-amber-500 shadow-[0_0_20px_rgba(245,158,11,0.4)]'
+                            : isTargetWolf
+                            ? 'border-rose-500 shadow-[0_0_20px_rgba(225,29,72,0.8)]'
+                            : 'border-blue-400 shadow-[0_0_20px_rgba(59,130,246,0.6)]'
                         }`}>
                           {targetRole?.image ? (
                             <img
@@ -1388,37 +1396,51 @@ export default function NightPhaseView({
                             />
                           ) : (
                             <div className="text-4xl flex items-center justify-center">
-                              {isTargetWolf ? <WolfIcon className="w-10 h-10" /> : '👨‍🌾'}
+                              {isUnassigned ? '❓' : isTargetWolf ? <WolfIcon className="w-10 h-10" /> : '👨‍🌾'}
                             </div>
                           )}
                         </div>
                       </div>
 
-                      {/* Card Info - Clean, direct and minimal */}
+                      {/* Card Info */}
                       <div className="flex-1 space-y-2 pr-6">
                         <div className="text-xs uppercase font-bold tracking-wider text-slate-400">
-                          #{selectedSeerTarget.id} {selectedSeerTarget.name}
+                          #{livePlayer.id} {livePlayer.name}
                         </div>
                         <h3 className={`text-xl sm:text-2xl font-black font-cinzel ${
-                          isTargetWolf ? 'text-rose-100' : 'text-blue-100'
+                          isUnassigned
+                            ? 'text-amber-200'
+                            : isTargetWolf
+                            ? 'text-rose-100'
+                            : 'text-blue-100'
                         }`}>
-                          {targetRole?.name || 'Dân Làng'}
+                          {isUnassigned ? 'Chưa Lộ Vai / Chưa Gán' : (targetRole?.name || 'Dân Làng')}
                         </h3>
 
                         {/* Clean Result Badge */}
                         <div className="pt-0.5">
-                          {isTargetWolf ? (
+                          {isUnassigned ? (
+                            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-950/90 border border-amber-600 text-amber-300 font-bold text-xs uppercase tracking-wide shadow-md">
+                              <AlertCircle className="w-3.5 h-3.5 shrink-0" /> Chưa Xác Định
+                            </span>
+                          ) : isTargetWolf ? (
                             <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-rose-600 text-white font-bold text-xs uppercase tracking-wide shadow-md shadow-rose-950/80">
                               <WolfIcon className="w-4 h-4" /> Là Ma Sói
                             </span>
                           ) : (
                             <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-600 text-white font-bold text-xs uppercase tracking-wide shadow-md shadow-blue-950/80">
-                              👨‍🌾 Là Dân Làng
+                              👨‍🌾 Phe Dân Làng
                             </span>
                           )}
                         </div>
 
-                        {selectedSeerTarget.isCursedWolf && (
+                        {isUnassigned && (
+                          <div className="text-[11px] text-amber-300/80 italic font-medium">
+                            Người chơi chưa được gán vai trò. Quản trò cần gán vai trước khi ra dấu cho Tiên Tri.
+                          </div>
+                        )}
+
+                        {livePlayer.isCursedWolf && (
                           <div className="text-[11px] text-purple-300 italic font-medium">
                             (Đã bị Sói Nguyền lây nhiễm thành Sói)
                           </div>

@@ -155,6 +155,7 @@ export default function App() {
   const [wolfCanKillDouble, setWolfCanKillDouble] = useState(() => savedInitial?.wolfCanKillDouble || false);
   const [pendingHunterShot, setPendingHunterShot] = useState(() => savedInitial?.pendingHunterShot || null);
   const [preLynchSnapshot, setPreLynchSnapshot] = useState(() => savedInitial?.preLynchSnapshot || null);
+  const [selectedTemplateId, setSelectedTemplateId] = useState(() => savedInitial?.selectedTemplateId || 'preset-9-11');
   const [canWolvesKillTeammates, setCanWolvesKillTeammates] = useState(() => {
     try {
       const saved = localStorage.getItem('werewolf_rule_wolves_can_kill_teammates');
@@ -236,6 +237,7 @@ export default function App() {
         wolfCanKillDouble,
         pendingHunterShot,
         preLynchSnapshot,
+        selectedTemplateId,
         currentNightStepIdx,
         canWolvesKillTeammates,
         updatedAt: new Date().toISOString()
@@ -251,7 +253,7 @@ export default function App() {
       // 2. Cloud DB sync (Neon)
       syncGameStateApi(stateToSave);
     }
-  }, [roundNumber, isNight, activeTab, players, deckRoleIds, rolesInGame, nightState, lynchedTodayPlayerId, gameEndResult, isVillageCursed, wolfCanKillDouble, pendingHunterShot, preLynchSnapshot, currentNightStepIdx, gameDiary, canWolvesKillTeammates]);
+  }, [roundNumber, isNight, activeTab, players, deckRoleIds, rolesInGame, nightState, lynchedTodayPlayerId, gameEndResult, isVillageCursed, wolfCanKillDouble, pendingHunterShot, preLynchSnapshot, selectedTemplateId, currentNightStepIdx, gameDiary, canWolvesKillTeammates]);
 
   // Helper canonical diary chronologist: merges & sorts chapters strictly by round number and phase (Night before Day)
   const appendToDiary = (prevDiary, newEntry) => {
@@ -417,7 +419,10 @@ export default function App() {
     setNightState({ ...DEFAULT_NIGHT_STATE });
   };
 
-  const handleApplyGameSetup = ({ playerNames, roleIds }) => {
+  const handleApplyGameSetup = ({ playerNames, roleIds, templateId }) => {
+    if (templateId) {
+      setSelectedTemplateId(templateId);
+    }
     const finalRoleIds = roleIds && roleIds.length > 0 ? roleIds : deckRoleIds;
     const count = playerNames?.length || finalRoleIds.length;
 
@@ -456,6 +461,9 @@ export default function App() {
   };
 
   const handleApplyTemplate = (template) => {
+    if (template.id) {
+      setSelectedTemplateId(template.id);
+    }
     setDeckRoleIds(template.roleIds);
     const uniqueRoles = Array.from(new Set(template.roleIds))
       .map(id => ROLES.find(r => r.id === id))
@@ -1833,6 +1841,7 @@ export default function App() {
         initialTab={setupModalTab}
         currentPlayers={players}
         currentDeckRoleIds={deckRoleIds}
+        currentTemplateId={selectedTemplateId}
         onApplyGameSetup={handleApplyGameSetup}
         onApplyTemplate={handleApplyTemplate}
         onApplyRoster={handleApplyRoster}
