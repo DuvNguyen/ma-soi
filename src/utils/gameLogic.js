@@ -10,8 +10,15 @@ export function checkGameEnd(players, extraRules = {}) {
   // Count teams
   let aliveWolves = 0;
   let aliveVillagers = 0;
+  let totalWolves = 0;
   let hasCouple = false;
   let couplePlayers = [];
+
+  players.forEach(p => {
+    if (isWolfPlayer(p)) {
+      totalWolves++;
+    }
+  });
 
   alivePlayers.forEach(p => {
     // Check couple
@@ -97,8 +104,8 @@ export function checkGameEnd(players, extraRules = {}) {
     };
   }
 
-  // 5. Villagers win: All werewolves are eliminated
-  if (aliveWolves === 0) {
+  // 5. Villagers win: There were werewolves in the match, and all of them are now dead
+  if (totalWolves > 0 && aliveWolves === 0) {
     return {
       isEnded: true,
       winner: 'Villagers',

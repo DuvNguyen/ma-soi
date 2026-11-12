@@ -200,6 +200,21 @@ console.log('🧪 Starting Phase 1 Domain Model & Strategy Tests...\n');
     assert.strictEqual(undoneGame.lynchedTodayPlayerId, null);
     console.log('✅ Test 12: Undo Lynch restores player passed.');
 
-    console.log('\n🎉 ALL 12 DOMAIN ENGINE TESTS PASSED PERFECTLY!\n');
+    // Test 13: Assigning Cupid on Night 1 with unassigned players does NOT trigger Villagers win
+    const setupGame = new WerewolfGame({
+      roundNumber: 1,
+      isNight: true,
+      players: [
+        new Player({ id: 1, name: 'P1', currentRoleId: 'cupid', roleId: 'cupid' }),
+        new Player({ id: 2, name: 'P2' }),
+        new Player({ id: 3, name: 'P3' }),
+        new Player({ id: 4, name: 'P4' })
+      ]
+    });
+    const setupWinCheck = setupGame.checkWinCondition();
+    assert.strictEqual(setupWinCheck.isEnded, false, 'Game should NOT end when only Cupid is assigned and totalWolves === 0');
+    console.log('✅ Test 13: Night 1 Cupid assignment does not trigger false Villagers win.');
+
+    console.log('\n🎉 ALL 13 DOMAIN ENGINE TESTS PASSED PERFECTLY!\n');
   });
 }

@@ -514,19 +514,24 @@ export default function App() {
     }));
   };
 
-  // Reactive Game End Evaluator: Tự động kiểm tra điều kiện kết thúc ván đấu ngay khi players thay đổi
+  // Reactive Game End Evaluator: Tự động kiểm tra điều kiện kết thúc ván đấu khi có biến cố thay đổi
   useEffect(() => {
     if (!players || players.length === 0) return;
     if (gameEndResult?.isEnded) return;
 
-    const hasActiveGame = players.some(p => p.roleId || p.currentRoleId || p.isCursedWolf || !p.isAlive);
-    if (!hasActiveGame) return;
+    // Không kích hoạt kết thúc game trong Đêm 1 khi quản trò đang gán vai trò theo lượt thức dậy
+    if (isNight && roundNumber === 1) return;
+
+    // Ván đấu chỉ kết thúc khi đã gán Ma Sói và có người chơi hy sinh
+    const hasAssignedWolves = players.some(p => isWolfPlayer(p));
+    const hasAnyDeaths = players.some(p => !p.isAlive);
+    if (!hasAssignedWolves || !hasAnyDeaths) return;
 
     const result = checkGameEnd(players);
     if (result.isEnded) {
-      setGameEndResult(result);
+      evaluateGameEnd(players);
     }
-  }, [players, gameEndResult]);
+  }, [players, gameEndResult, isNight, roundNumber]);
 
   const handleOpenSheriffModal = (deadSheriff = null, isMandatory = false) => {
     setSheriffModalState({
