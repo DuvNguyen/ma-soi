@@ -245,6 +245,7 @@ export default function NightPhaseView({
   const [selectedSeerTarget, setSelectedSeerTarget] = useState(null);
   const [showAssignDropdown, setShowAssignDropdown] = useState(false);
   const [showWolfWhisper, setShowWolfWhisper] = useState(false);
+  const [wolfLogs, setWolfLogs] = useState([]);
 
   // STRICT GATEKEEPER VALIDATION
   const isSkipped = (nightState?.skippedRoles || []).includes(currentRole?.id);
@@ -1130,9 +1131,43 @@ export default function NightPhaseView({
                     players={players}
                     nightState={nightState}
                     canWolvesKillTeammates={canWolvesKillTeammates}
-                    onSaveAction={onSaveAction}
+                    wolfLogs={wolfLogs}
+                    setWolfLogs={setWolfLogs}
                     onClose={() => setShowWolfWhisper(false)}
                   />
+                )}
+
+                {/* Wolf Discussion Results Summary for Game Master */}
+                {wolfLogs.length > 0 && (
+                  <div className="p-3 rounded-2xl bg-gradient-to-r from-[#180306] to-[#0d0103] border border-rose-900/80 shadow-md space-y-1.5">
+                    <div className="flex items-center justify-between text-xs font-bold text-rose-300">
+                      <span className="flex items-center gap-1.5 uppercase tracking-wider text-[11px] text-rose-400">
+                        <span>🐺 Thảo luận từ bầy Sói ({wolfLogs.length}):</span>
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setWolfLogs([])}
+                        className="text-[10px] text-rose-500 hover:text-rose-300 underline cursor-pointer"
+                      >
+                        Xóa lịch sử
+                      </button>
+                    </div>
+                    <div className="space-y-1 max-h-32 overflow-y-auto pr-1">
+                      {wolfLogs.map(log => (
+                        <div key={log.id} className="text-xs bg-[#240509]/80 border border-rose-950 rounded-lg p-2 flex items-center justify-between gap-2">
+                          <div className="flex items-center gap-1.5 min-w-0">
+                            <span className="font-bold text-rose-200 shrink-0">{log.wolfName}:</span>
+                            {log.text && <span className="text-rose-100 truncate">{log.text}</span>}
+                          </div>
+                          {log.targetName && (
+                            <span className="text-[11px] font-bold text-rose-200 bg-rose-950 px-2 py-0.5 rounded border border-rose-800 shrink-0">
+                              🎯 Đề xuất: {log.targetName}
+                            </span>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                 )}
 
                 <div className="space-y-4 pt-1">

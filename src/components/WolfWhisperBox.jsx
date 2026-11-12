@@ -15,7 +15,8 @@ export default function WolfWhisperBox({
   players,
   nightState,
   canWolvesKillTeammates = false,
-  onSaveAction,
+  wolfLogs: externalWolfLogs,
+  setWolfLogs: externalSetWolfLogs,
   onClose,
   defaultTimerDuration = 25
 }) {
@@ -49,7 +50,9 @@ export default function WolfWhisperBox({
   const [messageText, setMessageText] = useState('');
 
   // Wolf messages log for current night: array of { id, wolfId, wolfName, text, targetId, targetName, time }
-  const [wolfLogs, setWolfLogs] = useState([]);
+  const [localWolfLogs, setLocalWolfLogs] = useState([]);
+  const wolfLogs = externalWolfLogs ?? localWolfLogs;
+  const setWolfLogs = externalSetWolfLogs ?? setLocalWolfLogs;
 
   // Audio beep generator using Web Audio API
   const playBeep = (freq = 600, duration = 0.1) => {
@@ -134,16 +137,11 @@ export default function WolfWhisperBox({
       setWolfLogs(prev => [...prev, newEntry]);
     }
 
-    // If a valid target was proposed, auto-sync as potential night wolf target
-    if (targetPlayer && isTargetAllowed(targetPlayer)) {
-      onSaveAction('wolves', targetPlayer.id);
-    }
-
     // Reset inputs for next wolf
     setProposedTargetId(null);
     setMessageText('');
 
-    // Advance to next wolf
+    // Advance to next wolf or return to game master
     if (activeWolfIndex < livingWolves.length - 1) {
       setActiveWolfIndex(prev => prev + 1);
       setTimeLeft(timerDuration);
@@ -151,7 +149,30 @@ export default function WolfWhisperBox({
     } else {
       setIsRunning(false);
       setTimeLeft(timerDuration);
+      if (onClose) onClose();
     }
+  };
+
+  const handleClose = () => {
+    if (currentWolf) {
+      const targetPlayer = proposedTargetId ? players.find(p => p.id === proposedTargetId) : null;
+      const cleanText = messageText.trim();
+      if (cleanText || targetPlayer) {
+        setWolfLogs(prev => [
+          ...prev,
+          {
+            id: Date.now(),
+            wolfId: currentWolf.id,
+            wolfName: currentWolf.name,
+            text: cleanText || null,
+            targetId: targetPlayer ? targetPlayer.id : null,
+            targetName: targetPlayer ? targetPlayer.name : null,
+            time: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })
+          }
+        ]);
+      }
+    }
+    if (onClose) onClose();
   };
 
   return (
@@ -200,7 +221,7 @@ export default function WolfWhisperBox({
               {onClose && (
                 <button
                   type="button"
-                  onClick={onClose}
+                  onClick={handleClose}
                   className="p-2 rounded-xl bg-rose-950/80 hover:bg-rose-900 border border-rose-600 text-rose-200 hover:text-white transition-colors cursor-pointer ml-1"
                   title="Đóng chuyền máy / Trở về quản trò"
                 >
@@ -489,7 +510,7 @@ export default function WolfWhisperBox({
                       className="h-9 px-4 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 bg-gradient-to-r from-rose-600 to-rose-800 hover:from-rose-500 hover:to-rose-700 text-white cursor-pointer active:scale-95 shadow-md shadow-rose-950/80 transition-all"
                     >
                       <span>
-                        {activeWolfIndex < livingWolves.length - 1 ? 'Chuyền Sang Sói Kế Tiếp ➔' : 'Chốt Con Mồi / Hoàn Tất 🩸'}
+                        {activeWolfIndex < livingWolves.length - 1 ? 'Chuyền Sang Sói Kế Tiếp ➔' : 'Trả Máy Cho Quản Trò ↩'}
                       </span>
                     </button>
                   </div>
@@ -514,7 +535,7 @@ export default function WolfWhisperBox({
                 {onClose && (
                   <button
                     type="button"
-                    onClick={onClose}
+                    onClick={handleClose}
                     className="w-full sm:w-auto px-4 py-2 rounded-xl bg-rose-900/80 hover:bg-rose-800 text-rose-100 font-bold text-xs border border-rose-600 transition-colors cursor-pointer shrink-0"
                   >
                     Trở Về Quản Trò ↩
