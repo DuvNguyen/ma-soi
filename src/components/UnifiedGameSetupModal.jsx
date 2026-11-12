@@ -708,11 +708,16 @@ export default function UnifiedGameSetupModal({
                       }))
                       .filter(item => Boolean(item.role))
                       .sort((a, b) => {
-                        if (a.role.id === 'dan-lang') return 1;
-                        if (b.role.id === 'dan-lang') return -1;
+                        // 1. Sói lên đầu
                         if (a.role.teamCode === 'W' && b.role.teamCode !== 'W') return -1;
                         if (a.role.teamCode !== 'W' && b.role.teamCode === 'W') return 1;
-                        return 0;
+                        // 2. Dân Làng cơ bản
+                        if (a.role.id === 'dan-lang' && b.role.id !== 'dan-lang') return -1;
+                        if (a.role.id !== 'dan-lang' && b.role.id === 'dan-lang') return 1;
+                        // 3. Phe Dân
+                        if (a.role.teamCode === 'V' && b.role.teamCode !== 'V') return -1;
+                        if (a.role.teamCode !== 'V' && b.role.teamCode === 'V') return 1;
+                        return a.role.name.localeCompare(b.role.name);
                       });
 
                     const displayName = isSelected && editingDeckName.trim() ? editingDeckName.trim() : t.name;
@@ -772,7 +777,7 @@ export default function UnifiedGameSetupModal({
                           )}
 
                           {/* Role badges summary */}
-                          <div className="flex flex-wrap gap-1 max-h-24 overflow-hidden">
+                          <div className="flex flex-wrap gap-1 mt-1">
                             {wolfs > 0 && (
                               <span className="text-[10px] px-1.5 py-0.5 rounded bg-rose-950/80 text-rose-300 border border-rose-900/60 font-medium">
                                 🐺 {wolfs} Sói
@@ -783,28 +788,29 @@ export default function UnifiedGameSetupModal({
                                 🛡️ {villagers} Dân
                               </span>
                             )}
-                            {groupedRoles.slice(0, 8).map((item) => (
-                              <span
-                                key={item.role.id}
-                                className={`text-[10px] px-1.5 py-0.5 rounded border flex items-center gap-1 ${
-                                  item.role.teamCode === 'W'
-                                    ? 'bg-rose-950/60 text-rose-200 border-rose-900/50'
-                                    : 'bg-slate-900 text-slate-300 border-slate-800'
-                                }`}
-                              >
-                                <span>{item.role.name}</span>
-                                {item.count > 1 && (
-                                  <span className="text-[9px] font-mono font-bold text-amber-400 bg-black/40 px-1 rounded">
-                                    x{item.count}
-                                  </span>
-                                )}
-                              </span>
-                            ))}
-                            {groupedRoles.length > 8 && (
-                              <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-900 text-slate-400 border border-slate-800 font-mono">
-                                +{groupedRoles.length - 8} vai
-                              </span>
-                            )}
+                            {groupedRoles.map((item) => {
+                              const isWolf = item.role.teamCode === 'W';
+                              const isVillagerBasic = item.role.id === 'dan-lang';
+                              return (
+                                <span
+                                  key={item.role.id}
+                                  className={`text-[10px] px-1.5 py-0.5 rounded border flex items-center gap-1 ${
+                                    isWolf
+                                      ? 'bg-rose-950/60 text-rose-200 border-rose-900/50'
+                                      : isVillagerBasic
+                                      ? 'bg-slate-900/90 text-slate-300 border-slate-700'
+                                      : 'bg-purple-950/40 text-purple-200 border-purple-800/50'
+                                  }`}
+                                >
+                                  <span>{item.role.name}</span>
+                                  {item.count > 1 && (
+                                    <span className="text-[9px] font-mono font-bold text-amber-400 bg-black/50 px-1 py-0.2 rounded border border-amber-500/30">
+                                      x{item.count}
+                                    </span>
+                                  )}
+                                </span>
+                              );
+                            })}
                           </div>
                         </div>
 
@@ -942,7 +948,7 @@ export default function UnifiedGameSetupModal({
                               onClick={(e) => {
                                 e.stopPropagation();
                                 if (isSelected && showRoleCustomizer) {
-                                  setShowRoleCustomizer(false);
+                                  handleSaveDeckConfig();
                                 } else {
                                   handleSelectTemplate(t);
                                   setEditingDeckName(t.name || '');
@@ -957,7 +963,7 @@ export default function UnifiedGameSetupModal({
                               }`}
                             >
                               <SlidersHorizontal className="w-3.5 h-3.5 text-amber-400" />
-                              <span>{isEditing ? 'Đóng Sửa' : 'Sửa Lá Bài'}</span>
+                              <span>{isEditing ? 'Lưu & Đóng' : 'Sửa Lá Bài'}</span>
                             </button>
 
                             {/* Delete button available on ALL cards */}
