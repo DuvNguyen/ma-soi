@@ -1,7 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { Skull, Clock, Play, Pause, RotateCcw, Settings, Check, Volume2, VolumeX, AlertCircle, X } from 'lucide-react';
+import { Skull, Clock, Play, Pause, RotateCcw, Settings, Check, Volume2, VolumeX, AlertCircle, X, MessageSquare } from 'lucide-react';
 import WolfIcon from './ui/WolfIcon';
 import { isWolfPlayer, getPlayerRole } from '../utils/roleUtils';
+
+const QUICK_NOTES = [
+  'Đã chỉ tay thống nhất',
+  'Nghi là Bảo Vệ',
+  'Nghi là Thợ Săn',
+  'Ngày mai tôi giả Tiên Tri',
+  'Tập trung cắn người này'
+];
 
 export default function WolfWhisperBox({
   players,
@@ -38,11 +46,12 @@ export default function WolfWhisperBox({
 
   // Active Wolf inputs
   const [proposedTargetId, setProposedTargetId] = useState(null);
+  const [messageText, setMessageText] = useState('');
 
-  // Wolf messages log for current night: array of { wolfId, wolfName, targetId, targetName, time }
+  // Wolf messages log for current night: array of { id, wolfId, wolfName, text, targetId, targetName, time }
   const [wolfLogs, setWolfLogs] = useState([]);
 
-  // Audio beep generator using Web Audio API (no external sound files required)
+  // Audio beep generator using Web Audio API
   const playBeep = (freq = 600, duration = 0.1) => {
     if (!soundEnabled) return;
     try {
@@ -109,33 +118,37 @@ export default function WolfWhisperBox({
   const handleSendAndNextWolf = () => {
     if (!currentWolf) return;
 
-    const targetPlayer = players.find(p => p.id === proposedTargetId);
-    if (!targetPlayer || !isTargetAllowed(targetPlayer)) return;
+    const targetPlayer = proposedTargetId ? players.find(p => p.id === proposedTargetId) : null;
+    const cleanText = messageText.trim();
 
-    const newEntry = {
-      id: Date.now(),
-      wolfId: currentWolf.id,
-      wolfName: currentWolf.name,
-      targetId: proposedTargetId,
-      targetName: targetPlayer.name,
-      time: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
-    };
-
-    setWolfLogs(prev => [...prev, newEntry]);
+    if (cleanText || targetPlayer) {
+      const newEntry = {
+        id: Date.now(),
+        wolfId: currentWolf.id,
+        wolfName: currentWolf.name,
+        text: cleanText || null,
+        targetId: targetPlayer ? targetPlayer.id : null,
+        targetName: targetPlayer ? targetPlayer.name : null,
+        time: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })
+      };
+      setWolfLogs(prev => [...prev, newEntry]);
+    }
 
     // If a valid target was proposed, auto-sync as potential night wolf target
-    onSaveAction('wolves', proposedTargetId);
+    if (targetPlayer && isTargetAllowed(targetPlayer)) {
+      onSaveAction('wolves', targetPlayer.id);
+    }
 
     // Reset inputs for next wolf
     setProposedTargetId(null);
+    setMessageText('');
 
     // Advance to next wolf
     if (activeWolfIndex < livingWolves.length - 1) {
       setActiveWolfIndex(prev => prev + 1);
       setTimeLeft(timerDuration);
-      setIsRunning(true); // auto-start for next wolf
+      setIsRunning(true);
     } else {
-      // Completed all wolves
       setIsRunning(false);
       setTimeLeft(timerDuration);
     }
@@ -159,7 +172,7 @@ export default function WolfWhisperBox({
                   </span>
                 </h4>
                 <p className="text-[11px] text-rose-300/70">
-                  Chuyền máy cho từng con Sói chọn mục tiêu trong im lặng
+                  Chuyền máy cho từng con Sói chọn mục tiêu & nhắn tin trong im lặng
                 </p>
               </div>
             </div>
@@ -202,7 +215,7 @@ export default function WolfWhisperBox({
             <div className="p-3 rounded-2xl bg-[#200407] border border-rose-700/80 space-y-2.5 animate-fade-in shadow-xl">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-bold text-rose-200 uppercase tracking-wider">
-                  Cài đặt thời gian chuyền máy:
+                  Thời gian chuyền máy:
                 </span>
                 <span className="text-xs font-black text-rose-300 font-cinzel">
                   {timerDuration}s
@@ -282,7 +295,7 @@ export default function WolfWhisperBox({
 
               {/* ACTIVE WOLF HAND-OFF CARD */}
               {currentWolf && (
-                <div className="p-4 rounded-2xl bg-gradient-to-b from-[#240508] to-[#140204] border border-rose-600/90 shadow-2xl relative overflow-hidden space-y-4">
+                <div className="p-4 rounded-2xl bg-gradient-to-b from-[#240508] to-[#140204] border border-rose-600/90 shadow-2xl relative overflow-hidden space-y-3.5">
                   {timeLeft <= 5 && isRunning && (
                     <div className="absolute inset-0 bg-rose-600/15 animate-ping pointer-events-none"></div>
                   )}
@@ -337,21 +350,92 @@ export default function WolfWhisperBox({
                     </div>
                   </div>
 
-                  {/* Step 1: Select Proposed Victim Target */}
+                  {/* Previous Wolf Whispers Thread */}
+                  {wolfLogs.length > 0 && (
+                    <div className="space-y-1.5 rounded-xl bg-[#0c0103]/80 border border-rose-950 p-2.5">
+                      <div className="flex items-center gap-1.5 text-[11px] font-bold text-rose-400 uppercase tracking-wider">
+                        <MessageSquare className="w-3.5 h-3.5" />
+                        <span>Lời nhắn từ bầy đêm nay ({wolfLogs.length})</span>
+                      </div>
+                      <div className="space-y-1.5 max-h-28 overflow-y-auto pr-1">
+                        {wolfLogs.map(log => (
+                          <div key={log.id} className="text-xs bg-[#190306] border border-rose-900/40 rounded-lg p-2 flex flex-col gap-1">
+                            <div className="flex items-center justify-between text-[11px]">
+                              <span className="font-bold text-rose-200">{log.wolfName}</span>
+                              <span className="text-rose-400/60 text-[10px]">{log.time}</span>
+                            </div>
+                            {log.text && (
+                              <p className="text-rose-100 font-sans text-xs break-words">{log.text}</p>
+                            )}
+                            {log.targetName && (
+                              <div className="text-[11px] text-rose-300 font-medium flex items-center gap-1">
+                                <span>🎯 Mục tiêu đề xuất:</span>
+                                <span className="font-bold text-rose-100 bg-rose-950 px-1.5 py-0.5 rounded border border-rose-800">
+                                  {log.targetName}
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Step 1: Text message / Secret note input */}
                   <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-rose-200 block">
+                      Nhắn tin bí mật cho bầy Sói
+                    </label>
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={messageText}
+                        onChange={(e) => setMessageText(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            handleSendAndNextWolf();
+                          }
+                        }}
+                        placeholder="Nhập tin nhắn bí mật (VD: cắn người này, tôi giả Tiên Tri...)"
+                        className="flex-1 bg-[#120204] border border-rose-800/80 rounded-xl px-3 py-2 text-xs text-rose-100 placeholder:text-rose-400/40 focus:outline-none focus:border-rose-400 transition-colors"
+                      />
+                    </div>
+
+                    {/* Quick suggestion tags */}
+                    <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none pt-0.5">
+                      {QUICK_NOTES.map((note) => (
+                        <button
+                          key={note}
+                          type="button"
+                          onClick={() => setMessageText(prev => prev ? `${prev} - ${note}` : note)}
+                          className="shrink-0 px-2 py-0.5 rounded-lg bg-[#180306] hover:bg-[#25050a] border border-rose-900/60 text-[10px] text-rose-300/80 transition-colors cursor-pointer"
+                        >
+                          + {note}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Step 2: Select Proposed Victim Target (Optional, can also point fingers) */}
+                  <div className="space-y-1.5 pt-1">
                     <div className="flex items-center justify-between text-xs">
                       <span className="font-bold text-rose-200">
-                        {currentWolf.name} muốn cắn ai đêm nay?
+                        Mục tiêu muốn cắn <span className="text-[11px] text-rose-400/70 font-normal">(tùy chọn hoặc chỉ tay)</span>
                       </span>
                       {proposedTargetId && (
-                        <span className="text-rose-300 text-[11px] font-bold">
-                          Đã chọn: {players.find(p => p.id === proposedTargetId)?.name}
-                        </span>
+                        <button
+                          type="button"
+                          onClick={() => setProposedTargetId(null)}
+                          className="text-rose-400 text-[11px] hover:text-rose-200 underline cursor-pointer"
+                        >
+                          Bỏ chọn
+                        </button>
                       )}
                     </div>
 
                     {/* Candidate Chips */}
-                    <div className="flex flex-wrap gap-1.5 max-h-36 overflow-y-auto pr-1">
+                    <div className="flex flex-wrap gap-1.5 max-h-32 overflow-y-auto pr-1">
                       {aliveVictimCandidates.map(p => {
                         const isSelected = proposedTargetId === p.id;
                         const isSelfOrWolf = isWolfPlayer(p);
@@ -364,9 +448,9 @@ export default function WolfWhisperBox({
                             disabled={isBlocked}
                             onClick={() => {
                               if (isBlocked) return;
-                              setProposedTargetId(p.id);
+                              setProposedTargetId(isSelected ? null : p.id);
                             }}
-                            className={`px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all flex items-center gap-1.5 ${
+                            className={`px-2.5 py-1.5 rounded-xl text-xs font-semibold border transition-all flex items-center gap-1.5 ${
                               isBlocked
                                 ? 'bg-[#120204]/60 border-rose-950/40 text-rose-800/60 cursor-not-allowed opacity-40 line-through'
                                 : isSelected
@@ -389,7 +473,7 @@ export default function WolfWhisperBox({
                     </div>
                   </div>
 
-                  {/* Step 2: Confirm and pass */}
+                  {/* Step 3: Confirm and pass */}
                   <div className="pt-2 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 border-t border-rose-900/60">
                     <div className="text-xs text-rose-300/80">
                       {activeWolfIndex < livingWolves.length - 1 ? (
@@ -401,16 +485,11 @@ export default function WolfWhisperBox({
 
                     <button
                       type="button"
-                      disabled={!proposedTargetId || !isTargetAllowed(players.find(p => p.id === proposedTargetId))}
                       onClick={handleSendAndNextWolf}
-                      className={`h-9 px-4 rounded-xl font-bold text-xs flex items-center gap-1.5 shadow-md transition-all ${
-                        proposedTargetId && isTargetAllowed(players.find(p => p.id === proposedTargetId))
-                          ? 'bg-gradient-to-r from-rose-600 to-rose-800 hover:from-rose-500 hover:to-rose-700 text-white cursor-pointer active:scale-95 shadow-rose-950/80'
-                          : 'bg-slate-900 border border-slate-800 text-slate-500 cursor-not-allowed opacity-50'
-                      }`}
+                      className="h-9 px-4 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 bg-gradient-to-r from-rose-600 to-rose-800 hover:from-rose-500 hover:to-rose-700 text-white cursor-pointer active:scale-95 shadow-md shadow-rose-950/80 transition-all"
                     >
                       <span>
-                        {activeWolfIndex < livingWolves.length - 1 ? 'Chuyền Sang Sói Kế Tiếp ➔' : 'Chốt Con Mồi Cho Cả Bầy 🩸'}
+                        {activeWolfIndex < livingWolves.length - 1 ? 'Chuyền Sang Sói Kế Tiếp ➔' : 'Chốt Con Mồi / Hoàn Tất 🩸'}
                       </span>
                     </button>
                   </div>
@@ -421,10 +500,12 @@ export default function WolfWhisperBox({
               <div className="flex flex-col sm:flex-row items-center justify-between gap-2 pt-1">
                 {wolfLogs.length > 0 ? (
                   <div className="p-2 rounded-xl bg-[#0d0103] border border-rose-900/60 flex items-center gap-2 flex-wrap text-xs text-rose-200 flex-1">
-                    <span className="font-bold text-[11px] uppercase tracking-wider text-rose-400">Đã vote ({wolfLogs.length}/{livingWolves.length}):</span>
+                    <span className="font-bold text-[11px] uppercase tracking-wider text-rose-400">Đã gửi ({wolfLogs.length}/{livingWolves.length}):</span>
                     {wolfLogs.map(log => (
-                      <span key={log.id} className="px-2 py-0.5 rounded-lg bg-rose-950/80 border border-rose-800/80 text-[11px]">
-                        <strong>{log.wolfName}</strong> ➔ <span className="text-white font-bold">{log.targetName}</span>
+                      <span key={log.id} className="px-2 py-0.5 rounded-lg bg-rose-950/80 border border-rose-800/80 text-[11px] flex items-center gap-1">
+                        <strong>{log.wolfName}</strong>
+                        {log.targetName && <span className="text-white font-bold">➔ {log.targetName}</span>}
+                        {log.text && <span className="text-rose-300 italic truncate max-w-[120px]">({log.text})</span>}
                       </span>
                     ))}
                   </div>
