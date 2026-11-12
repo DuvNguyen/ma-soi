@@ -1544,19 +1544,19 @@ export default function App() {
 
       {/* Top Navigation Bar - Consistent Gothic Dark & Mobile One-Screen */}
       <header className="sticky top-0 z-40 bg-[#0c0d16]/90 backdrop-blur-md border-b border-purple-950/80 px-2 sm:px-4 py-1.5 sm:py-2 ios-safe-top shadow-[0_4px_25px_rgba(0,0,0,0.8)]">
-        <div className="max-w-7xl mx-auto flex items-center justify-between gap-1.5 sm:gap-2">
+        <div className="max-w-7xl mx-auto flex items-center justify-between gap-1 sm:gap-2">
           {/* Brand & Mini Status */}
-          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+          <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
             <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl bg-gradient-to-br from-purple-800 to-rose-900 border border-purple-600/60 flex items-center justify-center font-cinzel font-black text-white text-base shadow-[0_0_12px_rgba(147,51,234,0.4)] shrink-0">
               <WolfIcon className="w-3.5 h-3.5 sm:w-4.5 sm:h-4.5 text-rose-200" />
             </div>
-            <div>
+            <div className="min-w-0">
               <div className="flex items-center gap-1 sm:gap-1.5">
-                <h1 className="font-cinzel font-black text-xs sm:text-sm md:text-base tracking-wider text-slate-100 leading-tight whitespace-nowrap">
+                <h1 className="font-cinzel font-black text-xs sm:text-sm md:text-base tracking-wide sm:tracking-wider text-slate-100 leading-tight truncate">
                   QUẢN TRÒ MA SÓI
                 </h1>
                 {neonStatus.ok && (
-                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0" title="Đã kết nối Neon DB"></span>
+                  <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-emerald-400 animate-pulse shrink-0" title="Đã kết nối Neon DB"></span>
                 )}
               </div>
               <div className="text-[10px] text-purple-300/70 font-medium hidden sm:block">
@@ -1572,14 +1572,14 @@ export default function App() {
               type="button"
               onClick={handleResetGame}
               title="Reset ván chơi về 0"
-              className="h-7 px-2 sm:h-8 sm:px-2.5 rounded-lg sm:rounded-xl bg-rose-950/70 hover:bg-rose-900 border border-rose-700/80 hover:border-rose-400 text-rose-200 text-xs font-bold transition-all flex items-center justify-center gap-1 cursor-pointer shadow-sm active:scale-95 shrink-0"
+              className="h-7 w-7 sm:h-8 sm:w-auto sm:px-2.5 rounded-lg sm:rounded-xl bg-rose-950/70 hover:bg-rose-900 border border-rose-700/80 hover:border-rose-400 text-rose-200 text-xs font-bold transition-all flex items-center justify-center gap-1 cursor-pointer shadow-sm active:scale-95 shrink-0"
             >
               <RefreshCw className="w-3.5 h-3.5 shrink-0 text-rose-300" />
               <span className="hidden sm:inline">Reset Về 0</span>
             </button>
 
             {/* Unified Setup Group: Thiết Lập Ván Chơi (Tích hợp Người Chơi + Bộ Bài) */}
-            <div className="flex items-center gap-0.5 bg-[#101220]/80 p-0.5 rounded-lg sm:rounded-xl border border-purple-950/80">
+            <div className="flex items-center gap-0.5 bg-[#101220]/80 p-0.5 rounded-lg sm:rounded-xl border border-purple-950/80 shrink-0">
               <button
                 type="button"
                 onClick={() => {
@@ -1587,11 +1587,11 @@ export default function App() {
                   setIsSetupOpen(true);
                 }}
                 title="Thiết lập phòng chơi: Tùy chỉnh danh sách người chơi & bộ bài đồng bộ"
-                className="h-6 sm:h-7 px-1.5 sm:px-2.5 rounded-md sm:rounded-lg bg-purple-950 hover:bg-purple-900 border border-purple-600/70 text-purple-200 text-xs font-bold transition-all flex items-center justify-center gap-1 sm:gap-1.5 cursor-pointer shadow-sm active:scale-95"
+                className="h-6 sm:h-7 px-1.5 sm:px-2.5 rounded-md sm:rounded-lg bg-purple-950 hover:bg-purple-900 border border-purple-600/70 text-purple-200 text-xs font-bold transition-all flex items-center justify-center gap-1 sm:gap-1.5 cursor-pointer shadow-sm active:scale-95 shrink-0"
               >
                 <SlidersHorizontal className="w-3.5 h-3.5 text-purple-300 shrink-0" />
                 <span className="hidden sm:inline">Thiết Lập Ván</span>
-                <span className="sm:hidden">Thiết Lập</span>
+                <span className="sm:hidden text-[11px]">Thiết Lập</span>
               </button>
 
               {/* Quick shortcut to Rosters */}
@@ -1602,7 +1602,7 @@ export default function App() {
                   setIsSetupOpen(true);
                 }}
                 title="Quản lý danh sách nhóm người chơi"
-                className="hidden sm:flex h-6 w-6.5 sm:h-7 sm:w-auto sm:px-1.5 rounded-md sm:rounded-lg hover:bg-slate-800 text-slate-400 hover:text-purple-200 text-xs font-bold transition-all items-center justify-center cursor-pointer"
+                className="hidden sm:flex h-6 w-6 sm:h-7 sm:w-auto sm:px-1.5 rounded-md sm:rounded-lg hover:bg-slate-800 text-slate-400 hover:text-purple-200 text-xs font-bold transition-all items-center justify-center cursor-pointer"
               >
                 <Users className="w-3.5 h-3.5 shrink-0" />
               </button>
@@ -1615,20 +1615,20 @@ export default function App() {
                   setIsSetupOpen(true);
                 }}
                 title="Quản lý bộ bài mẫu"
-                className="hidden sm:flex h-6 w-6.5 sm:h-7 sm:w-auto sm:px-1.5 rounded-md sm:rounded-lg hover:bg-slate-800 text-slate-400 hover:text-amber-200 text-xs font-bold transition-all items-center justify-center cursor-pointer"
+                className="hidden sm:flex h-6 w-6 sm:h-7 sm:w-auto sm:px-1.5 rounded-md sm:rounded-lg hover:bg-slate-800 text-slate-400 hover:text-amber-200 text-xs font-bold transition-all items-center justify-center cursor-pointer"
               >
                 <Layers className="w-3.5 h-3.5 shrink-0" />
               </button>
             </div>
 
             {/* Tools Group: Cài Đặt, Lịch Sử, Thư Viện */}
-            <div className="flex items-center gap-0.5 bg-[#101220]/80 p-0.5 rounded-lg sm:rounded-xl border border-slate-800">
+            <div className="flex items-center gap-0.5 bg-[#101220]/80 p-0.5 rounded-lg sm:rounded-xl border border-slate-800 shrink-0">
               {/* Cài Đặt Luật Chơi */}
               <button
                 type="button"
                 onClick={() => setIsSettingsOpen(true)}
                 title="Cài đặt luật chơi (Bật/tắt Sói cắn đồng loại, lưu state game...)"
-                className="h-6 w-6.5 sm:h-7 sm:w-auto sm:px-2 rounded-md sm:rounded-lg hover:bg-slate-800 text-purple-200 text-xs font-bold transition-all flex items-center justify-center gap-1 cursor-pointer"
+                className="h-6 w-6 sm:h-7 sm:w-auto sm:px-2 rounded-md sm:rounded-lg hover:bg-slate-800 text-purple-200 text-xs font-bold transition-all flex items-center justify-center gap-1 cursor-pointer shrink-0"
               >
                 <Settings className="w-3.5 h-3.5 text-purple-300 shrink-0" />
                 <span className="hidden md:inline">Cài Đặt</span>
@@ -1639,7 +1639,7 @@ export default function App() {
                 type="button"
                 onClick={() => setIsHistoryOpen(true)}
                 title="Xem lịch sử các trận đấu đã lưu trên Neon DB"
-                className="h-6 w-6.5 sm:h-7 sm:w-auto sm:px-2 rounded-md sm:rounded-lg hover:bg-slate-800 text-slate-300 text-xs font-bold transition-all flex items-center justify-center gap-1 cursor-pointer"
+                className="h-6 w-6 sm:h-7 sm:w-auto sm:px-2 rounded-md sm:rounded-lg hover:bg-slate-800 text-slate-300 text-xs font-bold transition-all flex items-center justify-center gap-1 cursor-pointer shrink-0"
               >
                 <History className="w-3.5 h-3.5 text-slate-400 shrink-0" />
                 <span className="hidden md:inline">Lịch Sử</span>
@@ -1650,9 +1650,9 @@ export default function App() {
                 type="button"
                 onClick={() => setIsLibraryOpen(true)}
                 title="Thư viện 48 vai trò Ma Sói"
-                className="h-6 w-6.5 sm:h-7 sm:w-auto sm:px-2 rounded-md sm:rounded-lg hover:bg-slate-800 text-slate-300 text-xs font-bold transition-all flex items-center justify-center gap-1 cursor-pointer"
+                className="h-6 w-6 sm:h-7 sm:w-auto sm:px-2 rounded-md sm:rounded-lg hover:bg-slate-800 bg-amber-950/25 hover:bg-amber-950/60 text-amber-300 hover:text-amber-100 text-xs font-bold transition-all flex items-center justify-center gap-1 cursor-pointer shrink-0 border border-amber-900/40"
               >
-                <BookOpen className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                <BookOpen className="w-3.5 h-3.5 text-amber-300 shrink-0" />
                 <span className="hidden md:inline">Thư Viện</span>
               </button>
             </div>
