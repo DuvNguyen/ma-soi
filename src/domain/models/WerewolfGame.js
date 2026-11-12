@@ -111,7 +111,7 @@ export class WerewolfGame {
   resolveNight(nightActions) {
     const rawResult = resolveNightPhase(
       this.players.map(p => p.toJSON()),
-      nightActions,
+      { ...nightActions, isVillageCursed: this.isVillageCursed },
       this.roundNumber
     );
 
@@ -148,7 +148,9 @@ export class WerewolfGame {
     if (deadHunter) {
       const isPoisoned = rawResult.poisonedPlayerIds?.includes(deadHunter.id);
       const isLoverSuicide = deadHunter.deathReason?.includes('đau buồn');
-      if (isPoisoned) {
+      if (isVillageCursed) {
+        logs.push(`⚡ Thợ Săn ${deadHunter.name} tử trận nhưng không thể nổ súng do LỜI NGUYỀN GIÀ LÀNG (phe Dân đã mất sạch kỹ năng)!`);
+      } else if (isPoisoned) {
         logs.push(`☠️ Thợ Săn ${deadHunter.name} bị Phù Thủy đầu độc trong lúc ngủ nên bị tê liệt, không thể rút súng bắn!`);
       } else if (isLoverSuicide) {
         logs.push(`🥀 Thợ Săn ${deadHunter.name} quẫn trí chết theo người tình, không thể nổ súng!`);
@@ -287,7 +289,11 @@ export class WerewolfGame {
     let hunterTrigger = null;
 
     if (targetRole?.id === 'tho-san') {
-      hunterTrigger = deadTarget;
+      if (isVillageCursed) {
+        hunterTrigger = null;
+      } else {
+        hunterTrigger = deadTarget;
+      }
     }
 
     // 6. Cặp đôi Cupid chết chùm nếu có

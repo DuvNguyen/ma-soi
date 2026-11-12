@@ -745,18 +745,6 @@ export default function NightPhaseView({
 
           {/* STEP SPECIFIC ACTION INTERFACE */}
           <div className="space-y-4">
-            
-            {/* LỜI NGUYỀN GIÀ LÀNG BANNER NẾU BỊ PHE DÂN HẠI */}
-            {isVillageCursed && ['bao-ve', 'tien-tri', 'phu-thuy'].includes(currentRole.id) && (
-              <div className="p-3.5 rounded-2xl bg-gradient-to-r from-rose-950 via-red-950 to-rose-950 border-2 border-red-500 text-white shadow-xl space-y-1 mb-2 animate-pulse">
-                <div className="font-cinzel font-black text-xs sm:text-sm flex items-center gap-2 text-rose-200">
-                  <span>⚡ LỜI NGUYỀN CỦA GIÀ LÀNG ĐANG GIÁNG XUỐNG!</span>
-                </div>
-                <p className="text-[11px] sm:text-xs text-rose-200/90 leading-relaxed">
-                  Già Làng đã bị chính phe Dân sát hại! Toàn bộ năng lực đặc biệt của vai này đã bị phong ấn vĩnh viễn. Quản trò không thực hiện hành động đêm và bấm <strong>Đi Ngủ 💤</strong> để chuyển tiếp.
-                </p>
-              </div>
-            )}
 
             {/* VAI TRÒ ĐÃ BỊ LOẠI DO BỊ SÓI NGUYỀN ĐỒNG HÓA */}
             {isRoleCursedOut ? (
@@ -801,6 +789,65 @@ export default function NightPhaseView({
                   <div className="leading-relaxed">
                     <strong>Hướng dẫn Quản trò:</strong> Vẫn đọc to câu gọi <em>"{currentRole.gmCall}"</em> và đếm thầm 3-5 giây để dân làng không đoán được ai đã chết, sau đó bấm <strong>Đã Gọi Xong & Cho Đi Ngủ 💤</strong> bên dưới để tiếp tục.
                   </div>
+                </div>
+
+                <div className="pt-2">
+                  <GothicButton
+                    variant="gold"
+                    size="md"
+                    onClick={() => handleNextStep(false)}
+                    className="w-full h-11 text-xs font-black shadow-lg flex items-center justify-center gap-1.5"
+                  >
+                    <span>Đã Gọi Xong & Cho Đi Ngủ 💤</span>
+                    <ChevronRight className="w-4 h-4 ml-0.5 inline shrink-0" />
+                  </GothicButton>
+                </div>
+              </div>
+            ) : isVillageCursed && ['bao-ve', 'tien-tri', 'phu-thuy', 'tho-san', 'hiep-si-kiem-gi'].includes(currentRole.id) ? (
+              <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-red-950/90 via-[#240810] to-[#16040a] border-2 border-red-500/80 text-rose-200 shadow-[0_0_30px_rgba(239,68,68,0.3)] space-y-3.5 animate-fade-in">
+                <div className="flex items-center gap-2.5 font-cinzel font-black text-sm sm:text-base text-rose-300">
+                  <span className="text-xl">⚡💤</span>
+                  <span>GỌI CHO CÓ — PHÉP THUẬT ĐÃ MẤT (LỜI NGUYỀN GIÀ LÀNG)</span>
+                </div>
+                
+                <div className="text-xs sm:text-sm text-rose-200/90 leading-relaxed">
+                  Già Làng đã bị chính phe Dân sát hại! Theo luật Ma Sói, toàn bộ năng lực đặc biệt của vai <strong className="text-white">{currentRole.name}</strong> ({roleHolders.map(p => `#${p.id} ${p.name}`).join(', ')}) đã bị <strong>phong ấn vĩnh viễn</strong>.
+                </div>
+
+                <div className="p-3.5 rounded-xl bg-black/60 border border-red-800/60 text-xs text-amber-200 space-y-2.5">
+                  <div className="flex items-start gap-2.5">
+                    <span className="text-base shrink-0 mt-0.5">📢</span>
+                    <div className="leading-relaxed">
+                      <strong>Khẩu lệnh Quản trò:</strong> Vẫn xướng to câu gọi <em>"{currentRole.gmCall}"</em> và đếm thầm 3-5 giây để bàn chơi và Ma Sói không nhận biết được vai này đã mất năng lực hay Già Làng đã chết.
+                    </div>
+                  </div>
+
+                  {currentRole.id === 'tien-tri' && (
+                    <div className="flex items-start gap-2.5 pt-2 border-t border-red-900/40 text-rose-300 text-[11px] leading-relaxed">
+                      <span className="text-sm shrink-0">🔮</span>
+                      <div>
+                        <strong>Quy tắc Tiên Tri:</strong> Nếu người chơi chỉ tay đòi soi bài, Quản trò xem xong hãy <strong>lắc đầu</strong> hoặc ra dấu <strong>không có kết quả / mù mịt</strong> theo luật Già Làng.
+                      </div>
+                    </div>
+                  )}
+
+                  {currentRole.id === 'bao-ve' && (
+                    <div className="flex items-start gap-2.5 pt-2 border-t border-red-900/40 text-teal-300 text-[11px] leading-relaxed">
+                      <span className="text-sm shrink-0">🛡️</span>
+                      <div>
+                        <strong>Quy tắc Bảo Vệ:</strong> Nếu Bảo Vệ chỉ tay chọn người bảo vệ đêm nay, Quản trò gật đầu như bình thường nhưng khiên bảo vệ <strong>hoàn toàn vô hiệu</strong> trong tính toán đêm.
+                      </div>
+                    </div>
+                  )}
+
+                  {currentRole.id === 'phu-thuy' && (
+                    <div className="flex items-start gap-2.5 pt-2 border-t border-red-900/40 text-purple-300 text-[11px] leading-relaxed">
+                      <span className="text-sm shrink-0">🧪</span>
+                      <div>
+                        <strong>Quy tắc Phù Thủy:</strong> Quản trò vẫn ra hiệu nạn nhân bị cắn nhưng xua tay báo <strong>bình thuốc đã mất công hiệu</strong>; Phù Thủy không thể cứu hay đầu độc ai.
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 <div className="pt-2">

@@ -143,7 +143,8 @@ export function resolveNightPhase(players, nightActions, roundNumber) {
     witchPoisonTargetId,
     whiteWolfVictimId,
     isCursedInfect,
-    lastCursedVictimId
+    lastCursedVictimId,
+    isVillageCursed = false
   } = nightActions;
 
   // 0. Process Immediate Cursed Wolf Infection if occurred in current round
@@ -185,8 +186,8 @@ export function resolveNightPhase(players, nightActions, roundNumber) {
       return;
     }
 
-    const isProtected = protectedPlayerId === target.id;
-    const isSavedByWitch = !isSecondTarget && witchSaved;
+    const isProtected = !isVillageCursed && protectedPlayerId === target.id;
+    const isSavedByWitch = !isVillageCursed && !isSecondTarget && witchSaved;
 
     // RULE CONFLICT FIX #3: Nếu cả Bảo Vệ và Phù Thủy cùng cứu 1 người, Bảo Vệ đỡ đòn thành công -> hoàn trả bình cứu cho Phù Thủy
     if (isProtected && isSavedByWitch) {
@@ -224,7 +225,7 @@ export function resolveNightPhase(players, nightActions, roundNumber) {
         : 'Bị Ma Sói cắn chết trong đêm';
 
       // Hiệp Sĩ Kiếm Gỉ: Nhiễm độc con Ma Sói sống gần nhất bên trái
-      if (targetRole?.id === 'hiep-si-kiem-gi') {
+      if (targetRole?.id === 'hiep-si-kiem-gi' && !isVillageCursed) {
         const aliveWolves = updatedPlayers.filter(p => p.isAlive && isWolfPlayer(p) && p.id !== target.id);
         if (aliveWolves.length > 0) {
           aliveWolves.sort((a, b) => {
@@ -252,7 +253,7 @@ export function resolveNightPhase(players, nightActions, roundNumber) {
   }
 
   // 2. Process Witch Poison
-  if (witchPoisonTargetId) {
+  if (witchPoisonTargetId && !isVillageCursed) {
     const poisonTarget = updatedPlayers.find(p => p.id === witchPoisonTargetId);
     if (poisonTarget && poisonTarget.isAlive) {
       killedPlayerIds.add(poisonTarget.id);

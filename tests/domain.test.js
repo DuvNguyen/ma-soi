@@ -215,6 +215,46 @@ console.log('🧪 Starting Phase 1 Domain Model & Strategy Tests...\n');
     assert.strictEqual(setupWinCheck.isEnded, false, 'Game should NOT end when only Cupid is assigned and totalWolves === 0');
     console.log('✅ Test 13: Night 1 Cupid assignment does not trigger false Villagers win.');
 
-    console.log('\n🎉 ALL 13 DOMAIN ENGINE TESTS PASSED PERFECTLY!\n');
+    // Test 14: Elder lynch triggers Village Curse -> Bodyguard protection fails, Witch poison fails, Hunter cannot shoot
+    const cursedGame = new WerewolfGame({
+      roundNumber: 1,
+      isNight: false,
+      players: [
+        new Player({ id: 1, name: 'Sói', currentRoleId: 'soi-thuong', roleId: 'soi-thuong' }),
+        new Player({ id: 2, name: 'Già Làng', currentRoleId: 'gia-lang', roleId: 'gia-lang', elderLives: 2 }),
+        new Player({ id: 3, name: 'Bảo Vệ', currentRoleId: 'bao-ve', roleId: 'bao-ve' }),
+        new Player({ id: 4, name: 'Phù Thủy', currentRoleId: 'phu-thuy', roleId: 'phu-thuy' }),
+        new Player({ id: 5, name: 'Thợ Săn', currentRoleId: 'tho-san', roleId: 'tho-san' }),
+        new Player({ id: 6, name: 'Dân', currentRoleId: 'dan-lang', roleId: 'dan-lang' })
+      ]
+    });
+
+    // 1. Lynch Elder -> triggers Village Curse
+    const lynchRes = cursedGame.lynchPlayer(2);
+    assert.strictEqual(lynchRes.elderCurseTriggered, true, 'Elder curse should trigger');
+    assert.strictEqual(lynchRes.game.isVillageCursed, true, 'Village should be cursed');
+
+    // 2. Night resolution under Village Curse:
+    // Wolves target Dân (#6). Bảo Vệ tries to protect #6. Witch tries to poison Sói (#1).
+    const nightRes = lynchRes.game.resolveNight({
+      wolfTargetId: 6,
+      protectedPlayerId: 6, // Bodyguard tries to protect
+      witchPoisonTargetId: 1 // Witch tries to poison wolf
+    });
+
+    // Bodyguard protection should FAIL under Village Curse -> Player 6 dies
+    const deadDan = nightRes.game.getPlayer(6);
+    assert.strictEqual(deadDan.isAlive, false, 'Protection must fail under Elder Curse');
+
+    // Witch poison should FAIL under Village Curse -> Wolf (#1) survives
+    const aliveWolf = nightRes.game.getPlayer(1);
+    assert.strictEqual(aliveWolf.isAlive, true, 'Witch poison must fail under Elder Curse');
+
+    // 3. Hunter dies under Village Curse -> Hunter cannot shoot
+    const hunterLynch = nightRes.game.lynchPlayer(5);
+    assert.strictEqual(hunterLynch.hunterTrigger, null, 'Hunter cannot shoot when village is cursed');
+    console.log('✅ Test 14: Elder lynch triggers Village Curse -> Powers sealed (Protection fails, Witch poison fails, Hunter trigger blocked).');
+
+    console.log('\n🎉 ALL 14 DOMAIN ENGINE TESTS PASSED PERFECTLY!\n');
   });
 }

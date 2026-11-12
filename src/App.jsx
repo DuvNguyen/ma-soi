@@ -729,6 +729,16 @@ export default function App() {
         next.silencedPlayerId = payload;
         next.moonPriestessSkipped = !!extra.moonPriestessSkipped;
       } else if (type === 'hunter') {
+        const shotPlayer = players.find(p => p.id === payload);
+        const shotRole = getPlayerRole(shotPlayer);
+        if (shotRole?.id === 'gia-lang') {
+          setIsVillageCursed(true);
+          showAlert({
+            title: '⚡ LỜI NGUYỀN GIÀ LÀNG GIÁNG XUỐNG!',
+            message: 'Thợ Săn đã nổ súng bắn chết Già Làng! Toàn bộ phe Dân mất sạch năng lực đặc biệt đến hết ván đấu.',
+            variant: 'danger'
+          });
+        }
         setPlayers(current => {
           const updated = current.map(p => {
             if (p.id === payload) {
