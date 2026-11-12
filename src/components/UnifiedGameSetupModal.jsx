@@ -755,9 +755,14 @@ export default function UnifiedGameSetupModal({
                                 {displayName}
                               </span>
                             )}
-                            <span className="text-[11px] font-mono font-bold text-amber-300 bg-amber-950/80 px-2 py-0.5 rounded-md border border-amber-800/80 shrink-0">
-                              {cardCount} lá
-                            </span>
+                            <div className="flex items-center gap-1.5 shrink-0">
+                              <span className="text-[10px] font-mono text-slate-400 bg-slate-900/90 px-2 py-0.5 rounded-md border border-slate-800">
+                                {wolfs} Sói • {villagers} Phe Dân
+                              </span>
+                              <span className="text-[11px] font-mono font-bold text-amber-300 bg-amber-950/80 px-2 py-0.5 rounded-md border border-amber-800/80">
+                                {cardCount} lá
+                              </span>
+                            </div>
                           </div>
 
                           {isEditing ? (
@@ -776,18 +781,8 @@ export default function UnifiedGameSetupModal({
                             </p>
                           )}
 
-                          {/* Role badges summary */}
+                          {/* Role badges summary: Only real cards in the deck */}
                           <div className="flex flex-wrap gap-1 mt-1">
-                            {wolfs > 0 && (
-                              <span className="text-[10px] px-1.5 py-0.5 rounded bg-rose-950/80 text-rose-300 border border-rose-900/60 font-medium">
-                                🐺 {wolfs} Sói
-                              </span>
-                            )}
-                            {villagers > 0 && (
-                              <span className="text-[10px] px-1.5 py-0.5 rounded bg-purple-950/80 text-purple-300 border border-purple-900/60 font-medium">
-                                🛡️ {villagers} Dân
-                              </span>
-                            )}
                             {groupedRoles.map((item) => {
                               const isWolf = item.role.teamCode === 'W';
                               const isVillagerBasic = item.role.id === 'dan-lang';
