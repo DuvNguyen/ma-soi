@@ -128,10 +128,11 @@ export default function UnifiedGameSetupModal({
     }
   };
 
-  // Combine Presets (excluding deleted ones) + Custom templates into one list
+  // Combine Presets (excluding deleted ones & overridden ones) + Custom templates into one list
   const allTemplates = useMemo(() => {
+    const dbTemplateIds = new Set((templates || []).map(t => t.id));
     const formattedPresets = PRESETS
-      .filter(p => !deletedPresetIds.includes(p.id))
+      .filter(p => !deletedPresetIds.includes(p.id) && !dbTemplateIds.has(p.id))
       .map(p => ({
         ...p,
         isPreset: true,
@@ -283,18 +284,31 @@ export default function UnifiedGameSetupModal({
   // Save deck configuration and close the inline customizer
   const handleSaveDeckConfig = async () => {
     triggerHaptic('success');
-    if (activeTemplate && !activeTemplate.isPreset) {
+    if (activeTemplate) {
       try {
         const updatedTemplate = {
           ...activeTemplate,
+          id: activeTemplate.id,
+          name: activeTemplate.name,
+          desc: activeTemplate.desc || '',
           roleIds: selectedRoleIds,
           playerCount: selectedRoleIds.length,
           playerNames: playerNames.slice(0, selectedRoleIds.length)
         };
         await saveTemplateApi(updatedTemplate);
         await loadTemplatesData();
+        showAlert({
+          title: 'ĐÃ LƯU BỘ BÀI! ✨',
+          message: `Bộ bài "${activeTemplate.name}" đã được lưu thành công (${selectedRoleIds.length} lá).`,
+          variant: 'emerald'
+        });
       } catch (err) {
-        console.error('Auto save template error:', err);
+        console.error('Save template error:', err);
+        showAlert({
+          title: 'LỖI LƯU BỘ BÀI',
+          message: err.message,
+          variant: 'blood'
+        });
       }
     }
     setShowRoleCustomizer(false);
@@ -331,15 +345,14 @@ export default function UnifiedGameSetupModal({
   // Save current names into the selected template (Neon DB)
   const handleSaveNamesToTemplate = async () => {
     triggerHaptic('success');
-    if (!activeTemplate || activeTemplate.isPreset) {
-      setNewTemplateNameInput(`${activeTemplate?.name || 'Bộ bài'} (Tùy chỉnh)`);
-      setIsSavingAsNew(true);
-      return;
-    }
+    if (!activeTemplate) return;
 
     try {
       const updatedTemplate = {
         ...activeTemplate,
+        id: activeTemplate.id,
+        name: activeTemplate.name,
+        desc: activeTemplate.desc || '',
         roleIds: selectedRoleIds,
         playerCount: selectedRoleIds.length,
         playerNames: playerNames
@@ -403,12 +416,16 @@ export default function UnifiedGameSetupModal({
       confirmText: 'Xóa Vĩnh Viễn 🩸',
       onConfirm: async () => {
         try {
-          if (template.isPreset) {
-            const nextDeleted = [...deletedPresetIds, template.id];
+          if (template.id.startsWith('preset-') || template.isPreset) {
+            const nextDeleted = Array.from(new Set([...deletedPresetIds, template.id]));
             setDeletedPresetIds(nextDeleted);
             try {
               localStorage.setItem('werewolf_deleted_presets', JSON.stringify(nextDeleted));
             } catch (err) {}
+            try {
+              await deleteTemplateApi(template.id);
+            } catch (err) {}
+            setTemplates(prev => prev.filter(t => t.id !== template.id));
           } else {
             await deleteTemplateApi(template.id);
             setTemplates(prev => prev.filter(t => t.id !== template.id));
@@ -428,10 +445,16 @@ export default function UnifiedGameSetupModal({
   };
 
   // Restore deleted presets
-  const handleRestoreDeletedPresets = () => {
+  const handleRestoreDeletedPresets = async () => {
     setDeletedPresetIds([]);
     try {
       localStorage.removeItem('werewolf_deleted_presets');
+    } catch (err) {}
+    try {
+      for (const p of PRESETS) {
+        await deleteTemplateApi(p.id).catch(() => {});
+      }
+      await loadTemplatesData();
     } catch (err) {}
     showAlert({
       title: 'ĐÃ KHÔI PHỤC BỘ BÀI MẶC ĐỊNH! ✨',
