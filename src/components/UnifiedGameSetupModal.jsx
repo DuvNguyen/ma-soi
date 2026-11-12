@@ -239,69 +239,78 @@ export default function UnifiedGameSetupModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/75 backdrop-blur-md animate-fade-in">
-      <div className="bg-[#0f111a] border border-slate-800 rounded-3xl w-full max-w-5xl overflow-hidden shadow-2xl flex flex-col max-h-[94vh]">
+      <div className="bg-[#0f111a] border border-slate-800 rounded-2xl sm:rounded-3xl w-full max-w-5xl overflow-hidden shadow-2xl flex flex-col max-h-[94vh]">
         {/* Header with Bento Navigation */}
-        <div className="p-4 sm:p-5 border-b border-slate-800 flex items-center justify-between bg-[#121422]">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-purple-600 via-indigo-600 to-amber-600 flex items-center justify-center shadow-lg shadow-purple-950/60">
-              <SlidersHorizontal className="w-5 h-5 text-white" />
+        <div className="p-3 sm:p-5 border-b border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-4 bg-[#121422]">
+          <div className="flex items-center justify-between w-full sm:w-auto">
+            <div className="flex items-center gap-2 sm:gap-3">
+              <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl sm:rounded-2xl bg-gradient-to-br from-purple-600 via-indigo-600 to-amber-600 flex items-center justify-center shadow-lg shadow-purple-950/60 shrink-0">
+                <SlidersHorizontal className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+              </div>
+              <div>
+                <h2 className="font-cinzel font-black text-sm sm:text-base text-slate-100 flex items-center gap-2">
+                  THIẾT LẬP PHÒNG CHƠI
+                </h2>
+                <p className="text-[11px] text-slate-400 hidden sm:block">
+                  Tích hợp đồng bộ Người chơi & Bộ bài trong một màn hình duy nhất
+                </p>
+              </div>
             </div>
-            <div>
-              <h2 className="font-cinzel font-black text-base sm:text-lg text-slate-100 flex items-center gap-2">
-                THIẾT LẬP PHÒNG CHƠI MA SÓI
-              </h2>
-              <p className="text-xs text-slate-400 hidden sm:block">
-                Tích hợp đồng bộ Người chơi & Bộ bài trong một màn hình duy nhất
-              </p>
-            </div>
+
+            <button
+              onClick={onClose}
+              className="sm:hidden p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800/80 transition-colors cursor-pointer"
+            >
+              <X className="w-5 h-5" />
+            </button>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center justify-between sm:justify-end gap-2 w-full sm:w-auto">
             {/* Top-level Segmented Tabs */}
-            <div className="flex items-center bg-[#090a12] p-1 rounded-xl border border-slate-800 shrink-0">
+            <div className="grid grid-cols-3 sm:flex items-center bg-[#090a12] p-1 rounded-xl border border-slate-800 w-full sm:w-auto shrink-0">
               <button
                 type="button"
                 onClick={() => setActiveTab('setup')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                className={`px-2 sm:px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
                   activeTab === 'setup'
                     ? 'bg-purple-900 border border-purple-500 text-white shadow-sm'
                     : 'text-slate-400 hover:text-slate-200'
                 }`}
               >
-                <Sparkles className="w-3.5 h-3.5 text-amber-300" />
-                <span>Thiết Lập Ván</span>
+                <Sparkles className="w-3.5 h-3.5 text-amber-300 shrink-0" />
+                <span className="truncate">Thiết Lập</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => setActiveTab('rosters')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                className={`px-2 sm:px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
                   activeTab === 'rosters'
                     ? 'bg-purple-900 border border-purple-500 text-white shadow-sm'
                     : 'text-slate-400 hover:text-slate-200'
                 }`}
               >
-                <Users className="w-3.5 h-3.5 text-purple-300" />
-                <span className="hidden sm:inline">Nhóm Người</span>
+                <Users className="w-3.5 h-3.5 text-purple-300 shrink-0" />
+                <span className="truncate">Nhóm Người</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => setActiveTab('templates')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                className={`px-2 sm:px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
                   activeTab === 'templates'
                     ? 'bg-purple-900 border border-purple-500 text-white shadow-sm'
                     : 'text-slate-400 hover:text-slate-200'
                 }`}
               >
-                <Layers className="w-3.5 h-3.5 text-blue-300" />
-                <span className="hidden sm:inline">Bộ Bài Mẫu</span>
+                <Layers className="w-3.5 h-3.5 text-blue-300 shrink-0" />
+                <span className="truncate">Bộ Bài</span>
               </button>
             </div>
 
             <button
               onClick={onClose}
-              className="p-2 text-slate-400 hover:text-white rounded-xl hover:bg-slate-800/80 transition-colors cursor-pointer"
+              className="hidden sm:block p-2 text-slate-400 hover:text-white rounded-xl hover:bg-slate-800/80 transition-colors cursor-pointer"
             >
               <X className="w-5 h-5" />
             </button>
@@ -792,18 +801,18 @@ export default function UnifiedGameSetupModal({
         {/* FOOTER ACTION BAR (ALWAYS VISIBLE ON SETUP TAB) */}
         {/* ============================================================== */}
         {activeTab === 'setup' && (
-          <div className="p-4 sm:p-5 border-t border-slate-800 bg-[#0c0d16] flex flex-col sm:flex-row items-center justify-between gap-3">
-            <div className="flex items-center gap-2">
+          <div className="p-3 sm:p-5 border-t border-slate-800 bg-[#0c0d16] flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 sm:gap-3">
+            <div className="flex items-center justify-center sm:justify-start">
               {isCountMatched ? (
-                <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-400 bg-emerald-950/70 border border-emerald-800 px-3 py-1.5 rounded-xl">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                <div className="flex items-center gap-1.5 text-[11px] sm:text-xs font-bold text-emerald-400 bg-emerald-950/70 border border-emerald-800 px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-xl text-center">
+                  <CheckCircle2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-400 shrink-0" />
                   <span>Khớp hoàn hảo: {playerCount} người chơi ⟷ {selectedRoleIds.length} lá bài</span>
                 </div>
               ) : (
-                <div className="flex items-center gap-1.5 text-xs font-bold text-amber-400 bg-amber-950/70 border border-amber-800 px-3 py-1.5 rounded-xl">
-                  <AlertCircle className="w-4 h-4 text-amber-400" />
+                <div className="flex items-center gap-1.5 text-[11px] sm:text-xs font-bold text-amber-400 bg-amber-950/70 border border-amber-800 px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-xl text-center">
+                  <AlertCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-400 shrink-0" />
                   <span>
-                    Chưa khớp: {playerCount} người chơi nhưng bộ bài có {selectedRoleIds.length} lá (Lệch {Math.abs(playerCount - selectedRoleIds.length)})
+                    Chưa khớp: {playerCount} người ⟷ {selectedRoleIds.length} lá (Lệch {Math.abs(playerCount - selectedRoleIds.length)})
                   </span>
                 </div>
               )}
@@ -815,7 +824,7 @@ export default function UnifiedGameSetupModal({
               icon={Play}
               onClick={handleApplySetup}
               disabled={!isCountMatched}
-              className="w-full sm:w-auto shadow-xl"
+              className="w-full sm:w-auto shadow-xl h-10 sm:h-11 text-xs sm:text-sm font-bold"
             >
               Áp Dụng & Bắt Đầu Ván Đấu Mới
             </GothicButton>

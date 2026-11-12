@@ -1360,10 +1360,11 @@ export default function App() {
                   setIsSetupOpen(true);
                 }}
                 title="Thiết lập phòng chơi: Tùy chỉnh danh sách người chơi & bộ bài đồng bộ"
-                className="h-6 sm:h-7 px-2 sm:px-2.5 rounded-md sm:rounded-lg bg-purple-950 hover:bg-purple-900 border border-purple-600/70 text-purple-200 text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-sm active:scale-95"
+                className="h-6 sm:h-7 px-1.5 sm:px-2.5 rounded-md sm:rounded-lg bg-purple-950 hover:bg-purple-900 border border-purple-600/70 text-purple-200 text-xs font-bold transition-all flex items-center justify-center gap-1 sm:gap-1.5 cursor-pointer shadow-sm active:scale-95"
               >
                 <SlidersHorizontal className="w-3.5 h-3.5 text-purple-300 shrink-0" />
-                <span>Thiết Lập Ván</span>
+                <span className="hidden sm:inline">Thiết Lập Ván</span>
+                <span className="sm:hidden">Thiết Lập</span>
               </button>
 
               {/* Quick shortcut to Rosters */}
@@ -1374,7 +1375,7 @@ export default function App() {
                   setIsSetupOpen(true);
                 }}
                 title="Quản lý danh sách nhóm người chơi"
-                className="h-6 w-6.5 sm:h-7 sm:w-auto sm:px-1.5 rounded-md sm:rounded-lg hover:bg-slate-800 text-slate-400 hover:text-purple-200 text-xs font-bold transition-all flex items-center justify-center cursor-pointer"
+                className="hidden sm:flex h-6 w-6.5 sm:h-7 sm:w-auto sm:px-1.5 rounded-md sm:rounded-lg hover:bg-slate-800 text-slate-400 hover:text-purple-200 text-xs font-bold transition-all items-center justify-center cursor-pointer"
               >
                 <Users className="w-3.5 h-3.5 shrink-0" />
               </button>
@@ -1387,7 +1388,7 @@ export default function App() {
                   setIsSetupOpen(true);
                 }}
                 title="Quản lý bộ bài mẫu"
-                className="h-6 w-6.5 sm:h-7 sm:w-auto sm:px-1.5 rounded-md sm:rounded-lg hover:bg-slate-800 text-slate-400 hover:text-amber-200 text-xs font-bold transition-all flex items-center justify-center cursor-pointer"
+                className="hidden sm:flex h-6 w-6.5 sm:h-7 sm:w-auto sm:px-1.5 rounded-md sm:rounded-lg hover:bg-slate-800 text-slate-400 hover:text-amber-200 text-xs font-bold transition-all items-center justify-center cursor-pointer"
               >
                 <Layers className="w-3.5 h-3.5 shrink-0" />
               </button>
