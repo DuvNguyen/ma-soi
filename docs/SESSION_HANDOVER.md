@@ -576,16 +576,31 @@ Theo quy chuẩn [docs/game-rules.md](file:///home/levi/Desktop/Projects/werewol
   - Vượt qua 21/21 Unit Tests Domain + Toàn bộ E2E Match Simulation (100% PASS).
   - Build Vite production hoàn tất không lỗi.
 
-## 30. Lộ Trình Kế Tiếp (Upcoming Phases Roadmap)
-- **Phase 4: Tái Cấu Trúc & Module Hóa [DayPhaseView.jsx](file:///projects/werewolf/src/components/DayPhaseView.jsx) + Tinh Gọn Action Engine Ban Ngày**:
-  - `DayPhaseView.jsx` hiện là component lớn nhất còn lại trong ứng dụng.
-  - Tách thành các subcomponents theo SRP tương tự Phase 3:
-    - `DayDiscussionStep.jsx`: Đồng hồ đếm ngược, chuông thảo luận, cảnh báo Gấu gầm.
-    - `DayVotingStep.jsx`: Bảng biểu quyết treo cổ, xử lý phạt Con Quạ (+2 phiếu), kiểm tra hòa phiếu (Người Thế Thân).
-    - `DayVictimActionStep.jsx`: Thẩm phán can thiệp vote lần 2, Kị Sĩ khiêu chiến ban ngày, Thợ Săn nổ súng.
-    - `DayNightTransitionStep.jsx`: Kiểm tra di chúc Cảnh Sát Trưởng và nút chuyển đêm.
-- **Phase 5: Kiểm Thử E2E Tự Động Cho Toàn Bộ 48 Vai Trò Mở Rộng**:
-  - Mở rộng kịch bản test cho các vai trò đặc biệt: Người Thổi Sáo (thắng khi mê hoặc cả làng), Sói Trắng (cắn sói đêm chẵn), Nguyệt Nữ (khóa phép), Thiên Sứ (thắng ngày 1/đêm 1).
+## 30. Hoàn Tất Giai Đoạn 4: Tái Cấu Trúc Kiến Trúc & Module Hóa [DayPhaseView.jsx](file:///projects/werewolf/src/components/DayPhaseView.jsx) (Từ 757 dòng ➔ 171 dòng)
+- **Tách Component Theo Đơn Nhiệm (Single Responsibility Principle)** vào thư mục `src/components/day/`:
+  - [DayCasualtyAnnouncement.jsx](file:///projects/werewolf/src/components/day/DayCasualtyAnnouncement.jsx): Thông báo thương vong trong đêm (danh sách người chết, huy hiệu đầu lâu, logs chi tiết ban đêm).
+  - [DaySheriffBanner.jsx](file:///projects/werewolf/src/components/day/DaySheriffBanner.jsx): Banner quản lý chức vụ Cảnh Sát Trưởng (phiếu vote x2, cảnh báo khi CST tử trận, kích hoạt modal di chúc hoặc drawer chọn nhanh).
+  - [DayHunterBanner.jsx](file:///projects/werewolf/src/components/day/DayHunterBanner.jsx): Biểu ngữ phát súng Thợ Săn bắt buộc khi Thợ Săn tử trận (nút `Chọn Mục Tiêu Bắn 🎯` và `Bỏ Qua`).
+  - [DayDiscussionTimer.jsx](file:///projects/werewolf/src/components/day/DayDiscussionTimer.jsx): Đồng hồ đếm ngược thảo luận (1m, 3m, 5m), chuông báo haptic khi hết giờ, kèm bộ phát hiện khoảng cách Người Thuần Phục Gấu (gấu gầm cảnh báo Ma Sói kề bên).
+  - [DayKnightDuel.jsx](file:///projects/werewolf/src/components/day/DayKnightDuel.jsx): Giao diện Kị Sĩ lật bài quyết đấu 1 lần duy nhất trong game với hộp thoại xác nhận.
+  - [DayVotingSection.jsx](file:///projects/werewolf/src/components/day/DayVotingSection.jsx): Bảng biểu quyết treo cổ (lưới ghế ngồi, hiệu ứng viền đỏ Ma Sói, huy hiệu Quạ phạt +2, cờ Người Thế Thân chết thay khi hòa phiếu) và thẻ khóa án treo cổ (Hoàn tác, Đổi vai trò, Thẩm Phán vote thêm).
+  - [DayNightTransition.jsx](file:///projects/werewolf/src/components/day/DayNightTransition.jsx): Nút chuyển đêm an toàn ở chân trang kèm kiểm tra ràng buộc phát súng Thợ Săn và di chúc Cảnh Sát Trưởng.
+- **Siết Chặt Luật Sói Lớn Xấu Xa (Big Bad Wolf)**:
+  - Tự động loại bỏ mục tiêu của bầy Sói khỏi danh sách cắn thêm, tránh cắn trùng nạn nhân.
+  - Kiểm tra điều kiện ngặt nghèo trong engine: Sói Lớn Xấu Xa mất vĩnh viễn năng lực cắn thêm ngay khi có bất kỳ con Sói nào trong đàn bị chết.
+  - Mở rộng Test 17 trong `tests/domain.test.js` kiểm tra vô hiệu hóa phát cắn thêm khi có Sói chết.
+- **Zero Regression**:
+  - 21/21 Unit Tests Domain + Toàn bộ E2E Match Simulation pass 100%.
+  - Build production Vite thành công trong 395ms.
+
+## 31. Lộ Trình Kế Tiếp: Giai Đoạn 5 (Upcoming Phase 5)
+- **Kiểm Thử E2E Tự Động Toàn Diện Cho Toàn Bộ 48 Vai Trò Mở Rộng**:
+  - Xây dựng test suite mô phỏng chi tiết các vai trò độc lập & tương tác phức tạp:
+    - Người Thổi Sáo (thôi miên toàn bộ làng sống sót ➔ Chiến thắng phe thứ ba).
+    - Sói Trắng (thức dậy riêng vào đêm chẵn để tiêu diệt Ma Sói khác).
+    - Nguyệt Nữ (khóa toàn bộ năng lực sử dụng ban đêm của 1 người chơi).
+    - Thiên Sứ / Thiên Thần (bị treo cổ Ngày 1 hoặc bị cắn Đêm 1 ➔ Thắng tức thì).
+
 
 
 
