@@ -325,7 +325,25 @@ console.log('🧪 Starting Phase 1 Domain Model & Strategy Tests...\n');
     });
     assert.strictEqual(bbwRes2.game.getPlayer(3).isAlive, false);
     assert.strictEqual(bbwRes2.game.getPlayer(4).isAlive, false, 'Dân 2 killed by Big Bad Wolf extra bite');
-    console.log('✅ Test 17: Big Bad Wolf extra bite and protection interaction passed.');
+
+    // When another werewolf dies, Big Bad Wolf loses extra bite power
+    const bbwGameWithDeadWolf = bbwGame.clone({
+      players: [
+        bbwGame.getPlayer(1), // Big Bad Wolf (alive)
+        bbwGame.getPlayer(2).clone({ isAlive: false, deathReason: 'Treo cổ' }), // Sói Thường (dead)
+        bbwGame.getPlayer(3),
+        bbwGame.getPlayer(4),
+        bbwGame.getPlayer(5)
+      ]
+    });
+    const bbwResWithDeadWolf = bbwGameWithDeadWolf.resolveNight({
+      wolfTargetId: 3,
+      bigBadWolfTargetId: 4,
+      protectedPlayerId: null
+    });
+    assert.strictEqual(bbwResWithDeadWolf.game.getPlayer(3).isAlive, false, 'Pack victim killed');
+    assert.strictEqual(bbwResWithDeadWolf.game.getPlayer(4).isAlive, true, 'Big Bad Wolf cannot kill when another wolf is dead');
+    console.log('✅ Test 17: Big Bad Wolf extra bite, protection, and power loss upon wolf casualty verified.');
 
     // Test 18: Assigning functional role to player previously infected by Cursed Wolf
     const unassignedPlayer = new Player({ id: 12, name: 'Duyên', currentRoleId: null, roleId: null });

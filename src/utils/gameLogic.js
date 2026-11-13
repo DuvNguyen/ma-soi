@@ -254,7 +254,11 @@ export function resolveNightPhase(players, nightActions, roundNumber) {
   }
 
   // 1.2 Process Big Bad Wolf (Sói Lớn Xấu Xa) Extra Bite
-  if (bigBadWolfTargetId && bigBadWolfTargetId !== wolfTargetId && bigBadWolfTargetId !== wolfTargetId2) {
+  const bigBadWolfPlayer = updatedPlayers.find(p => (p.currentRoleId || p.roleId) === 'soi-lon-xau-xa');
+  const deadWolves = updatedPlayers.filter(p => !p.isAlive && isWolfPlayer(p));
+  const canBigBadWolfBite = Boolean(bigBadWolfPlayer && bigBadWolfPlayer.isAlive && deadWolves.length === 0);
+
+  if (canBigBadWolfBite && bigBadWolfTargetId && bigBadWolfTargetId !== wolfTargetId && bigBadWolfTargetId !== wolfTargetId2) {
     const bbTarget = updatedPlayers.find(p => p.id === bigBadWolfTargetId);
     if (bbTarget && bbTarget.isAlive) {
       const isProtected = !isVillageCursed && protectedPlayerId === bbTarget.id;

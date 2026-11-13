@@ -344,7 +344,11 @@ export default function NightSpecialRolesStep({
       );
     }
 
-    const validVictims = alivePlayers.filter(p => canWolvesKillTeammates ? true : !isWolfPlayer(p));
+    const bigBadWolfPlayer = players.find(p => (p.currentRoleId || p.roleId) === 'soi-lon-xau-xa');
+    const validVictims = alivePlayers.filter(p => {
+      if (p.id === nightState.wolfTargetId || p.id === nightState.wolfTargetId2) return false;
+      return canWolvesKillTeammates ? p.id !== bigBadWolfPlayer?.id : !isWolfPlayer(p);
+    });
 
     return (
       <div className="space-y-4">
