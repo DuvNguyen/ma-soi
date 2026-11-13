@@ -222,10 +222,7 @@ export default function GameSettingsModal({
         </div>
 
         {/* Modal Footer - Fixed & Visible on Mobile */}
-        <div className="p-3 sm:p-4 border-t border-purple-950 bg-[#0d0e19] flex items-center justify-between shrink-0">
-          <span className="text-[11px] text-slate-500 italic hidden sm:inline">
-            Chạm ra ngoài để đóng
-          </span>
+        <div className="p-3 sm:p-4 border-t border-purple-950 bg-[#0d0e19] flex items-center justify-end shrink-0">
           <GothicButton variant="witch" size="sm" onClick={onClose} className="w-full sm:w-auto h-9">
             Đóng Cài Đặt
           </GothicButton>

@@ -2,6 +2,7 @@ import {
   testConnection, 
   getTemplates, 
   saveTemplate, 
+  setDefaultTemplate,
   deleteTemplate, 
   getRosters, 
   saveRoster, 
@@ -82,6 +83,11 @@ export default async function handler(req, res) {
         const saved = await saveTemplate(body);
         return sendJson(res, 200, { ok: true, template: saved });
       }
+    }
+    if (path.startsWith('templates/') && path.endsWith('/default') && req.method === 'POST') {
+      const id = path.replace('templates/', '').replace('/default', '');
+      const resData = await setDefaultTemplate(id);
+      return sendJson(res, 200, { ok: true, ...resData });
     }
     if (path.startsWith('templates/') && req.method === 'DELETE') {
       const id = path.replace('templates/', '');

@@ -1,4 +1,4 @@
-import { ROLES } from '../data/roles';
+import { ROLES } from '../data/roles.js';
 
 /**
  * Returns the maximum number of players that can hold a specific role in the game
@@ -6,6 +6,18 @@ import { ROLES } from '../data/roles';
  */
 export function getRoleCapacity(roleId, deckRoleIds = []) {
   if (!roleId) return 1;
+
+  // Hai Chị Em (Two Sisters) is specifically 2 players
+  if (roleId === 'hai-chi-em') {
+    const countInDeck = deckRoleIds ? deckRoleIds.filter(id => id === roleId).length : 0;
+    return Math.max(countInDeck, 2);
+  }
+
+  // Ba Anh Em (Three Brothers) is specifically 3 players
+  if (roleId === 'ba-anh-em') {
+    const countInDeck = deckRoleIds ? deckRoleIds.filter(id => id === roleId).length : 0;
+    return Math.max(countInDeck, 3);
+  }
 
   // If role is common villager, allow multiple
   if (roleId === 'dan-lang' || roleId === 'dan-thuong') {

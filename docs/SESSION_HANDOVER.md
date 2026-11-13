@@ -1,6 +1,67 @@
 # Session Handover - Werewolf Moderator Web App
 
 ## 1. Tổng Quan Tiến Độ & Tính Năng Đã Triển Khai
+- **Hoàn Tất Giai Đoạn 3: Tái Cấu Trúc Kiến Trúc & Module Hóa [NightPhaseView.jsx](file:///projects/werewolf/src/components/NightPhaseView.jsx) (Từ 2,282 dòng ➔ 595 dòng)**:
+  - **Tách Component Theo Đơn Nhiệm (Single Responsibility Principle)** vào thư mục `src/components/night/`:
+    - [NightStepHeader.jsx](file:///projects/werewolf/src/components/night/NightStepHeader.jsx): Quản lý thanh tiến trình bước gọi (Breadcrumb pills), Hero Card đại diện vai, phân định gán vai (`RoleClaimBox` / `RoleHolderBanner`), và toàn bộ hệ thống biểu ngữ cảnh báo (`isRoleCursedOut`, `isDeadRole`, lời nguyền Già Làng `isVillageCursed`).
+    - [NightRoleAction.jsx](file:///projects/werewolf/src/components/night/NightRoleAction.jsx): Router điều phối action body tương tác chuẩn xác theo từng vai trò.
+    - [NightBodyguardStep.jsx](file:///projects/werewolf/src/components/night/NightBodyguardStep.jsx): Chọn mục tiêu bảo vệ, hiển thị trạng thái cấm bảo vệ liên tiếp đêm trước, ưu tiên ghế Bảo Vệ lên đầu danh sách.
+    - [NightWerewolvesStep.jsx](file:///projects/werewolf/src/components/night/NightWerewolvesStep.jsx): Tích hợp luồng bầy Sói săn mồi, bảng chuyền máy bí mật (`WolfWhisperBox`), tổng hợp thảo luận bầy Sói, cơ chế Cuồng nộ cắn 2 người (khi Sói Con chết), cơ chế lây nhiễm Sói Nguyền (`curse_convert`), và cắn tự do đồng loại.
+    - [NightSeerStep.jsx](file:///projects/werewolf/src/components/night/NightSeerStep.jsx): Hiển thị thẻ bài soi sáng phóng to kèm nút X đỏ nổi bật đóng thẻ, tự động nhận diện gen Bán Sói bị cắn trong đêm và người trúng nguyền.
+    - [NightWitchStep.jsx](file:///projects/werewolf/src/components/night/NightWitchStep.jsx): Quản lý bình cứu người bị cắn và bảng chọn bình độc tiêu diệt 1 nạn nhân kèm hộp thoại xác nhận an toàn.
+    - [NightCupidStep.jsx](file:///projects/werewolf/src/components/night/NightCupidStep.jsx): Ghép đôi 2 người yêu nhau, hiển thị chip tóm tắt phe phái không gây giật layout (CLS = 0).
+    - [NightSpecialRolesStep.jsx](file:///projects/werewolf/src/components/night/NightSpecialRolesStep.jsx): Điều phối các vai đêm mở rộng (Đứa Trẻ Hoang Dã, Ảnh Tử, Người Thổi Sáo, Quạ, Cáo quét 3 người liền kề, Sói Lớn Xấu Xa cắn thêm, Sói Trắng cắn đồng bọn, Nguyệt Nữ khóa phép).
+    - [NightSummaryStep.jsx](file:///projects/werewolf/src/components/night/NightSummaryStep.jsx): Tổng kết toàn bộ quyết định trong đêm và nút kích hoạt chuyển giao trời sáng.
+    - [NightStickyFooter.jsx](file:///projects/werewolf/src/components/night/NightStickyFooter.jsx): Thanh điều hướng dính đáy (Sticky bottom) 1 màn hình cho mobile, hiển thị trạng thái validation thời gian thực và nút `Đi Ngủ 💤`.
+  - **Zero Regression**: 100% logic trò chơi, state persistence (`localStorage`), và bộ test (19 domain unit tests + full E2E match simulation) vượt qua hoàn hảo không có bất kỳ lỗi nào.
+
+- **Hoàn Tất Tính Năng: Chọn Bộ Bài Mặc Định Trực Tiếp Vào Neon DB ([UnifiedGameSetupModal.jsx](file:///projects/werewolf/src/components/UnifiedGameSetupModal.jsx), [DeckTemplateModal.jsx](file:///projects/werewolf/src/components/DeckTemplateModal.jsx), [App.jsx](file:///projects/werewolf/src/App.jsx), [db.js](file:///projects/werewolf/src/server/db.js), [api.js](file:///projects/werewolf/src/services/api.js))**:
+  - **Di Trú Database (Neon Postgres)**: Bổ sung trường `is_default BOOLEAN NOT NULL DEFAULT FALSE` vào bảng `deck_templates`, hỗ trợ tự động migration trong `ensureTablesExist()`.
+  - **Cập Nhật Bộ Bài Mặc Định Ban Đầu**: Đã set `is_default = TRUE` cho template `"14 lá đặc chức năng"` (19 lá, ID: `template-1794537835909` theo ảnh mobile chụp của Quản trò).
+  - **Backend API & Vite Plugin**:
+    - Thêm route `POST /api/templates/:id/default` vào cả [api/index.js](file:///projects/werewolf/api/index.js) (Vercel serverless) và [src/server/viteApiPlugin.js](file:///projects/werewolf/src/server/viteApiPlugin.js) (local dev).
+    - Thao tác transaction/query atomic: reset toàn bộ `is_default = FALSE` trước khi kích hoạt `is_default = TRUE` cho bộ bài được chọn.
+    - `getTemplates()` trả về bộ bài được sắp xếp ưu tiên `ORDER BY is_default DESC, created_at DESC`.
+  - **Giao Diện [UnifiedGameSetupModal.jsx](file:///projects/werewolf/src/components/UnifiedGameSetupModal.jsx) & [DeckTemplateModal.jsx](file:///projects/werewolf/src/components/DeckTemplateModal.jsx)**:
+    - Hiển thị huy hiệu `⭐ Mặc định` trang nhã phong cách Soft Bento cạnh tên bộ bài mặc định.
+    - Thêm nút `Đặt mặc định` / `⭐ Mặc định` cho từng thẻ bài, cho phép Quản trò chuyển đổi bộ bài mặc định chỉ với 1 chạm.
+    - Tự động ưu tiên chọn bộ bài mặc định khi khởi tạo ván đấu mới hoặc mở modal cài đặt.
+  - **Tự Động Áp Dụng Tại [App.jsx](file:///projects/werewolf/src/App.jsx)**: Khi tải ứng dụng (không có ván chơi cũ dở dang), hệ thống tự động fetch và nạp cấu hình bộ bài mặc định từ Neon DB.
+
+- **Hoàn Tất Giai Đoạn 2: Tinh Gọn Thao Tác Biểu Quyết Ban Ngày & Tiết Chế Hiệu Ứng Trầm Tĩnh Chuẩn Soft Bento Gothic ([DayPhaseView.jsx](file:///projects/werewolf/src/components/DayPhaseView.jsx), [NightPhaseView.jsx](file:///projects/werewolf/src/components/NightPhaseView.jsx), [SheriffSuccessionModal.jsx](file:///projects/werewolf/src/components/SheriffSuccessionModal.jsx), [CemeteryModal.jsx](file:///projects/werewolf/src/components/CemeteryModal.jsx))**:
+  - **Khử Trùng Lặp Thao Tác Án Treo Cổ ([DayPhaseView.jsx](file:///projects/werewolf/src/components/DayPhaseView.jsx))**: Loại bỏ nút thừa `Đổi Người Khác` (vốn gọi trùng lặp `onUndoLynch` như nút `Hoàn tác treo cổ`), rút gọn nhãn nút `Đổi Vai Trò Nạn Nhân` thành `Đổi Vai Trò`, tinh gọn nhãn Thẩm Phán thành `Thẩm Phán (Vote Thêm)`. Hàng nút điều khiển án treo cổ nay vừa khít hoàn hảo trên 1 hàng duy nhất trên mobile.
+  - **Tiết Chế Animation Nhấp Nháy & Nảy Bật Không Cần Thiết**:
+    - Thay thế các hiệu ứng `animate-bounce` nhảy nhót trên icon Khiên Bảo Vệ, Đầu Lâu Ma Sói bằng hiệu ứng viền dạ quang tĩnh thanh lịch (`drop-shadow-[0_0_8px_rgba(...)]`).
+    - Gỡ bỏ `animate-pulse` trên các huy hiệu trạng thái chọn mục tiêu (`🛡️ Đã chọn người bảo vệ`, `🩸 Đã chọn mục tiêu cắn`, `Sói Cuồng Nộ`), thẻ Người Thuần Phục Gấu, và biểu ngữ Thợ Săn. Giao diện trở nên trầm tĩnh, huyền bí và sang trọng theo đúng chuẩn Gothic Bento.
+  - **Tối Ưu Padding & Vùng Chạm Trên Mobile ([SheriffSuccessionModal.jsx](file:///projects/werewolf/src/components/SheriffSuccessionModal.jsx))**: Bổ sung `pb-4` vào lưới chọn ghế người kế nhiệm huy hiệu, đảm bảo hàng ghế dưới cùng không bao giờ bị mép bo tròn cắt xén hay khó chạm trên màn hình điện thoại.
+
+- **Hoàn Tất Giai Đoạn 1: Kiểm Toán & Chuẩn Hóa Toàn Diện UI/UX & Văn Phong Hệ Thống ([ActionModal.jsx](file:///projects/werewolf/src/components/ActionModal.jsx), [NightPhaseView.jsx](file:///projects/werewolf/src/components/NightPhaseView.jsx), [DayPhaseView.jsx](file:///projects/werewolf/src/components/DayPhaseView.jsx), [RoleHolderBanner.jsx](file:///projects/werewolf/src/components/RoleHolderBanner.jsx), [GameOverModal.jsx](file:///projects/werewolf/src/components/GameOverModal.jsx), [DeckTemplateModal.jsx](file:///projects/werewolf/src/components/DeckTemplateModal.jsx), [GameSettingsModal.jsx](file:///projects/werewolf/src/components/GameSettingsModal.jsx), [DeckInventoryRadar.jsx](file:///projects/werewolf/src/components/DeckInventoryRadar.jsx), [PlayersGridView.jsx](file:///projects/werewolf/src/components/PlayersGridView.jsx), [App.jsx](file:///projects/werewolf/src/App.jsx), [SheriffSuccessionModal.jsx](file:///projects/werewolf/src/components/SheriffSuccessionModal.jsx))**:
+  - **Sửa 100% Lỗi Markup JSX & Phục Hồi Header Chuẩn Tại [ActionModal.jsx](file:///projects/werewolf/src/components/ActionModal.jsx)**:
+    - Khắc phục lỗi build vite vỡ thẻ do biểu thức rỗng `) : ()` tại nhánh kiểm tra bình độc Phù Thủy; bổ sung thông báo trạng thái `Đã hết thuốc độc`.
+    - Phục hồi các tiêu đề chuẩn Bento Gothic (`BẢO VỆ`, `TIÊN TRI`, `BẦY MA SÓI`, `PHÙ THỦY`, `CUPID GHÉP ĐÔI`, `PHÁT SÚNG THỢ SĂN`) và xóa bỏ triệt để các thẻ `</div>` mồ côi / thừa.
+    - Sửa nhãn nút Cupid từ cụm cộc lốc `Ghép Đôi 2 ❤️` thành `Xác Nhận Ghép Đôi ❤️`.
+  - **Loại Bỏ Hoàn Toàn AI Meta-Text & Văn Bản Hướng Dẫn Thừa (Zero Over-Instruction)**:
+    - Xóa bỏ `(Chạm số ghế người chơi bên dưới)` và `(Chạm số ghế con mồi bên dưới)` tại [NightPhaseView.jsx](file:///projects/werewolf/src/components/NightPhaseView.jsx).
+    - Cắt gọn cảnh báo `Chưa gán ai là... Chạm số ghế người chơi để gán` thành `Chưa gán vai...`.
+    - Rút gọn tooltip giải thích nút bấm rườm rà tại [App.jsx](file:///projects/werewolf/src/App.jsx) (`title="Nghĩa trang ({deadCount})"`), [DeckInventoryRadar.jsx](file:///projects/werewolf/src/components/DeckInventoryRadar.jsx) (`title="Gán toàn bộ người còn lại làm Dân Làng"`), và [PlayersGridView.jsx](file:///projects/werewolf/src/components/PlayersGridView.jsx).
+    - Xóa dòng meta-text `Chạm ra ngoài để đóng` tại footer [GameSettingsModal.jsx](file:///projects/werewolf/src/components/GameSettingsModal.jsx).
+  - **Chuẩn Hóa Tiêu Đề Gothic Bento Thanh Lịch (Hạ Giọng Shouty ALL CAPS)**:
+    - Thay thế toàn bộ các tiêu đề in hoa dạng mệnh lệnh dài trong [NightPhaseView.jsx](file:///projects/werewolf/src/components/NightPhaseView.jsx) (`Mục tiêu bảo vệ đêm nay`, `Mục tiêu bầy Sói cắn`, `Mục tiêu soi đêm nay`, `Thuốc Phù Thủy`, `Ghép đôi Cupid`, `Thần Tượng liên kết`, `Bản Thể liên kết`, `Dấu ấn Quạ`, `Đánh hơi của Cáo`, `Lượt cắn Sói Lớn Xấu Xa`, `Lượt cắn Sói Trắng`, `Khóa phép Nguyệt Nữ`).
+    - Cắt gọt văn bản kịch bản quá đà của Gấu tại [DayPhaseView.jsx](file:///projects/werewolf/src/components/DayPhaseView.jsx) (`GẤU GẦM GỪZZZZ!... Quản trò hãy gầm lớn` ➔ `Gấu gầm: Có Ma Sói ngồi kề bên`), chuông báo (`Hết giờ thảo luận ➔ Chuyển sang biểu quyết`), và nhãn chiến thắng trang trọng tại [GameOverModal.jsx](file:///projects/werewolf/src/components/GameOverModal.jsx) (`PHE CHIẾN THẮNG`).
+  - **Vượt Qua 100% Bộ Test Domain & E2E (19 Domain Tests + Full Match Simulation)** và build production thành công tuyệt đối.
+
+- **Hỗ Trợ Multi-Select & Giữ Trạng Thái Mở Cho Hai Chị Em (2 người) & Ba Anh Em (3 người) ([RoleClaimBox.jsx](file:///projects/werewolf/src/components/RoleClaimBox.jsx), [RoleHolderBanner.jsx](file:///projects/werewolf/src/components/RoleHolderBanner.jsx), [ActionModal.jsx](file:///projects/werewolf/src/components/ActionModal.jsx), [deckUtils.js](file:///projects/werewolf/src/utils/deckUtils.js), [NightPhaseView.jsx](file:///projects/werewolf/src/components/NightPhaseView.jsx))**:
+  - **Chuẩn hóa dung lượng vai (Capacity)**: `getRoleCapacity` đảm bảo vai `hai-chi-em` luôn có dung lượng tối thiểu là 2 người (`capacity >= 2`), và `ba-anh-em` luôn có dung lượng tối thiểu là 3 người (`capacity >= 3`), kể cả khi Quản trò chỉ thêm 1 thẻ cấu hình đại diện trong bộ bài.
+  - **Gán nhiều người (Multi-select) tại RoleClaimBox**: Cho phép Quản trò chạm chọn liên tiếp 2 người cho Hai Chị Em (hoặc 3 người cho Ba Anh Em), hiển thị thẻ tóm tắt slot người chọn và nút xác nhận `Xác Nhận (X/2) Hai Chị Em ✓` / `Xác Nhận (X/3) Ba Anh Em ✓`.
+  - **Không tự động đóng drawer/modal khi chọn xong**: Tại `RoleHolderBanner` và `ActionModal`, khi gán/bỏ gán người chơi cho vai Hai Chị Em hoặc Ba Anh Em, danh sách giữ nguyên trạng thái mở để Quản trò thoải mái gán tiếp người thứ 2/thứ 3 mà không bị sập drawer.
+  - **Khắc phục lỗi text hiển thị `✓ Đã nguyền từ vai này`**: Đã sửa tại `RoleHolderBanner.jsx`, hiển thị đúng `✓ Đang giữ vai này` cho người chơi bình thường (chỉ hiện `🔮 Bị nguyền (vai gốc)` nếu người đó thực sự trúng lời nguyền Sói).
+  - **Thêm Step Validation chuẩn kịch bản đêm**: Bước gọi Hai Chị Em bắt buộc gán đủ đúng 2 người (`count === 2`), Ba Anh Em bắt buộc đủ 3 người (`count === 3`) mới cho phép Quản trò bấm `Đi Ngủ 💤`.
+
+- **Loại Bỏ Hoàn Toàn Nút To Trùng Lặp Ở Các Role Kịch Bản Đêm ([NightPhaseView.jsx](file:///projects/werewolf/src/components/NightPhaseView.jsx))**:
+  - **Khắc phục lỗi 2 nút "Đi Ngủ" cùng xuất hiện trên màn hình**: Trước đây khi Quản trò chọn xong mục tiêu cho các vai (Cupid chọn 2 người, Tiên Tri soi bài, Ma Sói cắn, Bảo Vệ khiên, hoặc các vai chưa gán/đã chết/lời nguyền Già Làng), một nút to ngang toàn màn hình (`w-full h-11`) tự động bung ra ngay giữa màn hình (`Đã Ghép Đôi & Đi Ngủ 💤`, `Đã Soi Bài & Đi Ngủ 💤`, `Xác Nhận & Đi Ngủ 💤`...), nằm đè ngay sát thanh điều hướng dính đáy (`Sticky Bottom Action Bar`).
+  - **Giữ thanh Sticky Bottom duy nhất & chuẩn xác**: Quản trò thao tác bằng thanh Action Bar cố định ở đáy màn hình (`Bước Trước` / Huy hiệu trạng thái `✓ Đã ghép đôi ✓` / `Đi Ngủ 💤 >`), loại bỏ hoàn toàn các nút to chiếm diện tích và nút floating dư thừa.
+  - **Dọn dẹp code sạch sẽ**: Xóa bỏ các state, ref, và IntersectionObserver không cần thiết (`inlineButtonNode`, `inlineAdvanceBtnRef`, `showFloatingAdvanceButton`, `isOriginalFooterVisible`).
+
 - **Áp Dụng Bộ Typography Mới Chuẩn Gothic Occult ([index.html](file:///home/levi/Desktop/Projects/werewolf/index.html), [index.css](file:///home/levi/Desktop/Projects/werewolf/src/index.css))**:
   - **Bộ Font 3 Tầng Đẳng Cấp**:
     - **Tiêu đề, Nhãn Cổ Kính**: `Cinzel` (`wght@600;700;800;900`).
@@ -499,6 +560,48 @@ Theo quy chuẩn [docs/game-rules.md](file:///home/levi/Desktop/Projects/werewol
   - Bổ sung **Reactive Game End Evaluator** (`useEffect` trong `App.jsx` theo dõi `players`): Tự động đánh giá ngay lập tức điều kiện thắng thua bất cứ khi nào danh sách người chơi thay đổi (nguyền, chết, hồi sinh, đổi vai, gán vai).
   - Trong nhánh `curse_convert`: Kích hoạt ngay `evaluateGameEnd` khi một người bị Sói Nguyền lây nhiễm thành Ma Sói, đảm bảo nếu số Sói đạt ngưỡng cân bằng hoặc áp đảo Dân Làng (`aliveWolves >= aliveVillagers`), modal **Phe Ma Sói Chiến Thắng** nổ ra ngay tức khắc.
   - Đảm bảo 100% test case logic (Sói bằng Người 2v2, Nguyền thêm Sói 2v2, Bán Sói thức tỉnh 2v1) đều chạy PASS.
+
+## 29. Hoàn Thiện Thợ Săn (Gọi Đêm 1 Nhận Diện & Kích Hoạt Nổ Súng Hồi Tố Khi Bị Treo Cổ/Chết)
+- **Thợ Săn thức dậy nhận diện Quản Trò vào Đêm 1 (`NightPhaseView.jsx`, `NightSpecialRolesStep.jsx`)**:
+  - Gán thứ tự gọi đêm `orderPriority['tho-san'] = 3.3` (ngay sau Thằng Ngốc 3.2 và trước Diễn Viên 3.5).
+  - Thợ Săn chỉ thức dậy vào Đêm 1 (`roundNumber === 1`) để Quản trò nhận diện người nắm giữ vai; từ Đêm 2 trở đi (`roundNumber > 1`) tự động ngủ suốt đêm theo chuẩn luật quốc tế.
+  - Xóa `'tho-san'` khỏi danh sách loại bỏ thụ động ban ngày.
+  - Tích hợp giao diện nhận diện riêng trong `NightSpecialRolesStep.jsx` với icon `Crosshair` phong cách Soft Bento Dark Gothic, hiển thị thông tin người nắm giữ và câu xướng Quản trò chuẩn xác.
+- **Kích hoạt nổ súng hồi tố khi gán Thợ Săn cho người đã chết / bị treo cổ (`App.jsx`, `ActionModal.jsx`)**:
+  - **Khắc phục Race Condition đóng modal (`ActionModal.jsx`)**: Trước đây, khi Quản trò click gán vai `tho-san` cho nạn nhân vừa bị treo cổ, `ActionModal` lập tức gọi `onClose()`, đè bẹp và đóng mất popup nổ súng mà `handleAssignRole` vừa kích hoạt. Đã sửa: kiểm tra `willTriggerHunter = (role?.id === 'tho-san' && !p.isAlive)`, nếu đúng thì bỏ qua `onClose()`.
+  - **Mở rộng phạm vi kích hoạt (`App.jsx`)**: Không chỉ kiểm tra `playerId === lynchedTodayPlayerId`, mà kích hoạt cho bất kỳ người chơi nào đã chết (`!targetPlayer.isAlive`). Đồng thời lưu trạng thái `setPendingHunterShot({ hunterId, hunterName })` để hiển thị banner nổ súng ban ngày và chặn bước chuyển đêm cho đến khi phát súng được thực hiện.
+  - **Bảo toàn quy tắc miễn trừ súng**: Nếu làng đang chịu Lời Nguyền Già Làng (`isVillageCursed`) hoặc Thợ Săn tử trận do trúng độc Phù Thủy, súng bị tê liệt và hệ thống thông báo lý do rõ ràng.
+- **Bộ Kiểm Thử & CI**:
+  - Thêm Test 20 (Thợ Săn gọi Đêm 1, ngủ Đêm 2+) và Test 21 (Nổ súng hồi tố khi gán vai cho người chết & kiểm tra trúng độc).
+  - Vượt qua 21/21 Unit Tests Domain + Toàn bộ E2E Match Simulation (100% PASS).
+  - Build Vite production hoàn tất không lỗi.
+
+## 30. Hoàn Tất Giai Đoạn 4: Tái Cấu Trúc Kiến Trúc & Module Hóa [DayPhaseView.jsx](file:///projects/werewolf/src/components/DayPhaseView.jsx) (Từ 757 dòng ➔ 171 dòng)
+- **Tách Component Theo Đơn Nhiệm (Single Responsibility Principle)** vào thư mục `src/components/day/`:
+  - [DayCasualtyAnnouncement.jsx](file:///projects/werewolf/src/components/day/DayCasualtyAnnouncement.jsx): Thông báo thương vong trong đêm (danh sách người chết, huy hiệu đầu lâu, logs chi tiết ban đêm).
+  - [DaySheriffBanner.jsx](file:///projects/werewolf/src/components/day/DaySheriffBanner.jsx): Banner quản lý chức vụ Cảnh Sát Trưởng (phiếu vote x2, cảnh báo khi CST tử trận, kích hoạt modal di chúc hoặc drawer chọn nhanh).
+  - [DayHunterBanner.jsx](file:///projects/werewolf/src/components/day/DayHunterBanner.jsx): Biểu ngữ phát súng Thợ Săn bắt buộc khi Thợ Săn tử trận (nút `Chọn Mục Tiêu Bắn 🎯` và `Bỏ Qua`).
+  - [DayDiscussionTimer.jsx](file:///projects/werewolf/src/components/day/DayDiscussionTimer.jsx): Đồng hồ đếm ngược thảo luận (1m, 3m, 5m), chuông báo haptic khi hết giờ, kèm bộ phát hiện khoảng cách Người Thuần Phục Gấu (gấu gầm cảnh báo Ma Sói kề bên).
+  - [DayKnightDuel.jsx](file:///projects/werewolf/src/components/day/DayKnightDuel.jsx): Giao diện Kị Sĩ lật bài quyết đấu 1 lần duy nhất trong game với hộp thoại xác nhận.
+  - [DayVotingSection.jsx](file:///projects/werewolf/src/components/day/DayVotingSection.jsx): Bảng biểu quyết treo cổ (lưới ghế ngồi, hiệu ứng viền đỏ Ma Sói, huy hiệu Quạ phạt +2, cờ Người Thế Thân chết thay khi hòa phiếu) và thẻ khóa án treo cổ (Hoàn tác, Đổi vai trò, Thẩm Phán vote thêm).
+  - [DayNightTransition.jsx](file:///projects/werewolf/src/components/day/DayNightTransition.jsx): Nút chuyển đêm an toàn ở chân trang kèm kiểm tra ràng buộc phát súng Thợ Săn và di chúc Cảnh Sát Trưởng.
+- **Siết Chặt Luật Sói Lớn Xấu Xa (Big Bad Wolf)**:
+  - Tự động loại bỏ mục tiêu của bầy Sói khỏi danh sách cắn thêm, tránh cắn trùng nạn nhân.
+  - Kiểm tra điều kiện ngặt nghèo trong engine: Sói Lớn Xấu Xa mất vĩnh viễn năng lực cắn thêm ngay khi có bất kỳ con Sói nào trong đàn bị chết.
+  - Mở rộng Test 17 trong `tests/domain.test.js` kiểm tra vô hiệu hóa phát cắn thêm khi có Sói chết.
+- **Zero Regression**:
+  - 21/21 Unit Tests Domain + Toàn bộ E2E Match Simulation pass 100%.
+  - Build production Vite thành công trong 395ms.
+
+## 31. Lộ Trình Kế Tiếp: Giai Đoạn 5 (Upcoming Phase 5)
+- **Kiểm Thử E2E Tự Động Toàn Diện Cho Toàn Bộ 48 Vai Trò Mở Rộng**:
+  - Xây dựng test suite mô phỏng chi tiết các vai trò độc lập & tương tác phức tạp:
+    - Người Thổi Sáo (thôi miên toàn bộ làng sống sót ➔ Chiến thắng phe thứ ba).
+    - Sói Trắng (thức dậy riêng vào đêm chẵn để tiêu diệt Ma Sói khác).
+    - Nguyệt Nữ (khóa toàn bộ năng lực sử dụng ban đêm của 1 người chơi).
+    - Thiên Sứ / Thiên Thần (bị treo cổ Ngày 1 hoặc bị cắn Đêm 1 ➔ Thắng tức thì).
+
+
 
 
 

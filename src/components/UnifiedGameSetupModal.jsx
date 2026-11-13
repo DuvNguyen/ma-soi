@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { ROLES, PRESETS } from '../data/roles';
 import { DEFAULT_PLAYER_NAMES } from '../data/defaultPlayers';
-import { fetchTemplates, saveTemplateApi, deleteTemplateApi } from '../services/api';
+import { fetchTemplates, saveTemplateApi, deleteTemplateApi, setDefaultTemplateApi } from '../services/api';
 import {
   Layers,
   Users,
@@ -116,7 +116,19 @@ export default function UnifiedGameSetupModal({
     setLoading(true);
     try {
       const data = await fetchTemplates();
-      setTemplates(data || []);
+      const list = data || [];
+      setTemplates(list);
+
+      // Ưu tiên chọn bộ bài mặc định (isDefault = true) nếu chưa có bộ bài cụ thể được chọn từ ván trước
+      setSelectedTemplateId(prevId => {
+        const hasValidMatch = list.some(t => t.id === prevId && prevId !== 'preset-9-11');
+        if (currentTemplateId && currentTemplateId !== 'preset-9-11' && list.some(t => t.id === currentTemplateId)) {
+          return currentTemplateId;
+        }
+        if (hasValidMatch) return prevId;
+        const defaultTpl = list.find(t => t.isDefault) || list[0];
+        return defaultTpl ? defaultTpl.id : prevId;
+      });
     } catch (e) {
       console.error('Error fetching templates:', e);
     } finally {
@@ -450,6 +462,27 @@ export default function UnifiedGameSetupModal({
     });
   };
 
+  // Set a template as default in Neon DB
+  const handleSetDefaultTemplate = async (template, e) => {
+    e.stopPropagation();
+    if (template.isDefault) return;
+    triggerHaptic('selection');
+    try {
+      await setDefaultTemplateApi(template.id);
+      setTemplates(prev => prev.map(t => ({
+        ...t,
+        isDefault: t.id === template.id
+      })));
+    } catch (err) {
+      console.error('Failed to set default template:', err);
+      showAlert({
+        title: 'LỖI CẬP NHẬT',
+        message: err.message || 'Không thể đặt bộ bài mặc định.',
+        variant: 'blood'
+      });
+    }
+  };
+
   // Restore / Seed standard presets into Database
   const handleRestoreDeletedPresets = async () => {
     try {
@@ -760,9 +793,17 @@ export default function UnifiedGameSetupModal({
                                 />
                               </div>
                             ) : (
-                              <span className="font-bold text-sm text-slate-100 truncate mr-2">
-                                {displayName}
-                              </span>
+                              <div className="flex items-center gap-2 min-w-0 mr-2">
+                                <span className="font-bold text-sm text-slate-100 truncate">
+                                  {displayName}
+                                </span>
+                                {t.isDefault && (
+                                  <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-amber-300 bg-amber-950/80 border border-amber-600/60 px-1.5 py-0.5 rounded shrink-0">
+                                    <Star className="w-2.5 h-2.5 fill-amber-400 text-amber-400" />
+                                    Mặc định
+                                  </span>
+                                )}
+                              </div>
                             )}
                             <div className="flex items-center gap-1.5 shrink-0">
                               <span className="text-[10px] font-mono text-slate-400 bg-slate-900/90 px-2 py-0.5 rounded-md border border-slate-800">
@@ -945,7 +986,22 @@ export default function UnifiedGameSetupModal({
                             )}
                           </button>
 
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-1.5 sm:gap-2">
+                            {/* Nút Đặt Làm Mặc Định */}
+                            <button
+                              type="button"
+                              onClick={(e) => handleSetDefaultTemplate(t, e)}
+                              title={t.isDefault ? 'Bộ bài mặc định của hệ thống' : 'Đặt làm bộ bài mặc định'}
+                              className={`px-2 py-1.5 rounded-xl border text-xs font-semibold transition-all flex items-center gap-1 cursor-pointer ${
+                                t.isDefault
+                                  ? 'bg-amber-950/70 border-amber-500/80 text-amber-300 shadow-sm'
+                                  : 'bg-slate-900 hover:bg-amber-950/40 border-slate-700 hover:border-amber-600/50 text-slate-400 hover:text-amber-300'
+                              }`}
+                            >
+                              <Star className={`w-3.5 h-3.5 ${t.isDefault ? 'fill-amber-400 text-amber-400' : ''}`} />
+                              <span className="hidden sm:inline">{t.isDefault ? 'Mặc định' : 'Đặt mặc định'}</span>
+                            </button>
+
                             {/* Nút Sửa Lá Bài trực tiếp trên từng bộ bài */}
                             <button
                               type="button"

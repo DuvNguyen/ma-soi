@@ -49,10 +49,11 @@ export async function testConnection() {
 
 export async function getTemplates() {
   if (!getSql()) return [];
+  await ensureTablesExist();
   const rows = await sql`
-    SELECT id, name, description, player_count, role_ids, created_at, updated_at 
+    SELECT id, name, description, player_count, role_ids, is_default, created_at, updated_at 
     FROM deck_templates 
-    ORDER BY created_at DESC
+    ORDER BY is_default DESC, created_at DESC
   `;
   return rows.map(r => ({
     id: r.id,
@@ -60,25 +61,40 @@ export async function getTemplates() {
     desc: r.description,
     playerCount: r.player_count,
     roleIds: typeof r.role_ids === 'string' ? JSON.parse(r.role_ids) : r.role_ids,
+    isDefault: Boolean(r.is_default),
     createdAt: r.created_at,
     updatedAt: r.updated_at
   }));
 }
 
-export async function saveTemplate({ id, name, desc, playerCount, roleIds }) {
+export async function saveTemplate({ id, name, desc, playerCount, roleIds, isDefault }) {
   if (!getSql()) throw new Error('Database not connected');
+  await ensureTablesExist();
   const roleIdsJson = JSON.stringify(roleIds);
+  const shouldBeDefault = Boolean(isDefault);
+  if (shouldBeDefault) {
+    await sql`UPDATE deck_templates SET is_default = FALSE`;
+  }
   await sql`
-    INSERT INTO deck_templates (id, name, description, player_count, role_ids, updated_at)
-    VALUES (${id}, ${name}, ${desc || ''}, ${playerCount}, ${roleIdsJson}::jsonb, NOW())
+    INSERT INTO deck_templates (id, name, description, player_count, role_ids, is_default, updated_at)
+    VALUES (${id}, ${name}, ${desc || ''}, ${playerCount}, ${roleIdsJson}::jsonb, ${shouldBeDefault}, NOW())
     ON CONFLICT (id) DO UPDATE SET
       name = EXCLUDED.name,
       description = EXCLUDED.description,
       player_count = EXCLUDED.player_count,
       role_ids = EXCLUDED.role_ids,
+      is_default = CASE WHEN ${shouldBeDefault} THEN TRUE ELSE deck_templates.is_default END,
       updated_at = NOW()
   `;
-  return { id, name, desc, playerCount, roleIds };
+  return { id, name, desc, playerCount, roleIds, isDefault: shouldBeDefault };
+}
+
+export async function setDefaultTemplate(id) {
+  if (!getSql()) throw new Error('Database not connected');
+  await ensureTablesExist();
+  await sql`UPDATE deck_templates SET is_default = FALSE`;
+  await sql`UPDATE deck_templates SET is_default = TRUE WHERE id = ${id}`;
+  return { success: true, id };
 }
 
 export async function deleteTemplate(id) {
@@ -149,6 +165,21 @@ export async function saveGameState(state) {
 export async function ensureTablesExist() {
   if (!getSql()) return;
   try {
+    await sql`
+      CREATE TABLE IF NOT EXISTS deck_templates (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        description TEXT DEFAULT '',
+        player_count INT NOT NULL,
+        role_ids JSONB NOT NULL DEFAULT '[]',
+        is_default BOOLEAN NOT NULL DEFAULT FALSE,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+        updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+      );
+    `;
+    await sql`
+      ALTER TABLE deck_templates ADD COLUMN IF NOT EXISTS is_default BOOLEAN NOT NULL DEFAULT FALSE;
+    `;
     await sql`
       CREATE TABLE IF NOT EXISTS match_records (
         id VARCHAR(64) PRIMARY KEY,

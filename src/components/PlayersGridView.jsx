@@ -92,7 +92,7 @@ export default function PlayersGridView({ players, onOpenAssignRole, onOpenRoste
                 key={p.id}
                 type="button"
                 onClick={() => onOpenAssignRole(p)}
-                title={`Ghế #${p.id} - ${p.name} (${pRole?.name || 'Chưa gán vai'}) - Bấm để đổi vai trò`}
+                title={`Ghế #${p.id} - ${p.name} (${pRole?.name || 'Chưa gán vai'})`}
                 className={`relative p-2 sm:p-2.5 rounded-xl border text-center transition-all duration-75 select-none touch-manipulation active:scale-95 cursor-pointer flex flex-col items-center justify-between min-h-[90px] sm:min-h-[105px] group ${
                   !p.isAlive
                     ? 'bg-[#08080c]/80 border-slate-900 opacity-40 hover:opacity-75'

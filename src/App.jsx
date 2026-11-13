@@ -8,7 +8,7 @@ import { checkGameEnd, resolveNightPhase } from './utils/gameLogic';
 import { Player } from './domain/models/Player.js';
 import { WerewolfGame } from './domain/models/WerewolfGame.js';
 import triggerHaptic from './utils/haptics';
-import { checkNeonConnection, syncGameStateApi, loadGameStateApi, saveMatchRecordApi } from './services/api';
+import { checkNeonConnection, syncGameStateApi, loadGameStateApi, saveMatchRecordApi, fetchTemplates } from './services/api';
 import NightPhaseView from './components/NightPhaseView';
 import DayPhaseView from './components/DayPhaseView';
 import PlayersGridView from './components/PlayersGridView';
@@ -157,7 +157,7 @@ export default function App() {
   const [wolfCanKillDouble, setWolfCanKillDouble] = useState(() => savedInitial?.wolfCanKillDouble || false);
   const [pendingHunterShot, setPendingHunterShot] = useState(() => savedInitial?.pendingHunterShot || null);
   const [preLynchSnapshot, setPreLynchSnapshot] = useState(() => savedInitial?.preLynchSnapshot || null);
-  const [selectedTemplateId, setSelectedTemplateId] = useState(() => savedInitial?.selectedTemplateId || 'preset-9-11');
+  const [selectedTemplateId, setSelectedTemplateId] = useState(() => savedInitial?.selectedTemplateId || null);
   const [canWolvesKillTeammates, setCanWolvesKillTeammates] = useState(() => {
     try {
       const saved = localStorage.getItem('werewolf_rule_wolves_can_kill_teammates');
@@ -207,7 +207,7 @@ export default function App() {
     player: null
   });
 
-  // Initial load: Check Neon DB connection
+  // Initial load: Check Neon DB connection & sync default template
   useEffect(() => {
     checkNeonConnection().then(res => {
       setNeonStatus({
@@ -217,6 +217,21 @@ export default function App() {
         dbName: res.connection?.db_name
       });
     });
+
+    // If no saved state from a previous round, or template is unspecified, load default template from Neon DB
+    if (!savedInitial || savedInitial.selectedTemplateId === 'preset-9-11' || !savedInitial.selectedTemplateId) {
+      fetchTemplates().then(templates => {
+        if (templates && templates.length > 0) {
+          const defaultTmpl = templates.find(t => t.isDefault) || templates[0];
+          if (defaultTmpl) {
+            setSelectedTemplateId(defaultTmpl.id);
+            if (!savedInitial) {
+              handleApplyTemplate(defaultTmpl);
+            }
+          }
+        }
+      }).catch(err => console.warn('Failed to load initial default template:', err));
+    }
   }, []);
 
   // Auto-sync game state to localStorage & Neon DB
@@ -1005,27 +1020,54 @@ export default function App() {
       });
     });
 
-    // Special check: Nếu gán vai cho người vừa bị treo cổ hôm nay
-    if (playerId === lynchedTodayPlayerId) {
-      if (role.id === 'gia-lang') {
+    // Special check: Nếu gán vai cho người đã chết (vừa bị treo cổ hoặc chết trong đêm)
+    const targetPlayer = players.find(p => p.id === playerId);
+    const isDead = targetPlayer && (!targetPlayer.isAlive || playerId === lynchedTodayPlayerId);
+
+    if (isDead) {
+      if (role.id === 'gia-lang' && playerId === lynchedTodayPlayerId) {
         setIsVillageCursed(true);
         showAlert({
           title: '⚡ LỜI NGUYỀN GIÀ LÀNG GIÁNG XUỐNG!',
           message: 'Nạn nhân bị treo cổ chính là GIÀ LÀNG!\n\nNỗi oán hận biến thành lời nguyền: Toàn bộ phe Dân Làng bị tước đoạt toàn bộ chức năng đặc biệt từ nay về sau!',
           variant: 'danger'
         });
-      } else if (role.id === 'tho-san' && !isVillageCursed) {
-        const deadHunter = players.find(p => p.id === playerId);
-        setActionModal({
-          isOpen: true,
-          actionType: 'hunter',
-          role,
-          player: deadHunter
-        });
+      } else if (role.id === 'tho-san') {
+        const isPoisoned = targetPlayer?.deathReason && (targetPlayer.deathReason.includes('độc') || targetPlayer.deathReason.includes('thuốc độc'));
+        if (isVillageCursed) {
+          showAlert({
+            title: 'LỜI NGUYỀN GIÀ LÀNG ⚡',
+            message: `Thợ Săn ${targetPlayer.name} tử trận nhưng không thể nổ súng do toàn bộ phe Dân Làng đã bị phong ấn năng lực!`,
+            variant: 'warning'
+          });
+        } else if (isPoisoned) {
+          showAlert({
+            title: 'THỢ SĂN TRÚNG ĐỘC ☠️',
+            message: `Thợ Săn ${targetPlayer.name} tử trận do trúng độc của Phù Thủy nên bị tê liệt, không thể rút súng bắn!`,
+            variant: 'warning'
+          });
+        } else {
+          // Kích hoạt phát súng Thợ Săn & lưu vào pendingHunterShot
+          setPendingHunterShot({
+            hunterId: playerId,
+            hunterName: targetPlayer.name
+          });
+
+          const deadHunterObj = targetPlayer instanceof Player
+            ? targetPlayer.assignRole('tho-san')
+            : { ...targetPlayer, currentRoleId: 'tho-san', roleId: 'tho-san' };
+
+          setActionModal({
+            isOpen: true,
+            actionType: 'hunter',
+            role,
+            player: deadHunterObj
+          });
+        }
       } else if (role.id === 'soi-con') {
         setWolfCanKillDouble(true);
         showAlert({
-          title: '🐺 SÓI CON ĐÃ BỊ TREO CỔ!',
+          title: '🐺 SÓI CON ĐÃ BỊ TIÊU DIỆT!',
           message: 'Bầy Ma Sói nổi cơn cuồng sát: Đêm tiếp theo bầy Sói được cắn 2 người!',
           variant: 'warning'
         });
@@ -1753,7 +1795,7 @@ export default function App() {
               type="button"
               onClick={() => setIsCemeteryOpen(true)}
               className="h-7 sm:h-8 px-2 sm:px-2.5 rounded-lg sm:rounded-xl bg-[#1b0826] hover:bg-[#280c38] border border-purple-700/80 hover:border-purple-400 text-purple-200 text-xs font-bold flex items-center gap-1 cursor-pointer transition-all shadow-sm shrink-0"
-              title="Bấm để xem danh sách ai đã chết, chết vì sao và khi nào"
+              title={`Nghĩa trang (${players.length - alivePlayers.length} người đã chết)`}
             >
               <Skull className="w-3.5 h-3.5 text-rose-400 shrink-0" />
               <span>{players.length - alivePlayers.length}</span>

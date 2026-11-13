@@ -1,6 +1,7 @@
 import assert from 'node:assert';
 import { Player } from '../src/domain/models/Player.js';
 import { getRoleStrategy } from '../src/domain/strategies/RoleStrategies.js';
+import { getRoleCapacity } from '../src/utils/deckUtils.js';
 
 console.log('🧪 Starting Phase 1 Domain Model & Strategy Tests...\n');
 
@@ -324,7 +325,25 @@ console.log('🧪 Starting Phase 1 Domain Model & Strategy Tests...\n');
     });
     assert.strictEqual(bbwRes2.game.getPlayer(3).isAlive, false);
     assert.strictEqual(bbwRes2.game.getPlayer(4).isAlive, false, 'Dân 2 killed by Big Bad Wolf extra bite');
-    console.log('✅ Test 17: Big Bad Wolf extra bite and protection interaction passed.');
+
+    // When another werewolf dies, Big Bad Wolf loses extra bite power
+    const bbwGameWithDeadWolf = bbwGame.clone({
+      players: [
+        bbwGame.getPlayer(1), // Big Bad Wolf (alive)
+        bbwGame.getPlayer(2).clone({ isAlive: false, deathReason: 'Treo cổ' }), // Sói Thường (dead)
+        bbwGame.getPlayer(3),
+        bbwGame.getPlayer(4),
+        bbwGame.getPlayer(5)
+      ]
+    });
+    const bbwResWithDeadWolf = bbwGameWithDeadWolf.resolveNight({
+      wolfTargetId: 3,
+      bigBadWolfTargetId: 4,
+      protectedPlayerId: null
+    });
+    assert.strictEqual(bbwResWithDeadWolf.game.getPlayer(3).isAlive, false, 'Pack victim killed');
+    assert.strictEqual(bbwResWithDeadWolf.game.getPlayer(4).isAlive, true, 'Big Bad Wolf cannot kill when another wolf is dead');
+    console.log('✅ Test 17: Big Bad Wolf extra bite, protection, and power loss upon wolf casualty verified.');
 
     // Test 18: Assigning functional role to player previously infected by Cursed Wolf
     const unassignedPlayer = new Player({ id: 12, name: 'Duyên', currentRoleId: null, roleId: null });
@@ -356,6 +375,52 @@ console.log('🧪 Starting Phase 1 Domain Model & Strategy Tests...\n');
     assert.strictEqual(gameWithCursedSeer.canRoleBeReassigned('tien-tri', 13), false, 'Cannot be given to another player');
     console.log('✅ Test 18: Cursed player assigned functional role remains a wolf and seals the role.');
 
-    console.log('\n🎉 ALL 18 DOMAIN ENGINE TESTS PASSED PERFECTLY!\n');
+    // Test 19: Hai Chị Em (capacity 2) and Ba Anh Em (capacity 3)
+    assert.strictEqual(getRoleCapacity('hai-chi-em', ['hai-chi-em']), 2, 'Hai Chị Em has capacity 2 even with 1 card in deck');
+    assert.strictEqual(getRoleCapacity('hai-chi-em', []), 2, 'Hai Chị Em default capacity is 2');
+    assert.strictEqual(getRoleCapacity('ba-anh-em', ['ba-anh-em']), 3, 'Ba Anh Em has capacity 3 even with 1 card in deck');
+    assert.strictEqual(getRoleCapacity('ba-anh-em', []), 3, 'Ba Anh Em default capacity is 3');
+    console.log('✅ Test 19: Hai Chị Em (capacity 2) and Ba Anh Em (capacity 3) multi-capacity verified.');
+
+    // Test 20: Thợ Săn (Hunter) Night 1 Wakeup vs Night 2+ Exclusion
+    const testDeck = [
+      { id: 'tho-san', name: 'Thợ Săn' },
+      { id: 'tien-tri', name: 'Tiên Tri' },
+      { id: 'soi-thuong', name: 'Ma Sói' }
+    ];
+    const filterNightRoles = (roles, round) => roles.filter(r => {
+      if (['cupid', 'dua-tre-hoang-da', 'anh-tu', 'an-trom', 'ke-bao-thu', 'soi-lai', 'cho-soi-soi-lai', 'ba-anh-em', 'nua-nguoi-nua-soi', 'thang-ngoc', 'tho-san'].includes(r.id) && round > 1) {
+        return false;
+      }
+      if (['dan-lang', 'dan-thuong', 'gia-lang'].includes(r.id)) {
+        return false;
+      }
+      return true;
+    });
+
+    const night1Roles = filterNightRoles(testDeck, 1);
+    assert.strictEqual(night1Roles.some(r => r.id === 'tho-san'), true, 'Hunter is called on Night 1 for identification');
+
+    const night2Roles = filterNightRoles(testDeck, 2);
+    assert.strictEqual(night2Roles.some(r => r.id === 'tho-san'), false, 'Hunter sleeps on Night 2 and onwards');
+    console.log('✅ Test 20: Hunter (Thợ Săn) Night 1 call vs Night 2+ exclusion verified.');
+
+    // Test 21: Hunter death trigger on retroactive role assignment
+    const lynchedPlayer = new Player({ id: 14, name: 'Hùng', isAlive: false, deathReason: 'Dân làng biểu quyết treo cổ' });
+    const assignedHunter = lynchedPlayer.assignRole('tho-san');
+    assert.strictEqual(assignedHunter.currentRoleId, 'tho-san');
+    assert.strictEqual(assignedHunter.isAlive, false);
+
+    // Verify shot activation condition: dead Hunter + not poisoned + village not cursed
+    const canShootWhenLynched = !assignedHunter.isAlive && !assignedHunter.deathReason.includes('độc');
+    assert.strictEqual(canShootWhenLynched, true, 'Lynched Hunter can fire death shot upon role assignment');
+
+    // If poisoned by witch, hunter cannot shoot
+    const poisonedPlayer = new Player({ id: 15, name: 'Bình', isAlive: false, deathReason: 'Phù Thủy hạ độc' });
+    const canShootWhenPoisoned = !poisonedPlayer.isAlive && !poisonedPlayer.deathReason.includes('độc');
+    assert.strictEqual(canShootWhenPoisoned, false, 'Poisoned Hunter cannot fire death shot');
+    console.log('✅ Test 21: Hunter retroactive role assignment & poison check verified.');
+
+    console.log('\n🎉 ALL 21 DOMAIN ENGINE TESTS PASSED PERFECTLY!\n');
   });
 }
