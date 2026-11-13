@@ -1,6 +1,20 @@
 # Session Handover - Werewolf Moderator Web App
 
 ## 1. Tổng Quan Tiến Độ & Tính Năng Đã Triển Khai
+- **Hoàn Tất Giai Đoạn 3: Tái Cấu Trúc Kiến Trúc & Module Hóa [NightPhaseView.jsx](file:///projects/werewolf/src/components/NightPhaseView.jsx) (Từ 2,282 dòng ➔ 595 dòng)**:
+  - **Tách Component Theo Đơn Nhiệm (Single Responsibility Principle)** vào thư mục `src/components/night/`:
+    - [NightStepHeader.jsx](file:///projects/werewolf/src/components/night/NightStepHeader.jsx): Quản lý thanh tiến trình bước gọi (Breadcrumb pills), Hero Card đại diện vai, phân định gán vai (`RoleClaimBox` / `RoleHolderBanner`), và toàn bộ hệ thống biểu ngữ cảnh báo (`isRoleCursedOut`, `isDeadRole`, lời nguyền Già Làng `isVillageCursed`).
+    - [NightRoleAction.jsx](file:///projects/werewolf/src/components/night/NightRoleAction.jsx): Router điều phối action body tương tác chuẩn xác theo từng vai trò.
+    - [NightBodyguardStep.jsx](file:///projects/werewolf/src/components/night/NightBodyguardStep.jsx): Chọn mục tiêu bảo vệ, hiển thị trạng thái cấm bảo vệ liên tiếp đêm trước, ưu tiên ghế Bảo Vệ lên đầu danh sách.
+    - [NightWerewolvesStep.jsx](file:///projects/werewolf/src/components/night/NightWerewolvesStep.jsx): Tích hợp luồng bầy Sói săn mồi, bảng chuyền máy bí mật (`WolfWhisperBox`), tổng hợp thảo luận bầy Sói, cơ chế Cuồng nộ cắn 2 người (khi Sói Con chết), cơ chế lây nhiễm Sói Nguyền (`curse_convert`), và cắn tự do đồng loại.
+    - [NightSeerStep.jsx](file:///projects/werewolf/src/components/night/NightSeerStep.jsx): Hiển thị thẻ bài soi sáng phóng to kèm nút X đỏ nổi bật đóng thẻ, tự động nhận diện gen Bán Sói bị cắn trong đêm và người trúng nguyền.
+    - [NightWitchStep.jsx](file:///projects/werewolf/src/components/night/NightWitchStep.jsx): Quản lý bình cứu người bị cắn và bảng chọn bình độc tiêu diệt 1 nạn nhân kèm hộp thoại xác nhận an toàn.
+    - [NightCupidStep.jsx](file:///projects/werewolf/src/components/night/NightCupidStep.jsx): Ghép đôi 2 người yêu nhau, hiển thị chip tóm tắt phe phái không gây giật layout (CLS = 0).
+    - [NightSpecialRolesStep.jsx](file:///projects/werewolf/src/components/night/NightSpecialRolesStep.jsx): Điều phối các vai đêm mở rộng (Đứa Trẻ Hoang Dã, Ảnh Tử, Người Thổi Sáo, Quạ, Cáo quét 3 người liền kề, Sói Lớn Xấu Xa cắn thêm, Sói Trắng cắn đồng bọn, Nguyệt Nữ khóa phép).
+    - [NightSummaryStep.jsx](file:///projects/werewolf/src/components/night/NightSummaryStep.jsx): Tổng kết toàn bộ quyết định trong đêm và nút kích hoạt chuyển giao trời sáng.
+    - [NightStickyFooter.jsx](file:///projects/werewolf/src/components/night/NightStickyFooter.jsx): Thanh điều hướng dính đáy (Sticky bottom) 1 màn hình cho mobile, hiển thị trạng thái validation thời gian thực và nút `Đi Ngủ 💤`.
+  - **Zero Regression**: 100% logic trò chơi, state persistence (`localStorage`), và bộ test (19 domain unit tests + full E2E match simulation) vượt qua hoàn hảo không có bất kỳ lỗi nào.
+
 - **Hoàn Tất Tính Năng: Chọn Bộ Bài Mặc Định Trực Tiếp Vào Neon DB ([UnifiedGameSetupModal.jsx](file:///projects/werewolf/src/components/UnifiedGameSetupModal.jsx), [DeckTemplateModal.jsx](file:///projects/werewolf/src/components/DeckTemplateModal.jsx), [App.jsx](file:///projects/werewolf/src/App.jsx), [db.js](file:///projects/werewolf/src/server/db.js), [api.js](file:///projects/werewolf/src/services/api.js))**:
   - **Di Trú Database (Neon Postgres)**: Bổ sung trường `is_default BOOLEAN NOT NULL DEFAULT FALSE` vào bảng `deck_templates`, hỗ trợ tự động migration trong `ensureTablesExist()`.
   - **Cập Nhật Bộ Bài Mặc Định Ban Đầu**: Đã set `is_default = TRUE` cho template `"14 lá đặc chức năng"` (19 lá, ID: `template-1794537835909` theo ảnh mobile chụp của Quản trò).
