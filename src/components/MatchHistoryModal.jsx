@@ -8,6 +8,7 @@ import GothicBadge from './ui/GothicBadge';
 import ClawMarks from './ui/ClawMarks';
 import { useGothicDialog } from '../context/GothicDialogContext';
 import { getPlayerRole, getRole } from '../utils/roleUtils';
+import { fetchMatchRecordsApi, fetchMatchDetailApi, deleteMatchRecordApi } from '../services/api';
 
 export default function MatchHistoryModal({ isOpen, onClose }) {
   const { showConfirm, showAlert } = useGothicDialog();
@@ -17,6 +18,7 @@ export default function MatchHistoryModal({ isOpen, onClose }) {
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [isLoadingDetail, setIsLoadingDetail] = useState(false);
   const [errorMessage, setErrorMessage] = useState(null);
+  const [deletingMatchId, setDeletingMatchId] = useState(null);
 
   const fetchMatches = async () => {
     setIsLoading(true);
@@ -32,10 +34,9 @@ export default function MatchHistoryModal({ isOpen, onClose }) {
 
     // 2. Thử fetch từ Neon Database
     try {
-      const res = await fetch('/api/matches');
-      const data = await res.json();
-      if (data.ok && Array.isArray(data.matches)) {
-        const combined = [...data.matches];
+      const serverMatches = await fetchMatchRecordsApi();
+      if (Array.isArray(serverMatches) && serverMatches.length > 0) {
+        const combined = [...serverMatches];
         // Hợp nhất dữ liệu nếu có trận mới trong localStorage chưa lên server
         localMatches.forEach(lm => {
           if (!combined.some(m => String(m.id) === String(lm.id))) {
@@ -63,10 +64,9 @@ export default function MatchHistoryModal({ isOpen, onClose }) {
 
     setIsLoadingDetail(true);
     try {
-      const res = await fetch(`/api/matches/${matchItem.id}`);
-      const data = await res.json();
-      if (data.ok && data.match) {
-        setSelectedMatch(data.match);
+      const matchDetail = await fetchMatchDetailApi(matchItem.id);
+      if (matchDetail) {
+        setSelectedMatch(matchDetail);
       } else {
         setSelectedMatch(matchItem);
       }
@@ -80,6 +80,7 @@ export default function MatchHistoryModal({ isOpen, onClose }) {
 
   const handleDeleteMatch = async (id, e) => {
     if (e) e.stopPropagation();
+    if (deletingMatchId === id) return;
     showConfirm({
       title: 'XÓA LỊCH SỬ TRẬN ĐẤU?',
       message: 'Bạn có chắc muốn xóa bản ghi trận đấu này khỏi lịch sử?\nHành động này không thể hoàn tác.',
@@ -100,11 +101,14 @@ export default function MatchHistoryModal({ isOpen, onClose }) {
           setIsDetailOpen(false);
         }
 
-        // Xóa trên Neon API (nếu có kết nối)
+        // Xóa trên Neon API với idempotency guard
         try {
-          await fetch(`/api/matches/${id}`, { method: 'DELETE' });
+          setDeletingMatchId(id);
+          await deleteMatchRecordApi(id);
         } catch (err) {
           console.warn('API delete failed, deleted from local only:', err);
+        } finally {
+          setDeletingMatchId(null);
         }
       }
     });
@@ -269,8 +273,9 @@ export default function MatchHistoryModal({ isOpen, onClose }) {
                       <div className="flex items-center gap-2">
                         <button
                           type="button"
+                          disabled={deletingMatchId === m.id}
                           onClick={(e) => handleDeleteMatch(m.id, e)}
-                          className="text-slate-500 hover:text-rose-400 p-1 cursor-pointer transition-colors"
+                          className="text-slate-500 hover:text-rose-400 disabled:opacity-40 disabled:cursor-not-allowed p-1 cursor-pointer transition-colors"
                           title="Xóa trận này"
                           aria-label="Xóa bản ghi trận đấu này"
                         >

@@ -121,6 +121,7 @@ export default function App() {
 
   // Neon DB Connection Status
   const [neonStatus, setNeonStatus] = useState({ ok: false, checked: false, branch: 'production' });
+  const savedMatchIdRef = useRef(null);
 
   // Game state
   const [deckRoleIds, setDeckRoleIds] = useState(() => savedInitial?.deckRoleIds || DEFAULT_DECK_ROLE_IDS);
@@ -331,6 +332,7 @@ export default function App() {
     setNightLogs([]);
     setGameDiary([]);
     setGameEndResult(null);
+    savedMatchIdRef.current = null;
     setLynchedTodayPlayerId(null);
     setPendingHunterShot(null);
     setScapegoatBannedVoterIds([]);
@@ -375,6 +377,7 @@ export default function App() {
     setActiveTab('night');
     setNightLogs([]);
     setGameEndResult(null);
+    savedMatchIdRef.current = null;
     setLynchedTodayPlayerId(null);
     setIsVillageCursed(false);
     setWolfCanKillDouble(false);
@@ -432,6 +435,7 @@ export default function App() {
     setNightLogs([]);
     setGameDiary([]);
     setGameEndResult(null);
+    savedMatchIdRef.current = null;
     setLynchedTodayPlayerId(null);
     setPendingHunterShot(null);
     setScapegoatBannedVoterIds([]);
@@ -475,6 +479,7 @@ export default function App() {
     setNightLogs([]);
     setGameDiary([]);
     setGameEndResult(null);
+    savedMatchIdRef.current = null;
     setLynchedTodayPlayerId(null);
     setPendingHunterShot(null);
     setScapegoatBannedVoterIds([]);
@@ -517,6 +522,7 @@ export default function App() {
     setNightLogs([]);
     setGameDiary([]);
     setGameEndResult(null);
+    savedMatchIdRef.current = null;
     setLynchedTodayPlayerId(null);
     setPendingHunterShot(null);
     setScapegoatBannedVoterIds([]);
@@ -628,6 +634,12 @@ export default function App() {
     const result = checkGameEnd(currentPlayers);
     if (result.isEnded) {
       setGameEndResult(result);
+      if (savedMatchIdRef.current) {
+        return result;
+      }
+      const matchId = `match-${Date.now()}`;
+      savedMatchIdRef.current = matchId;
+
       // Auto save match record to Neon Database
       // Quyển nhật ký biên niên sử đầy đủ từng đêm / ngày
       let fullTimeline = [...gameDiary];
@@ -648,7 +660,7 @@ export default function App() {
       const totalRounds = Math.max(roundNumber, totalNights, totalDays, 1);
 
       const matchData = {
-        id: `match-${Date.now()}`,
+        id: matchId,
         roomName: `Ván đấu Ma Sói (${players.length} người)`,
         roundNumber,
         totalRounds,
@@ -690,7 +702,7 @@ export default function App() {
         console.warn('Failed to save match to localStorage:', err);
       }
 
-      // 2. Tự động lưu lên Neon Database
+      // 2. Tự động lưu lên Neon Database với idempotency guard
       saveMatchRecordApi(matchData).catch(err => console.error("Auto save match failed:", err));
     }
     return result;
@@ -860,6 +872,11 @@ export default function App() {
 
         triggerHaptic('shot');
 
+        // Kiểm tra Sói Con bị Thợ Săn bắn chết
+        if (shotRole?.id === 'soi-con' || (shotLover && getPlayerRole(shotLover)?.id === 'soi-con')) {
+          setWolfCanKillDouble(true);
+        }
+
         if (shotRole?.id === 'gia-lang') {
           setIsVillageCursed(true);
           showAlert({
@@ -879,8 +896,10 @@ export default function App() {
           });
         }
 
+        const deadSheriff = (shotPlayer?.isSheriff ? shotPlayer : null) || (shotLover?.isAlive && shotLover?.isSheriff ? shotLover : null);
+
         setPlayers(current => {
-          const updated = current.map(p => {
+          let updated = current.map(p => {
             if (p.id === payload) {
               return {
                 ...p,
@@ -899,9 +918,24 @@ export default function App() {
             }
             return p;
           });
+
+          // Kiểm tra Ảnh Tử kế thừa linh hồn
+          if (shotPlayer) {
+            const shadowRes1 = new WerewolfGame({ players: updated })._checkShadowInheritance(updated, shotPlayer);
+            updated = shadowRes1.updatedPlayers;
+          }
+          if (shotLover && shotLover.isAlive) {
+            const shadowRes2 = new WerewolfGame({ players: updated })._checkShadowInheritance(updated, shotLover);
+            updated = shadowRes2.updatedPlayers;
+          }
+
           evaluateGameEnd(updated);
           return updated;
         });
+
+        if (deadSheriff) {
+          handleOpenSheriffModal(deadSheriff, false);
+        }
 
         setPendingHunterShot(null);
       } else if (type === 'skip_hunter') {
@@ -1250,7 +1284,7 @@ export default function App() {
     });
 
     const result = game.resolveNight(nightState);
-    const { game: nextGame, deadSheriff, hunterTrigger, elderKilledByWitch, logs, gameEndResult: endResult } = result;
+    const { game: nextGame, deadSheriff, hunterTrigger, elderKilledByWitch, transformedShadows, logs, gameEndResult: endResult } = result;
 
     setPlayers(nextGame.players);
     setNightLogs(logs);
@@ -1262,6 +1296,19 @@ export default function App() {
     setNightState(nextGame.nightState);
     setWolfCanKillDouble(nextGame.wolfCanKillDouble);
     setIsVillageCursed(nextGame.isVillageCursed);
+
+    // Thông báo nếu có Ảnh Tử kế thừa linh hồn trong đêm
+    if (transformedShadows && transformedShadows.length > 0) {
+      transformedShadows.forEach(({ shadow, host, inheritRoleId }) => {
+        const newRole = getRole(inheritRoleId);
+        triggerHaptic('confirm');
+        showAlert({
+          title: '👻 ẢNH TỬ KẾ THỪA LINH HỒN!',
+          message: `Chủ thể (${host.name} #${host.id}) đã qua đời trong đêm!\n\nẢnh Tử (${shadow.name} #${shadow.id}) lập tức hấp thu linh hồn và trở thành: ${newRole?.name || inheritRoleId}!`,
+          variant: 'purple'
+        });
+      });
+    }
 
     // Ghi nhật ký Đêm vừa qua vào quyển nhật ký biên niên sử
     const nightEntry = {
@@ -1477,7 +1524,11 @@ export default function App() {
     const result = game.knightDuel(knightId, targetId);
     if (!result.success) return;
 
-    const { game: nextGame, knight, target, isWolf, deadSheriff, transformedShadows, logs, gameEndResult: endResult } = result;
+    const { game: nextGame, knight, target, isWolf, deadSheriff, transformedShadows, hunterTrigger, wolfCanKillDouble: nextWolfDouble, logs, gameEndResult: endResult } = result;
+
+    if (nextWolfDouble) {
+      setWolfCanKillDouble(true);
+    }
 
     if (isWolf) {
       setLynchedTodayPlayerId(targetId);
@@ -1513,6 +1564,18 @@ export default function App() {
     setNightLogs(prev => [...prev, ...logs]);
     if (deadSheriff) {
       handleOpenSheriffModal(deadSheriff, false);
+    }
+    if (hunterTrigger) {
+      setPendingHunterShot({
+        hunterId: hunterTrigger.id,
+        hunterName: hunterTrigger.name
+      });
+      setActionModal({
+        isOpen: true,
+        actionType: 'hunter',
+        role: hunterTrigger.getRole(),
+        player: hunterTrigger
+      });
     }
     if (endResult) {
       setGameEndResult(endResult);

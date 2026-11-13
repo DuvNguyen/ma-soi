@@ -172,21 +172,6 @@ export function resolveNightPhase(players, nightActions, roundNumber) {
     const target = updatedPlayers.find(p => p.id === targetId);
     if (!target || !target.isAlive) return;
 
-    if (isCursedInfect && !isSecondTarget) {
-      // SÓI NGUYỀN (NGƯỜI CHA CỦA SÓI) ĐỒNG HÓA LÂY NHIỄM
-      const oldRoleId = target.currentRoleId || target.roleId;
-      target.originalRoleId = target.originalRoleId || oldRoleId;
-      target.isCursedWolf = true;
-      target.curseNight = roundNumber;
-      target.currentRoleId = 'soi-thuong';
-      target.roleId = 'soi-thuong';
-      delete target.role;
-      delete target.originalRole;
-      const origRole = getPlayerOriginalRole(target);
-      logs.push(`🔮 SÓI NGUYỀN ĐÃ LÂY NHIỄM: ${target.name} (vốn giữ vai ${origRole?.name || 'Chưa lộ vai'}) không bị cắn chết mà đã được Sói Nguyền lây nhiễm, trở thành Ma Sói mới của làng!`);
-      return;
-    }
-
     const isProtected = !isVillageCursed && protectedPlayerId === target.id;
     const isSavedByWitch = !isVillageCursed && !isSecondTarget && witchSaved;
 
@@ -200,6 +185,21 @@ export function resolveNightPhase(players, nightActions, roundNumber) {
     if (isProtected || isSavedByWitch) {
       let reason = isProtected ? 'được Bảo Vệ che chở' : 'được Phù Thủy dùng bình thần dược cứu sống';
       logs.push(`${target.name} bị Ma Sói tấn công nhưng may mắn ${reason}!`);
+      return;
+    }
+
+    if (isCursedInfect && !isSecondTarget) {
+      // SÓI NGUYỀN (NGƯỜI CHA CỦA SÓI) ĐỒNG HÓA LÂY NHIỄM
+      const oldRoleId = target.currentRoleId || target.roleId;
+      target.originalRoleId = target.originalRoleId || oldRoleId;
+      target.isCursedWolf = true;
+      target.curseNight = roundNumber;
+      target.currentRoleId = 'soi-thuong';
+      target.roleId = 'soi-thuong';
+      delete target.role;
+      delete target.originalRole;
+      const origRole = getPlayerOriginalRole(target);
+      logs.push(`🔮 SÓI NGUYỀN ĐÃ LÂY NHIỄM: ${target.name} (vốn giữ vai ${origRole?.name || 'Chưa lộ vai'}) không bị cắn chết mà đã được Sói Nguyền lây nhiễm, trở thành Ma Sói mới của làng!`);
       return;
     }
 
@@ -225,13 +225,16 @@ export function resolveNightPhase(players, nightActions, roundNumber) {
         ? 'Bị Ma Sói cuồng nộ (Sói Con chết) cắn chết trong đêm'
         : 'Bị Ma Sói cắn chết trong đêm';
 
-      // Hiệp Sĩ Kiếm Gỉ: Nhiễm độc con Ma Sói sống gần nhất bên trái
+      // Hiệp Sĩ Kiếm Gỉ: Nhiễm độc con Ma Sói sống gần nhất bên trái theo vòng tròn ghế ngồi
       if (targetRole?.id === 'hiep-si-kiem-gi' && !isVillageCursed) {
+        const targetIdx = updatedPlayers.findIndex(p => p.id === target.id);
         const aliveWolves = updatedPlayers.filter(p => p.isAlive && isWolfPlayer(p) && p.id !== target.id);
-        if (aliveWolves.length > 0) {
+        if (aliveWolves.length > 0 && targetIdx !== -1) {
           aliveWolves.sort((a, b) => {
-            const distA = (a.id - target.id + updatedPlayers.length) % updatedPlayers.length;
-            const distB = (b.id - target.id + updatedPlayers.length) % updatedPlayers.length;
+            const idxA = updatedPlayers.findIndex(p => p.id === a.id);
+            const idxB = updatedPlayers.findIndex(p => p.id === b.id);
+            const distA = (idxA - targetIdx + updatedPlayers.length) % updatedPlayers.length;
+            const distB = (idxB - targetIdx + updatedPlayers.length) % updatedPlayers.length;
             return distA - distB;
           });
           const targetWolf = aliveWolves[0];
@@ -362,6 +365,7 @@ export function resolveNightPhase(players, nightActions, roundNumber) {
   });
 
   // 6. Check Shadow (Ảnh Tử) host death
+  let transformedShadows = [];
   updatedPlayers.forEach(p => {
     if (p.isAlive && (p.currentRoleId === 'anh-tu' || p.roleId === 'anh-tu' || getPlayerRole(p)?.id === 'anh-tu') && p.shadowHostId) {
       if (killedPlayerIds.has(p.shadowHostId)) {
@@ -371,9 +375,15 @@ export function resolveNightPhase(players, nightActions, roundNumber) {
           p.originalRoleId = 'anh-tu';
           p.currentRoleId = inheritRoleId;
           p.roleId = inheritRoleId;
+          if (inheritRoleId === 'gia-lang') p.elderLives = 2;
           delete p.role;
           delete p.originalRole;
           const newRole = getRole(inheritRoleId);
+          transformedShadows.push({
+            shadow: p,
+            host,
+            inheritRoleId
+          });
           logs.push(`👻 ẢNH TỬ THỨC TỈNH: Bản thể (${host.name}) của Ảnh Tử (${p.name}) đã qua đời! Ảnh Tử hấp thu linh hồn và trở thành ${newRole?.name || inheritRoleId}!`);
         }
       }
@@ -400,6 +410,7 @@ export function resolveNightPhase(players, nightActions, roundNumber) {
     poisonedPlayerIds: witchPoisonTargetId ? [witchPoisonTargetId] : [],
     refundWitchHeal,
     elderKilledByWitch,
+    transformedShadows,
     logs
   };
 }

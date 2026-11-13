@@ -452,6 +452,42 @@ console.log('🧪 Starting Phase 1 Domain Model & Strategy Tests...\n');
     assert.strictEqual(deserialized.scapegoatBannedRound, 2);
     console.log('✅ Test 22: Scapegoat (Người Thế Thân) tie-vote lynch & decree persistence verified.');
 
-    console.log('\n🎉 ALL 22 DOMAIN ENGINE TESTS PASSED PERFECTLY!\n');
+    // Test 23: Knight Duel cascade with Lover, Hunter shot, and Wolf Pup cuồng nộ
+    const duelKnight = new Player({ id: 19, name: 'Kị Sĩ', currentRoleId: 'ky-si', roleId: 'ky-si', isAlive: true });
+    const duelWolfPup = new Player({ id: 20, name: 'Sói Con', currentRoleId: 'soi-con', roleId: 'soi-con', loverId: 21, isAlive: true });
+    const duelLoverHunter = new Player({ id: 21, name: 'Thợ Săn Người Yêu', currentRoleId: 'tho-san', roleId: 'tho-san', loverId: 20, isAlive: true });
+    const duelOtherWolf = new Player({ id: 22, name: 'Sói Khác', currentRoleId: 'soi-thuong', roleId: 'soi-thuong', isAlive: true });
+
+    const duelGame = new WerewolfGame({
+      roundNumber: 1,
+      isNight: false,
+      players: [duelKnight, duelWolfPup, duelLoverHunter, duelOtherWolf]
+    });
+
+    const duelCascadeRes = duelGame.knightDuel(19, 20);
+    assert.strictEqual(duelCascadeRes.success, true);
+    assert.strictEqual(duelCascadeRes.isWolf, true);
+    assert.strictEqual(duelCascadeRes.game.getPlayer(20).isAlive, false, 'Sói Con killed by Knight');
+    assert.strictEqual(duelCascadeRes.game.getPlayer(21).isAlive, false, 'Hunter lover died of heartbreak');
+    assert.strictEqual(duelCascadeRes.hunterTrigger?.id, 21, 'Heartbroken Hunter triggers death shot');
+    assert.strictEqual(duelCascadeRes.wolfCanKillDouble, true, 'Wolf Pup casualty triggers double kill for next night');
+    console.log('✅ Test 23: Knight Duel cascade (Lover heartbreak, Hunter trigger, Wolf Pup rage) verified.');
+
+    // Test 24: Shadow (Ảnh Tử) night inheritance & Bodyguard deflecting Cursed Wolf infection
+    const nightShadowHost = new Player({ id: 23, name: 'Chủ Thể', currentRoleId: 'tien-tri', roleId: 'tien-tri', isAlive: true });
+    const nightShadow = new Player({ id: 24, name: 'Ảnh Tử', currentRoleId: 'anh-tu', roleId: 'anh-tu', shadowHostId: 23, isAlive: true });
+    const nightWolf = new Player({ id: 25, name: 'Sói', currentRoleId: 'soi-thuong', roleId: 'soi-thuong', isAlive: true });
+    const shadowNightGame = new WerewolfGame({
+      roundNumber: 2,
+      isNight: true,
+      players: [nightShadowHost, nightShadow, nightWolf]
+    });
+    const shadowNightRes = shadowNightGame.resolveNight({ wolfTargetId: 23 });
+    assert.strictEqual(shadowNightRes.game.getPlayer(23).isAlive, false);
+    assert.strictEqual(shadowNightRes.game.getPlayer(24).currentRoleId, 'tien-tri', 'Shadow inherited Seer role from dead host');
+    assert.strictEqual(shadowNightRes.transformedShadows.length, 1);
+    console.log('✅ Test 24: Shadow night inheritance upon host casualty verified.');
+
+    console.log('\n🎉 ALL 24 DOMAIN ENGINE TESTS PASSED PERFECTLY!\n');
   });
 }

@@ -1,4 +1,37 @@
-// API service communicating with Neon DB backend
+// API service communicating with Neon DB backend with built-in idempotency & double-submit protection
+
+// In-flight request tracker to prevent duplicate concurrent API calls
+const inFlightRequests = new Map();
+
+/**
+ * Deduplicates concurrent identical requests by returning the existing active Promise.
+ * Generates and attaches an X-Idempotency-Key header for server-side verification.
+ */
+async function fetchWithIdempotency(key, url, options = {}) {
+  if (inFlightRequests.has(key)) {
+    return inFlightRequests.get(key);
+  }
+
+  const idempotencyKey = options.idempotencyKey || `${key}-${Date.now()}`;
+  const headers = {
+    ...(options.headers || {}),
+    'X-Idempotency-Key': idempotencyKey,
+    'Idempotency-Key': idempotencyKey
+  };
+
+  const promise = (async () => {
+    try {
+      const res = await fetch(url, { ...options, headers });
+      const data = await res.json().catch(() => ({ ok: res.ok }));
+      return data;
+    } finally {
+      inFlightRequests.delete(key);
+    }
+  })();
+
+  inFlightRequests.set(key, promise);
+  return promise;
+}
 
 export async function checkNeonConnection() {
   try {
@@ -25,30 +58,27 @@ export async function fetchTemplates() {
 }
 
 export async function saveTemplateApi(template) {
-  const res = await fetch('/api/templates', {
+  const key = `template:save:${template?.id || template?.name || 'unknown'}`;
+  return fetchWithIdempotency(key, '/api/templates', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(template)
   });
-  return await res.json();
 }
 
 export async function setDefaultTemplateApi(id) {
-  try {
-    const res = await fetch(`/api/templates/${id}/default`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' }
-    });
-    return await res.json();
-  } catch (err) {
-    console.error('Failed to set default template:', err);
-    throw err;
-  }
+  const key = `template:default:${id}`;
+  return fetchWithIdempotency(key, `/api/templates/${id}/default`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' }
+  });
 }
 
 export async function deleteTemplateApi(id) {
-  const res = await fetch(`/api/templates/${id}`, { method: 'DELETE' });
-  return await res.json();
+  const key = `template:delete:${id}`;
+  return fetchWithIdempotency(key, `/api/templates/${id}`, {
+    method: 'DELETE'
+  });
 }
 
 export async function fetchRosters() {
@@ -67,40 +97,64 @@ export async function fetchRosters() {
 }
 
 export async function saveRosterApi(roster) {
-  try {
-    const res = await fetch('/api/rosters', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(roster)
-    });
-    return await res.json();
-  } catch (err) {
-    console.error('Failed to save roster to Neon:', err);
-    throw err;
-  }
+  const key = `roster:save:${roster?.id || roster?.name || 'unknown'}`;
+  return fetchWithIdempotency(key, '/api/rosters', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(roster)
+  });
 }
 
 export async function deleteRosterApi(id) {
-  try {
-    const res = await fetch(`/api/rosters/${id}`, { method: 'DELETE' });
-    return await res.json();
-  } catch (err) {
-    console.error('Failed to delete roster from Neon:', err);
-    throw err;
-  }
+  const key = `roster:delete:${id}`;
+  return fetchWithIdempotency(key, `/api/rosters/${id}`, {
+    method: 'DELETE'
+  });
 }
 
+// State sync queue to debounce rapid writes and prevent concurrent sync spamming
+let syncTimeout = null;
+let pendingStateToSync = null;
+let isSyncing = false;
+
 export async function syncGameStateApi(state) {
-  try {
-    const res = await fetch('/api/game-state', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(state)
-    });
-    return await res.json();
-  } catch (err) {
-    console.warn('Game state sync skipped:', err);
+  pendingStateToSync = state;
+  if (syncTimeout) {
+    clearTimeout(syncTimeout);
   }
+
+  return new Promise((resolve) => {
+    syncTimeout = setTimeout(async () => {
+      syncTimeout = null;
+      if (isSyncing || !pendingStateToSync) {
+        resolve({ ok: true, debounced: true });
+        return;
+      }
+
+      while (pendingStateToSync) {
+        const stateToExecute = pendingStateToSync;
+        pendingStateToSync = null;
+        isSyncing = true;
+        try {
+          const res = await fetch('/api/game-state', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-Idempotency-Key': `sync-game-state-${Date.now()}`
+            },
+            body: JSON.stringify(stateToExecute)
+          });
+          const data = await res.json().catch(() => ({ ok: res.ok }));
+          resolve(data);
+        } catch (err) {
+          console.warn('Game state sync skipped:', err);
+          resolve({ ok: false, error: err.message });
+        } finally {
+          isSyncing = false;
+        }
+      }
+    }, 400);
+  });
 }
 
 export async function loadGameStateApi() {
@@ -117,16 +171,19 @@ export async function loadGameStateApi() {
 }
 
 export async function saveMatchRecordApi(matchData) {
-  try {
-    const res = await fetch('/api/matches', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(matchData)
-    });
-    return await res.json();
-  } catch (err) {
-    console.error('Failed to save match record to Neon:', err);
-  }
+  const key = `match:save:${matchData?.id || 'unknown'}`;
+  return fetchWithIdempotency(key, '/api/matches', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(matchData)
+  });
+}
+
+export async function deleteMatchRecordApi(id) {
+  const key = `match:delete:${id}`;
+  return fetchWithIdempotency(key, `/api/matches/${id}`, {
+    method: 'DELETE'
+  });
 }
 
 export async function fetchMatchRecordsApi() {
@@ -140,4 +197,17 @@ export async function fetchMatchRecordsApi() {
     console.error('Failed to fetch match records from Neon:', err);
   }
   return [];
+}
+
+export async function fetchMatchDetailApi(id) {
+  try {
+    const res = await fetch(`/api/matches/${id}`);
+    const data = await res.json();
+    if (data.ok && data.match) {
+      return data.match;
+    }
+  } catch (err) {
+    console.error('Failed to fetch match detail from Neon:', err);
+  }
+  return null;
 }

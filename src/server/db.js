@@ -105,6 +105,7 @@ export async function deleteTemplate(id) {
 
 export async function getRosters() {
   if (!getSql()) return [];
+  await ensureTablesExist();
   const rows = await sql`
     SELECT id, name, player_names, created_at, updated_at 
     FROM player_rosters 
@@ -121,6 +122,7 @@ export async function getRosters() {
 
 export async function saveRoster({ id, name, playerNames }) {
   if (!getSql()) throw new Error('Database not connected');
+  await ensureTablesExist();
   const namesJson = JSON.stringify(playerNames);
   await sql`
     INSERT INTO player_rosters (id, name, player_names, updated_at)
@@ -135,12 +137,14 @@ export async function saveRoster({ id, name, playerNames }) {
 
 export async function deleteRoster(id) {
   if (!getSql()) throw new Error('Database not connected');
+  await ensureTablesExist();
   await sql`DELETE FROM player_rosters WHERE id = ${id}`;
   return { success: true };
 }
 
 export async function getGameState() {
   if (!getSql()) return null;
+  await ensureTablesExist();
   const rows = await sql`SELECT state FROM game_state WHERE id = 'current'`;
   if (rows.length === 0) return null;
   const state = rows[0].state;
@@ -149,6 +153,7 @@ export async function getGameState() {
 
 export async function saveGameState(state) {
   if (!getSql()) throw new Error('Database not connected');
+  await ensureTablesExist();
   const stateJson = JSON.stringify(state);
   await sql`
     INSERT INTO game_state (id, state, updated_at)
@@ -179,6 +184,22 @@ export async function ensureTablesExist() {
     `;
     await sql`
       ALTER TABLE deck_templates ADD COLUMN IF NOT EXISTS is_default BOOLEAN NOT NULL DEFAULT FALSE;
+    `;
+    await sql`
+      CREATE TABLE IF NOT EXISTS player_rosters (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        player_names JSONB NOT NULL DEFAULT '[]',
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+        updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+      );
+    `;
+    await sql`
+      CREATE TABLE IF NOT EXISTS game_state (
+        id TEXT PRIMARY KEY,
+        state JSONB NOT NULL,
+        updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+      );
     `;
     await sql`
       CREATE TABLE IF NOT EXISTS match_records (

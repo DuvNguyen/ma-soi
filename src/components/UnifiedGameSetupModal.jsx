@@ -93,6 +93,9 @@ export default function UnifiedGameSetupModal({
   // Template creation/saving state
   const [isSavingAsNew, setIsSavingAsNew] = useState(false);
   const [newTemplateNameInput, setNewTemplateNameInput] = useState('');
+  const [isSavingTemplate, setIsSavingTemplate] = useState(false);
+  const [settingDefaultId, setSettingDefaultId] = useState(null);
+  const [deletingTemplateId, setDeletingTemplateId] = useState(null);
 
   // Load templates on open
   useEffect(() => {
@@ -310,8 +313,10 @@ export default function UnifiedGameSetupModal({
 
   // Save deck configuration and close the inline customizer
   const handleSaveDeckConfig = async () => {
+    if (isSavingTemplate) return;
     triggerHaptic('success');
     if (activeTemplate) {
+      setIsSavingTemplate(true);
       try {
         const finalName = editingDeckName.trim() || activeTemplate.name || 'Bộ bài';
         const finalDesc = editingDeckDesc.trim() || activeTemplate.desc || '';
@@ -338,6 +343,8 @@ export default function UnifiedGameSetupModal({
           message: err.message,
           variant: 'blood'
         });
+      } finally {
+        setIsSavingTemplate(false);
       }
     }
     setShowRoleCustomizer(false);
@@ -373,9 +380,11 @@ export default function UnifiedGameSetupModal({
 
   // Save current names into the selected template (Neon DB)
   const handleSaveNamesToTemplate = async () => {
+    if (isSavingTemplate) return;
     triggerHaptic('success');
     if (!activeTemplate) return;
 
+    setIsSavingTemplate(true);
     try {
       const finalName = editingDeckName.trim() || activeTemplate.name || 'Bộ bài';
       const finalDesc = editingDeckDesc.trim() || activeTemplate.desc || '';
@@ -401,12 +410,15 @@ export default function UnifiedGameSetupModal({
         message: err.message,
         variant: 'blood'
       });
+    } finally {
+      setIsSavingTemplate(false);
     }
   };
 
   // Save as new custom template
   const handleSaveAsNewTemplate = async (e) => {
     e.preventDefault();
+    if (isSavingTemplate) return;
     if (!newTemplateNameInput.trim()) {
       showAlert({
         title: 'THIẾU TÊN BỘ BÀI',
@@ -416,6 +428,7 @@ export default function UnifiedGameSetupModal({
       return;
     }
 
+    setIsSavingTemplate(true);
     try {
       const newTemplate = {
         id: `template-${Date.now()}`,
@@ -441,12 +454,15 @@ export default function UnifiedGameSetupModal({
         message: err.message,
         variant: 'blood'
       });
+    } finally {
+      setIsSavingTemplate(false);
     }
   };
 
   // Delete ANY template straight from DB
   const handleDeleteTemplate = async (template, e) => {
     e.stopPropagation();
+    if (deletingTemplateId === template.id) return;
     showConfirm({
       title: 'XÓA BỘ BÀI?',
       message: `Bạn có chắc chắn muốn xóa bộ bài "${template.name}" khỏi cơ sở dữ liệu?`,
@@ -454,6 +470,7 @@ export default function UnifiedGameSetupModal({
       confirmText: 'Xóa Vĩnh Viễn 🩸',
       onConfirm: async () => {
         try {
+          setDeletingTemplateId(template.id);
           await deleteTemplateApi(template.id);
           await loadTemplatesData();
           if (selectedTemplateId === template.id) {
@@ -464,6 +481,8 @@ export default function UnifiedGameSetupModal({
           }
         } catch (err) {
           showAlert({ title: 'LỖI XÓA BỘ BÀI', message: err.message, variant: 'blood' });
+        } finally {
+          setDeletingTemplateId(null);
         }
       }
     });
@@ -472,8 +491,9 @@ export default function UnifiedGameSetupModal({
   // Set a template as default in Neon DB
   const handleSetDefaultTemplate = async (template, e) => {
     e.stopPropagation();
-    if (template.isDefault) return;
+    if (template.isDefault || settingDefaultId === template.id) return;
     triggerHaptic('selection');
+    setSettingDefaultId(template.id);
     try {
       await setDefaultTemplateApi(template.id);
       setTemplates(prev => prev.map(t => ({
@@ -487,11 +507,15 @@ export default function UnifiedGameSetupModal({
         message: err.message || 'Không thể đặt bộ bài mặc định.',
         variant: 'blood'
       });
+    } finally {
+      setSettingDefaultId(null);
     }
   };
 
   // Restore / Seed standard presets into Database
   const handleRestoreDeletedPresets = async () => {
+    if (isSavingTemplate) return;
+    setIsSavingTemplate(true);
     try {
       for (const p of PRESETS) {
         await saveTemplateApi({
@@ -514,6 +538,8 @@ export default function UnifiedGameSetupModal({
         message: err.message,
         variant: 'blood'
       });
+    } finally {
+      setIsSavingTemplate(false);
     }
   };
 
@@ -668,12 +694,13 @@ export default function UnifiedGameSetupModal({
                 <div className="flex items-center gap-2">
                   <button
                     type="button"
+                    disabled={isSavingTemplate}
                     onClick={handleRestoreDeletedPresets}
                     title="Nạp lại các bộ bài mẫu chuẩn vào Database"
-                    className="px-2.5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700 text-xs text-slate-300 hover:text-white transition-all flex items-center justify-center gap-1 cursor-pointer"
+                    className="px-2.5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700 text-xs text-slate-300 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-1 cursor-pointer"
                   >
                     <Undo2 className="w-3.5 h-3.5 text-slate-400" />
-                    <span>Nạp Bộ Mẫu</span>
+                    <span>{isSavingTemplate ? 'Đang nạp...' : 'Nạp Bộ Mẫu'}</span>
                   </button>
 
                   <button
@@ -695,11 +722,12 @@ export default function UnifiedGameSetupModal({
                   <p className="text-xs text-slate-400">Chưa có bộ bài nào trong cơ sở dữ liệu.</p>
                   <button
                     type="button"
+                    disabled={isSavingTemplate}
                     onClick={handleRestoreDeletedPresets}
-                    className="px-3 py-1.5 rounded-xl bg-purple-900 hover:bg-purple-800 text-purple-200 text-xs font-bold inline-flex items-center gap-1.5 cursor-pointer"
+                    className="px-3 py-1.5 rounded-xl bg-purple-900 hover:bg-purple-800 text-purple-200 text-xs font-bold disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center gap-1.5 cursor-pointer"
                   >
                     <Undo2 className="w-3.5 h-3.5" />
-                    <span>Nạp 3 bộ bài mẫu mặc định vào Database</span>
+                    <span>{isSavingTemplate ? 'Đang nạp...' : 'Nạp 3 bộ bài mẫu mặc định vào Database'}</span>
                   </button>
                 </div>
               )}
@@ -728,8 +756,8 @@ export default function UnifiedGameSetupModal({
                       className="flex-1 p-2 rounded-xl bg-slate-900 border border-slate-700 text-xs text-white focus:outline-none focus:border-purple-500"
                       autoFocus
                     />
-                    <GothicButton variant="gold" size="sm" type="submit" icon={Save}>
-                      Lưu Bộ Bài
+                    <GothicButton variant="gold" size="sm" type="submit" icon={Save} disabled={isSavingTemplate}>
+                      {isSavingTemplate ? 'Đang lưu...' : 'Lưu Bộ Bài'}
                     </GothicButton>
                   </div>
                 </form>
@@ -966,11 +994,12 @@ export default function UnifiedGameSetupModal({
 
                               <button
                                 type="button"
+                                disabled={isSavingTemplate}
                                 onClick={handleSaveDeckConfig}
-                                className="w-full sm:w-auto px-5 py-2 rounded-xl bg-gradient-to-r from-purple-700 via-indigo-600 to-purple-800 hover:from-purple-600 hover:to-indigo-500 border border-purple-400 text-white text-xs font-bold shadow-[0_0_15px_rgba(168,85,247,0.4)] transition-all flex items-center justify-center gap-1.5 cursor-pointer active:scale-95"
+                                className="w-full sm:w-auto px-5 py-2 rounded-xl bg-gradient-to-r from-purple-700 via-indigo-600 to-purple-800 hover:from-purple-600 hover:to-indigo-500 border border-purple-400 text-white text-xs font-bold shadow-[0_0_15px_rgba(168,85,247,0.4)] disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-1.5 cursor-pointer active:scale-95"
                               >
                                 <Save className="w-3.5 h-3.5 text-purple-200" />
-                                <span>Lưu</span>
+                                <span>{isSavingTemplate ? 'Đang lưu...' : 'Lưu'}</span>
                               </button>
                             </div>
                           </div>
@@ -1003,21 +1032,23 @@ export default function UnifiedGameSetupModal({
                             {/* Nút Đặt Làm Mặc Định */}
                             <button
                               type="button"
+                              disabled={settingDefaultId === t.id || t.isDefault}
                               onClick={(e) => handleSetDefaultTemplate(t, e)}
                               title={t.isDefault ? 'Bộ bài mặc định của hệ thống' : 'Đặt làm bộ bài mặc định'}
-                              className={`px-2 py-1.5 rounded-xl border text-xs font-semibold transition-all flex items-center gap-1 cursor-pointer ${
+                              className={`px-2 py-1.5 rounded-xl border text-xs font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center gap-1 cursor-pointer ${
                                 t.isDefault
                                   ? 'bg-amber-950/70 border-amber-500/80 text-amber-300 shadow-sm'
                                   : 'bg-slate-900 hover:bg-amber-950/40 border-slate-700 hover:border-amber-600/50 text-slate-400 hover:text-amber-300'
                               }`}
                             >
                               <Star className={`w-3.5 h-3.5 ${t.isDefault ? 'fill-amber-400 text-amber-400' : ''}`} />
-                              <span className="hidden sm:inline">{t.isDefault ? 'Mặc định' : 'Đặt mặc định'}</span>
+                              <span className="hidden sm:inline">{settingDefaultId === t.id ? 'Đang lưu...' : (t.isDefault ? 'Mặc định' : 'Đặt mặc định')}</span>
                             </button>
 
                             {/* Nút Sửa Lá Bài trực tiếp trên từng bộ bài */}
                             <button
                               type="button"
+                              disabled={isSavingTemplate && isEditing}
                               onClick={(e) => {
                                 e.stopPropagation();
                                 if (isSelected && showRoleCustomizer) {
@@ -1029,22 +1060,23 @@ export default function UnifiedGameSetupModal({
                                   setShowRoleCustomizer(true);
                                 }
                               }}
-                              className={`px-2.5 py-1.5 rounded-xl border text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                              className={`px-2.5 py-1.5 rounded-xl border text-xs font-bold disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center gap-1.5 cursor-pointer ${
                                 isEditing
                                   ? 'bg-amber-950/80 border-amber-500 text-amber-200 shadow-sm'
                                   : 'bg-slate-900 hover:bg-amber-950/50 border-slate-700 hover:border-amber-500/80 text-slate-300 hover:text-amber-300'
                               }`}
                             >
                               <SlidersHorizontal className="w-3.5 h-3.5 text-amber-400" />
-                              <span>{isEditing ? 'Lưu & Đóng' : 'Sửa Lá Bài'}</span>
+                              <span>{isEditing ? (isSavingTemplate ? 'Đang lưu...' : 'Lưu & Đóng') : 'Sửa Lá Bài'}</span>
                             </button>
 
                             {/* Delete button available on ALL cards */}
                             <button
                               type="button"
+                              disabled={deletingTemplateId === t.id}
                               onClick={(e) => handleDeleteTemplate(t, e)}
                               title={`Xóa bộ bài "${t.name}"`}
-                              className="p-1.5 rounded-lg text-slate-500 hover:text-rose-400 hover:bg-rose-950/60 transition-all cursor-pointer"
+                              className="p-1.5 rounded-lg text-slate-500 hover:text-rose-400 hover:bg-rose-950/60 disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer"
                             >
                               <Trash2 className="w-4 h-4" />
                             </button>
@@ -1105,12 +1137,13 @@ export default function UnifiedGameSetupModal({
 
                   <button
                     type="button"
+                    disabled={isSavingTemplate}
                     onClick={handleSaveNamesToTemplate}
                     title="Lưu danh sách tên vào bộ bài này"
-                    className="px-3 py-1.5 rounded-xl bg-purple-950 hover:bg-purple-900 border border-purple-700 text-xs font-bold text-purple-200 transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                    className="px-3 py-1.5 rounded-xl bg-purple-950 hover:bg-purple-900 border border-purple-700 text-xs font-bold text-purple-200 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-1.5 cursor-pointer"
                   >
                     <Save className="w-3.5 h-3.5 text-purple-300" />
-                    <span className="hidden sm:inline">Lưu Vào Bộ Này</span>
+                    <span className="hidden sm:inline">{isSavingTemplate ? 'Đang lưu...' : 'Lưu Vào Bộ Này'}</span>
                   </button>
                 </div>
               </div>

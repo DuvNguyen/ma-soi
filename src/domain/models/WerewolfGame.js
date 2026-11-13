@@ -150,22 +150,22 @@ export class WerewolfGame {
     // 4. Kiểm tra Cảnh Sát Trưởng tử trận trong đêm
     const deadSheriff = updatedPlayers.find(p => rawResult.killedPlayerIds.includes(p.id) && p.isSheriff) || null;
 
-    // 5. Kiểm tra Thợ Săn tử trận trong đêm
+    // 5. Kiểm tra Thợ Săn tử trận trong đêm (Thợ Săn chết vì bất kỳ lý do gì trừ đầu độc/lời nguyền đều nổ súng)
     let hunterTrigger = null;
     const deadHunter = updatedPlayers.find(p => rawResult.killedPlayerIds.includes(p.id) && p.getRole()?.id === 'tho-san');
     if (deadHunter) {
-      const isPoisoned = rawResult.poisonedPlayerIds?.includes(deadHunter.id);
-      const isLoverSuicide = deadHunter.deathReason?.includes('đau buồn');
+      const isPoisoned = rawResult.poisonedPlayerIds?.includes(deadHunter.id) || deadHunter.deathReason?.includes('độc');
       if (isVillageCursed) {
         logs.push(`⚡ Thợ Săn ${deadHunter.name} tử trận nhưng không thể nổ súng do LỜI NGUYỀN GIÀ LÀNG (phe Dân đã mất sạch kỹ năng)!`);
       } else if (isPoisoned) {
         logs.push(`☠️ Thợ Săn ${deadHunter.name} bị Phù Thủy đầu độc trong lúc ngủ nên bị tê liệt, không thể rút súng bắn!`);
-      } else if (isLoverSuicide) {
-        logs.push(`🥀 Thợ Săn ${deadHunter.name} quẫn trí chết theo người tình, không thể nổ súng!`);
       } else {
         hunterTrigger = deadHunter;
       }
     }
+
+    // 5.1 Kế thừa linh hồn của Ảnh Tử (Shadow) nếu chủ thể chết trong đêm
+    const transformedShadows = rawResult.transformedShadows || [];
 
     // 6. Thiên Sứ bị Ma Sói cắn chết ở Đêm 1 -> THẮNG NGAY LẬP TỨC
     let gameEndResult = null;
@@ -206,6 +206,7 @@ export class WerewolfGame {
       logs,
       deadSheriff,
       hunterTrigger,
+      transformedShadows,
       elderKilledByWitch: rawResult.elderKilledByWitch,
       killedWolfPup: Boolean(killedWolfPup),
       gameEndResult
@@ -401,30 +402,55 @@ export class WerewolfGame {
     let logs = [];
     let deadSheriff = null;
     let transformedShadows = [];
+    let hunterTrigger = null;
+    let wolfCanKillDouble = this.wolfCanKillDouble;
 
     // Đánh dấu Kị Sĩ đã dùng lượt lật bài
     const usedKnight = knight.clone({ hasUsedKnightDuel: true });
     updatedPlayers = updatedPlayers.map(p => p.id === knightId ? usedKnight : p);
 
+    const casualties = [];
     if (isWolf) {
       // Sói chết tại chỗ
       const deadTarget = target.kill('Bị Kị Sĩ lật bài chém chết tại chỗ vì là Ma Sói', `Ngày ${this.roundNumber}`);
       updatedPlayers = updatedPlayers.map(p => p.id === targetId ? deadTarget : p);
-      if (deadTarget.isSheriff) deadSheriff = deadTarget;
+      casualties.push(deadTarget);
       logs.push(`⚔️ Kị Sĩ ${knight.name} lật bài thách đấu thành công: Đã chém chết Ma Sói ${target.name} (#${target.id})!`);
-      const shadowRes = this._checkShadowInheritance(updatedPlayers, deadTarget);
-      updatedPlayers = shadowRes.updatedPlayers;
-      transformedShadows = shadowRes.transformedShadows;
     } else {
       // Kị Sĩ chết vì phán đoán sai
       const deadKnight = usedKnight.kill('Chết gục tại chỗ vì phán đoán sai lầm khi thách đấu người lương thiện', `Ngày ${this.roundNumber}`);
       updatedPlayers = updatedPlayers.map(p => p.id === knightId ? deadKnight : p);
-      if (deadKnight.isSheriff) deadSheriff = deadKnight;
+      casualties.push(deadKnight);
       logs.push(`💀 Kị Sĩ ${knight.name} thách đấu sai lầm: ${target.name} vô tội. Kị Sĩ tử trận!`);
-      const shadowRes = this._checkShadowInheritance(updatedPlayers, deadKnight);
-      updatedPlayers = shadowRes.updatedPlayers;
-      transformedShadows = shadowRes.transformedShadows;
     }
+
+    // Cascade 1: Lovers chết chùm vì quá đau buồn
+    for (const c of [...casualties]) {
+      if (c.loverId) {
+        const partner = updatedPlayers.find(p => p.id === c.loverId && p.isAlive);
+        if (partner) {
+          const deadPartner = partner.kill(`Chết vì quá đau buồn khi người yêu (${c.name}) tử trận trong trận đấu Kị Sĩ`, `Ngày ${this.roundNumber}`);
+          updatedPlayers = updatedPlayers.map(p => p.id === deadPartner.id ? deadPartner : p);
+          casualties.push(deadPartner);
+          logs.push(`💔 ${deadPartner.name} đau đớn gục chết theo người tình ${c.name}!`);
+        }
+      }
+    }
+
+    // Cascade 2: Kiểm tra toàn bộ nạn nhân cho Cảnh Trưởng, Thợ Săn, Sói Con, Ảnh Tử
+    casualties.forEach(deadP => {
+      if (deadP.isSheriff) deadSheriff = deadP;
+      if (deadP.getRole()?.id === 'soi-con') {
+        wolfCanKillDouble = true;
+        logs.push(`🐺 SÓI CON (${deadP.name}) ĐÃ CHẾT! Bầy Ma Sói cuồng nộ: Đêm tiếp theo bầy Sói được cắn 2 người!`);
+      }
+      if (deadP.getRole()?.id === 'tho-san' && !this.isVillageCursed) {
+        hunterTrigger = deadP;
+      }
+      const shadowRes = this._checkShadowInheritance(updatedPlayers, deadP);
+      updatedPlayers = shadowRes.updatedPlayers;
+      transformedShadows.push(...shadowRes.transformedShadows);
+    });
 
     const winResult = checkGameEnd(updatedPlayers);
     const gameEndResult = winResult.isEnded ? winResult : null;
@@ -432,6 +458,7 @@ export class WerewolfGame {
     const nextGame = this.clone({
       players: updatedPlayers,
       lynchedTodayPlayerId: isWolf ? targetId : this.lynchedTodayPlayerId,
+      wolfCanKillDouble,
       gameEndResult: gameEndResult || this.gameEndResult
     });
 
@@ -441,6 +468,8 @@ export class WerewolfGame {
       target,
       isWolf,
       deadSheriff,
+      hunterTrigger,
+      wolfCanKillDouble,
       transformedShadows,
       logs,
       gameEndResult,
