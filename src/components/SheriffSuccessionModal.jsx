@@ -67,8 +67,7 @@ export default function SheriffSuccessionModal({
           <div className="leading-relaxed">
             {deadSheriff ? (
               <>
-                <strong className="text-amber-300 font-cinzel">{deadSheriff.name} (#{deadSheriff.id})</strong> đã hy sinh! 
-                Chỉ định 1 người chơi còn sống kế thừa huy hiệu Cảnh Sát Trưởng (phiếu x2).
+                <strong className="text-amber-300 font-cinzel">{deadSheriff.name} (#{deadSheriff.id})</strong> đã hy sinh — chuyển giao huy hiệu Cảnh Sát Trưởng (phiếu x2).
               </>
             ) : (
               <>
@@ -78,7 +77,7 @@ export default function SheriffSuccessionModal({
             {isMandatory && (
               <div className="mt-1 font-bold text-rose-300 flex items-center gap-1">
                 <ShieldAlert className="w-3.5 h-3.5 shrink-0" />
-                <span>Bắt buộc phải chỉ định người kế nhiệm trước khi cả làng đi ngủ!</span>
+                <span>Bắt buộc chỉ định người kế nhiệm trước khi sang đêm</span>
               </div>
             )}
           </div>
@@ -90,7 +89,7 @@ export default function SheriffSuccessionModal({
             <span>Danh sách người sống ({alivePlayers.length}):</span>
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 pb-4">
             {alivePlayers.map(p => {
               const role = getPlayerRole(p);
               const isOldSheriff = deadSheriff && deadSheriff.id === p.id;

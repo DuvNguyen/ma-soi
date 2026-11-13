@@ -18,9 +18,17 @@ export default function RoleClaimBox({
   const [viewMode, setViewMode] = useState('matrix'); // 'matrix' | 'slider'
   const [slidePage, setSlidePage] = useState(0);
 
-  // Calculate maximum wolves strictly allowed by deck configuration
-  const maxWolves = isWolfStep
+  const isSisters = currentRole?.id === 'hai-chi-em';
+  const isBrothers = currentRole?.id === 'ba-anh-em';
+  const isMultiAssign = isWolfStep || isSisters || isBrothers;
+
+  // Calculate capacity: Wolves configured by deck; Hai Chị Em is 2; Ba Anh Em is 3
+  const targetCapacity = isWolfStep
     ? (deckRoleIds.filter(id => WOLF_ROLE_IDS.includes(id)).length || 2)
+    : isSisters
+    ? 2
+    : isBrothers
+    ? 3
     : 1;
 
   const hasCursedInDeck = deckRoleIds.some(id => ['soi-quy', 'nguoi-cha-cua-soi', 'soi-nguyen'].includes(id));
@@ -36,31 +44,37 @@ export default function RoleClaimBox({
     }
   };
 
-  // Initialize selected wolves from already assigned wolves if any
+  // Initialize selected players from already assigned players if any
   useEffect(() => {
-    if (isWolfStep) {
-      const existingWolves = players.filter(p => isWolfPlayer(p)).map(p => p.id);
-      if (existingWolves.length > 0 && selectedWolfIds.length === 0) {
-        setSelectedWolfIds(existingWolves);
+    if (isMultiAssign) {
+      const existingHolders = isWolfStep
+        ? players.filter(p => isWolfPlayer(p)).map(p => p.id)
+        : players.filter(p => (p.currentRoleId || p.roleId) === currentRole?.id).map(p => p.id);
+      if (existingHolders.length > 0 && selectedWolfIds.length === 0) {
+        setSelectedWolfIds(existingHolders);
       }
     }
-  }, [isWolfStep]);
+  }, [isWolfStep, currentRole?.id]);
 
   if (!currentRole) return null;
 
-  // Handles single tap assignment (for non-wolf steps)
+  // Handles single tap assignment (for single-seat roles)
   const handleSingleAssign = (playerId) => {
     onAssignRole(playerId, currentRole);
   };
 
-  // Toggle wolf player selection with strict rules
-  const toggleWolfSelection = (playerId) => {
+  // Toggle player selection with strict rules
+  const toggleMultiSelection = (playerId) => {
     const target = players.find(p => p.id === playerId);
     if (!target) return;
 
     const targetCurrentId = target.currentRoleId || target.roleId;
-    // Strict Rule: Players who already have other roles (Cupid, Bodyguard, Seer, Half-wolf, etc.) CANNOT be selected
-    if (targetCurrentId && !isWolfPlayer(target)) {
+    const isTargetAlreadyThisRole = isWolfStep
+      ? isWolfPlayer(target)
+      : targetCurrentId === currentRole.id;
+
+    // Strict Rule: Players who already have other roles CANNOT be selected
+    if (targetCurrentId && !isTargetAlreadyThisRole) {
       return;
     }
 
@@ -68,17 +82,17 @@ export default function RoleClaimBox({
       if (prev.includes(playerId)) {
         return prev.filter(id => id !== playerId);
       }
-      // Strict limit: Cannot select more than maxWolves
-      if (prev.length >= maxWolves) {
+      // Strict limit: Cannot select more than targetCapacity
+      if (prev.length >= targetCapacity) {
         return prev;
       }
       return [...prev, playerId];
     });
   };
 
-  // Confirm multiple wolves
-  const handleConfirmWolves = () => {
-    if (selectedWolfIds.length === 0 || selectedWolfIds.length > maxWolves) return;
+  // Confirm multiple assignment
+  const handleConfirmMulti = () => {
+    if (selectedWolfIds.length === 0 || selectedWolfIds.length > targetCapacity) return;
     if (onAssignRoleToMultiple) {
       onAssignRoleToMultiple(selectedWolfIds, currentRole);
     } else {
@@ -90,44 +104,49 @@ export default function RoleClaimBox({
     const pCurrentId = p.currentRoleId || p.roleId;
     const hasRole = Boolean(pCurrentId);
     const isWolf = isWolfPlayer(p);
-    const isCurrentSelectedWolf = selectedWolfIds.includes(p.id);
-    const hasOtherRole = hasRole && !isWolf;
-    const isMaxReached = selectedWolfIds.length >= maxWolves;
-    const isSlotLocked = isMaxReached && !isCurrentSelectedWolf && !isWolf;
-    const isFirstSelectedWolf = isCurrentSelectedWolf && selectedWolfIds[0] === p.id && hasCursedInDeck;
+    const isCurrentSelected = selectedWolfIds.includes(p.id);
+    const isAlreadyAssignedRole = isWolfStep ? isWolf : pCurrentId === currentRole.id;
+    const hasOtherRole = hasRole && !isAlreadyAssignedRole;
+    const isMaxReached = selectedWolfIds.length >= targetCapacity;
+    const isSlotLocked = isMaxReached && !isCurrentSelected && !isAlreadyAssignedRole;
+    const isFirstSelectedWolf = isWolfStep && isCurrentSelected && selectedWolfIds[0] === p.id && hasCursedInDeck;
 
-    if (isWolfStep) {
+    if (isMultiAssign) {
       const isDisabled = hasOtherRole || isSlotLocked;
 
       return (
         <button
           key={p.id}
           type="button"
-          disabled={isDisabled && !isCurrentSelectedWolf && !isWolf}
-          onClick={() => toggleWolfSelection(p.id)}
+          disabled={isDisabled && !isCurrentSelected && !isAlreadyAssignedRole}
+          onClick={() => toggleMultiSelection(p.id)}
           className={`p-2 rounded-xl border text-left transition-all duration-75 select-none touch-manipulation active:scale-95 cursor-pointer flex flex-col justify-between min-h-[64px] sm:min-h-[72px] relative overflow-hidden ${
-            isCurrentSelectedWolf || isWolf
-              ? isFirstSelectedWolf
-                ? 'bg-gradient-to-r from-purple-950 via-[#3b084d] to-purple-950 border-purple-400 text-white shadow-[0_0_18px_rgba(168,85,247,0.7)] ring-1 ring-purple-300 scale-[1.03]'
-                : 'bg-gradient-to-r from-rose-950 via-[#3b090e] to-rose-950 border-rose-500 text-white shadow-[0_0_18px_rgba(225,29,72,0.7)] ring-1 ring-rose-400 scale-[1.03]'
+            isCurrentSelected || isAlreadyAssignedRole
+              ? isWolfStep
+                ? isFirstSelectedWolf
+                  ? 'bg-gradient-to-r from-purple-950 via-[#3b084d] to-purple-950 border-purple-400 text-white shadow-[0_0_18px_rgba(168,85,247,0.7)] ring-1 ring-purple-300 scale-[1.03]'
+                  : 'bg-gradient-to-r from-rose-950 via-[#3b090e] to-rose-950 border-rose-500 text-white shadow-[0_0_18px_rgba(225,29,72,0.7)] ring-1 ring-rose-400 scale-[1.03]'
+                : 'bg-gradient-to-r from-purple-950 via-[#35104d] to-purple-950 border-purple-400 text-white shadow-[0_0_18px_rgba(168,85,247,0.7)] ring-1 ring-purple-300 scale-[1.03]'
               : hasOtherRole
               ? 'opacity-30 cursor-not-allowed bg-black/40 border-slate-900 text-slate-600'
               : isSlotLocked
               ? 'opacity-50 cursor-not-allowed bg-[#10121e] border-slate-800 text-slate-500'
-              : 'bg-[#101322] hover:bg-[#181c33] border-slate-800 hover:border-rose-600 text-slate-300 shadow-sm'
+              : 'bg-[#101322] hover:bg-[#181c33] border-slate-800 hover:border-purple-600 text-slate-300 shadow-sm'
           }`}
         >
           {/* Top seat bar indicator */}
           <div className={`w-6 h-0.5 rounded-full mb-1 ${
-            isCurrentSelectedWolf || isWolf
-              ? isFirstSelectedWolf ? 'bg-purple-300' : 'bg-rose-400'
+            isCurrentSelected || isAlreadyAssignedRole
+              ? isWolfStep
+                ? isFirstSelectedWolf ? 'bg-purple-300' : 'bg-rose-400'
+                : 'bg-purple-300'
               : 'bg-slate-700'
           }`}></div>
 
           {/* Seat Header: Seat Number + Status Icon */}
           <div className="flex items-center justify-between w-full">
             <span className={`font-mono font-black text-xs sm:text-sm ${
-              isCurrentSelectedWolf || isWolf
+              isCurrentSelected || isAlreadyAssignedRole
                 ? 'text-white'
                 : hasOtherRole
                 ? 'text-slate-600'
@@ -136,11 +155,15 @@ export default function RoleClaimBox({
               #{p.id}
             </span>
 
-            {(isCurrentSelectedWolf || isWolf) ? (
-              isFirstSelectedWolf ? (
-                <span className="text-xs">🔮</span>
+            {(isCurrentSelected || isAlreadyAssignedRole) ? (
+              isWolfStep ? (
+                isFirstSelectedWolf ? (
+                  <span className="text-xs">🔮</span>
+                ) : (
+                  <Skull className="w-3.5 h-3.5 text-rose-400 fill-rose-500 animate-pulse" />
+                )
               ) : (
-                <Skull className="w-3.5 h-3.5 text-rose-400 fill-rose-500 animate-pulse" />
+                <Sparkles className="w-3.5 h-3.5 text-purple-300 animate-pulse" />
               )
             ) : hasOtherRole ? (
               <Lock className="w-3 h-3 text-slate-600" />
@@ -150,7 +173,7 @@ export default function RoleClaimBox({
           {/* Player Name */}
           <div className="font-bold text-xs truncate w-full mt-0.5">
             <span className={
-              isCurrentSelectedWolf || isWolf
+              isCurrentSelected || isAlreadyAssignedRole
                 ? 'text-white font-black'
                 : hasOtherRole
                 ? 'text-slate-500'
@@ -164,14 +187,20 @@ export default function RoleClaimBox({
           <div className="text-[9px] truncate w-full mt-0.5">
             {hasOtherRole ? (
               <span className="text-slate-500">Đã có vai</span>
-            ) : (isCurrentSelectedWolf || isWolf) ? (
-              isFirstSelectedWolf ? (
-                <span className="text-purple-300 font-bold">🔮 Sói Nguyền</span>
+            ) : (isCurrentSelected || isAlreadyAssignedRole) ? (
+              isWolfStep ? (
+                isFirstSelectedWolf ? (
+                  <span className="text-purple-300 font-bold">🔮 Sói Nguyền</span>
+                ) : (
+                  <span className="text-rose-300 font-bold flex items-center gap-0.5"><WolfIcon className="w-2.5 h-2.5 inline" /> Sói Thường</span>
+                )
+              ) : isSisters ? (
+                <span className="text-purple-300 font-bold">👭 Chị Em</span>
               ) : (
-                <span className="text-rose-300 font-bold flex items-center gap-0.5"><WolfIcon className="w-2.5 h-2.5 inline" /> Sói Thường</span>
+                <span className="text-purple-300 font-bold">👬 Anh Em</span>
               )
             ) : isSlotLocked ? (
-              <span className="text-slate-500">Đã đủ {maxWolves}</span>
+              <span className="text-slate-500">Đã đủ {targetCapacity}</span>
             ) : (
               <span className="text-slate-500">Chưa có vai</span>
             )}
@@ -278,15 +307,15 @@ export default function RoleClaimBox({
               </button>
             )}
 
-            {isWolfStep ? (
-              <span className="text-[11px] font-bold px-2.5 py-1 rounded-full bg-rose-950/90 border border-rose-600 text-rose-200">
-                Đã chọn: <strong className="text-white text-xs">{selectedWolfIds.length}</strong> / {maxWolves} Sói
+            {isMultiAssign ? (
+              <span className={`text-[11px] font-bold px-2.5 py-1 rounded-full border ${
+                isWolfStep 
+                  ? 'bg-rose-950/90 border-rose-600 text-rose-200' 
+                  : 'bg-purple-950/90 border-purple-600 text-purple-200'
+              }`}>
+                Đã chọn: <strong className="text-white text-xs">{selectedWolfIds.length}</strong> / {targetCapacity} {isWolfStep ? 'Sói' : 'Người'}
               </span>
-            ) : (
-              <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-black/60 border border-white/10 text-slate-300 hidden sm:inline">
-                {assignedPlayer ? 'Đã gán' : 'Chưa gán'}
-              </span>
-            )}
+            ) : null}
           </div>
         </div>
 
@@ -299,42 +328,62 @@ export default function RoleClaimBox({
         )}
       </div>
 
-      {/* TOP SUMMARY BOX: CHOSEN PLAYERS HIGHLIGHT (LIKE CUPID) */}
-      {isWolfStep && (
-        <div className="p-3 sm:p-4 rounded-2xl bg-gradient-to-r from-[#2a060b] via-[#1a0407] to-[#120204] border border-rose-600/80 shadow-md mb-3.5 space-y-2">
+      {/* TOP SUMMARY BOX: CHOSEN PLAYERS HIGHLIGHT (FOR MULTI-ASSIGN ROLES) */}
+      {isMultiAssign && (
+        <div className={`p-3 sm:p-4 rounded-2xl border shadow-md mb-3.5 space-y-2 ${
+          isWolfStep
+            ? 'bg-gradient-to-r from-[#2a060b] via-[#1a0407] to-[#120204] border-rose-600/80'
+            : 'bg-gradient-to-r from-[#200d33] via-[#140722] to-[#0c0415] border-purple-600/80'
+        }`}>
           <div className="flex items-center justify-between text-xs font-bold">
-            <span className="text-rose-200 uppercase tracking-wider flex items-center gap-1.5 font-cinzel">
-              <Skull className="w-3.5 h-3.5 text-rose-400 fill-rose-500" />
-              <span>Danh Sách Ma Sói Đã Chọn ({selectedWolfIds.length}/{maxWolves}):</span>
+            <span className={`uppercase tracking-wider flex items-center gap-1.5 font-cinzel ${
+              isWolfStep ? 'text-rose-200' : 'text-purple-200'
+            }`}>
+              {isWolfStep ? <Skull className="w-3.5 h-3.5 text-rose-400 fill-rose-500" /> : <Sparkles className="w-3.5 h-3.5 text-purple-400" />}
+              <span>
+                {isWolfStep
+                  ? `Danh Sách Ma Sói Đã Chọn (${selectedWolfIds.length}/${targetCapacity}):`
+                  : isSisters
+                  ? `Danh Sách Hai Chị Em Đã Chọn (${selectedWolfIds.length}/${targetCapacity}):`
+                  : `Danh Sách Ba Anh Em Đã Chọn (${selectedWolfIds.length}/${targetCapacity}):`}
+              </span>
             </span>
-            {selectedWolfIds.length === maxWolves && (
+            {selectedWolfIds.length === targetCapacity && (
               <span className="text-emerald-400 font-bold flex items-center gap-1 animate-pulse">
-                ✓ Đã chọn đủ {maxWolves} Sói
+                ✓ Đã chọn đủ {targetCapacity} người
               </span>
             )}
           </div>
 
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
-            {Array.from({ length: maxWolves }).map((_, idx) => {
+            {Array.from({ length: targetCapacity }).map((_, idx) => {
               const targetId = selectedWolfIds[idx];
               const targetPlayer = targetId ? players.find(p => p.id === targetId) : null;
-              const isCursedSlot = idx === 0 && hasCursedInDeck;
+              const isCursedSlot = isWolfStep && idx === 0 && hasCursedInDeck;
 
               return (
                 <div
                   key={idx}
                   className={`p-2 sm:p-2.5 rounded-xl border text-center transition-all ${
                     targetPlayer
-                      ? isCursedSlot
-                        ? 'bg-purple-950/80 border-purple-400 shadow-[0_0_12px_rgba(168,85,247,0.4)] text-white'
-                        : 'bg-rose-950/80 border-rose-500 shadow-[0_0_12px_rgba(225,29,72,0.4)] text-white'
+                      ? isWolfStep
+                        ? isCursedSlot
+                          ? 'bg-purple-950/80 border-purple-400 shadow-[0_0_12px_rgba(168,85,247,0.4)] text-white'
+                          : 'bg-rose-950/80 border-rose-500 shadow-[0_0_12px_rgba(225,29,72,0.4)] text-white'
+                        : 'bg-purple-950/80 border-purple-400 shadow-[0_0_12px_rgba(168,85,247,0.4)] text-white'
                       : 'bg-black/30 border-dashed border-slate-800 text-slate-500'
                   }`}
                 >
                   <div className={`text-[10px] uppercase font-bold tracking-wider ${
-                    isCursedSlot ? 'text-purple-300' : 'text-rose-400'
+                    isWolfStep 
+                      ? (isCursedSlot ? 'text-purple-300' : 'text-rose-400')
+                      : 'text-purple-300'
                   }`}>
-                    {isCursedSlot ? '🔮 Sói Nguyền' : `🐺 Sói ${idx + 1}`}
+                    {isWolfStep 
+                      ? (isCursedSlot ? '🔮 Sói Nguyền' : `🐺 Sói ${idx + 1}`)
+                      : isSisters
+                      ? `👭 Chị Em ${idx + 1}`
+                      : `👬 Anh Em ${idx + 1}`}
                   </div>
                   <div className="font-black text-sm truncate mt-0.5">
                     {targetPlayer ? targetPlayer.name : '— Chưa chọn —'}
@@ -352,7 +401,7 @@ export default function RoleClaimBox({
       {/* Control Switcher Bar: Theatre Matrix vs Slider */}
       <div className="flex items-center justify-between gap-2 text-xs mb-2.5">
         <span className="text-[11px] text-slate-400 uppercase font-black tracking-wider flex items-center gap-1.5">
-          <span>Ghế Ngồi: {isWolfStep ? `${selectedWolfIds.length}/${maxWolves}` : '1'} đã chọn</span>
+          <span>Ghế Ngồi: {isMultiAssign ? `${selectedWolfIds.length}/${targetCapacity}` : '1'} đã chọn</span>
         </span>
 
         <div className="flex items-center gap-1 bg-black/60 p-0.5 rounded-lg border border-slate-800">
@@ -421,30 +470,42 @@ export default function RoleClaimBox({
         </div>
       )}
 
-      {/* Wolf Confirm Action Footer */}
-      {isWolfStep && (
-        <div className="mt-3.5 pt-3 border-t border-rose-950/80 flex items-center justify-between gap-2">
+      {/* Confirm Action Footer for Multi-assign (Wolves, Hai Chị Em, Ba Anh Em) */}
+      {isMultiAssign && (
+        <div className={`mt-3.5 pt-3 border-t flex items-center justify-between gap-2 ${
+          isWolfStep ? 'border-rose-950/80' : 'border-purple-950/80'
+        }`}>
           {selectedWolfIds.length > 0 ? (
             <button
               type="button"
               onClick={() => setSelectedWolfIds([])}
-              className="text-xs text-slate-400 hover:text-rose-300 underline font-medium cursor-pointer"
+              className={`text-xs underline font-medium cursor-pointer ${
+                isWolfStep ? 'text-slate-400 hover:text-rose-300' : 'text-slate-400 hover:text-purple-300'
+              }`}
             >
               ✕ Xóa chọn lại
             </button>
           ) : (
-            <div className="text-xs text-slate-500">Chưa chọn Ma Sói</div>
+            <div className="text-xs text-slate-500">
+              {isWolfStep ? 'Chưa chọn Ma Sói' : isSisters ? 'Chưa chọn 2 Chị Em' : 'Chưa chọn 3 Anh Em'}
+            </div>
           )}
 
           <GothicButton
-            variant="blood"
+            variant={isWolfStep ? 'blood' : 'witch'}
             size="md"
-            disabled={selectedWolfIds.length === 0 || selectedWolfIds.length > maxWolves}
-            onClick={handleConfirmWolves}
+            disabled={selectedWolfIds.length !== targetCapacity}
+            onClick={handleConfirmMulti}
             className="shadow-xl"
           >
             <Check className="w-4 h-4 mr-1 inline" />
-            <span>Xác Nhận ({selectedWolfIds.length}/{maxWolves}) Sói ✓</span>
+            <span>
+              {isWolfStep
+                ? `Xác Nhận (${selectedWolfIds.length}/${targetCapacity}) Sói ✓`
+                : isSisters
+                ? `Xác Nhận (${selectedWolfIds.length}/2) Hai Chị Em ✓`
+                : `Xác Nhận (${selectedWolfIds.length}/3) Ba Anh Em ✓`}
+            </span>
           </GothicButton>
         </div>
       )}

@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { 
   Shield, Eye, Skull, Sparkles, Heart, ChevronRight, ChevronLeft, ArrowRight,
   Sun, Moon, Check, UserCheck, AlertTriangle, AlertCircle, Wand2, Ghost, Flame, MoonStar, X 
@@ -38,32 +38,8 @@ export default function NightPhaseView({
   const { showConfirm, showAlert } = useGothicDialog();
   const topContainerRef = useRef(null);
   const cardRef = useRef(null);
-  const originalFooterRef = useRef(null);
   const isInitialMount = useRef(true);
   const prevStepIdxRef = useRef(null);
-  const [isOriginalFooterVisible, setIsOriginalFooterVisible] = useState(false);
-  const [inlineButtonNode, setInlineButtonNode] = useState(null);
-  const [isInlineButtonVisible, setIsInlineButtonVisible] = useState(false);
-
-  const isElementInViewport = (el) => {
-    if (!el) return false;
-    const rect = el.getBoundingClientRect();
-    return (
-      rect.top < window.innerHeight &&
-      rect.bottom > 0 &&
-      rect.left < window.innerWidth &&
-      rect.right > 0
-    );
-  };
-
-  const inlineAdvanceBtnRef = useCallback((node) => {
-    setInlineButtonNode(node);
-    if (node) {
-      setIsInlineButtonVisible(isElementInViewport(node));
-    } else {
-      setIsInlineButtonVisible(false);
-    }
-  }, []);
 
   // Sort roles according to canonical night wake-up order
   const getOrderedNightRoles = () => {
@@ -336,12 +312,44 @@ export default function NightPhaseView({
     if (!hasHolders) {
       return { 
         isValid: false, 
-        message: `Chưa gán ai là ${shortRoleName}! Chạm số ghế người chơi để gán.`,
+        message: `Chưa gán vai ${shortRoleName}!`,
         shortMessage: `Chưa gán vai ${shortRoleName}`
       };
     }
 
     switch (currentRole.id) {
+      case 'hai-chi-em': {
+        const count = roleHolders.length;
+        if (count < 2) {
+          return { 
+            isValid: false, 
+            message: `Bắt buộc chọn đúng 2 người giữ vai Hai Chị Em (${count}/2)`,
+            shortMessage: `Gán 2 chị em (${count}/2)`
+          };
+        }
+        return { 
+          isValid: true, 
+          message: 'Đã gán đủ 2 người giữ vai Hai Chị Em',
+          shortMessage: 'Đã gán đủ (2/2) ✓'
+        };
+      }
+
+      case 'ba-anh-em': {
+        const count = roleHolders.length;
+        if (count < 3) {
+          return { 
+            isValid: false, 
+            message: `Bắt buộc chọn đúng 3 người giữ vai Ba Anh Em (${count}/3)`,
+            shortMessage: `Gán 3 anh em (${count}/3)`
+          };
+        }
+        return { 
+          isValid: true, 
+          message: 'Đã gán đủ 3 người giữ vai Ba Anh Em',
+          shortMessage: 'Đã gán đủ (3/3) ✓'
+        };
+      }
+
       case 'cupid': {
         const count = (nightState.cupidChosenIds || []).length;
         if (count !== 2) {
@@ -604,61 +612,6 @@ export default function NightPhaseView({
     }
   }, [safeStepIdx]);
 
-  // Observer to track if the bottom original navigation footer is in viewport
-  useEffect(() => {
-    const el = originalFooterRef.current;
-    if (!el || typeof IntersectionObserver === 'undefined') return;
-
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        setIsOriginalFooterVisible(entry.isIntersecting);
-      },
-      { threshold: 0.15 }
-    );
-
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, [safeStepIdx]);
-
-  // Observer to track if the inline action button is in viewport (Quy tắc 1 khung hình 1 nút đi ngủ)
-  useEffect(() => {
-    if (!inlineButtonNode || typeof IntersectionObserver === 'undefined') {
-      setIsInlineButtonVisible(false);
-      return;
-    }
-
-    setIsInlineButtonVisible(isElementInViewport(inlineButtonNode));
-
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        setIsInlineButtonVisible(entry.isIntersecting);
-      },
-      { threshold: 0.05, rootMargin: '0px 0px 40px 0px' }
-    );
-
-    observer.observe(inlineButtonNode);
-
-    const handleScrollOrResize = () => {
-      setIsInlineButtonVisible(isElementInViewport(inlineButtonNode));
-    };
-
-    window.addEventListener('scroll', handleScrollOrResize, { passive: true });
-    window.addEventListener('resize', handleScrollOrResize, { passive: true });
-
-    return () => {
-      observer.disconnect();
-      window.removeEventListener('scroll', handleScrollOrResize);
-      window.removeEventListener('resize', handleScrollOrResize);
-    };
-  }, [inlineButtonNode]);
-
-  // QUY TẮC 1 KHUNG HÌNH 1 NÚT ĐI NGỦ:
-  // Nút floating chỉ được phép hiện khi nút đi ngủ dưới cùng hoàn toàn trượt khỏi tầm nhìn (vision)
-  const showFloatingAdvanceButton = 
-    !isSummaryStep && 
-    stepValidation.isValid && 
-    !isOriginalFooterVisible &&
-    !isInlineButtonVisible;
 
   // Victim of wolves tonight
   const wolfVictim = players.find(p => p.id === nightState.wolfTargetId);
@@ -873,18 +826,6 @@ export default function NightPhaseView({
                     <strong>Quản trò:</strong> Đọc to <em>"{currentRole.gmCall}"</em> và dừng 3-5 giây để giữ bí mật danh tính.
                   </div>
                 </div>
-
-                <div ref={inlineAdvanceBtnRef} className="pt-2">
-                  <GothicButton
-                    variant="gold"
-                    size="md"
-                    onClick={() => handleNextStep(false)}
-                    className="w-full h-11 text-xs font-black shadow-lg flex items-center justify-center gap-1.5"
-                  >
-                    <span>Đã Gọi Xong & Cho Đi Ngủ 💤</span>
-                    <ChevronRight className="w-4 h-4 ml-0.5 inline shrink-0" />
-                  </GothicButton>
-                </div>
               </div>
             ) : stepValidation.isDeadRole ? (
               <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-slate-950 via-[#1c0e1e] to-[#120817] border-2 border-rose-500/60 text-rose-200 shadow-[0_0_30px_rgba(244,63,94,0.25)] space-y-3 animate-fade-in">
@@ -900,18 +841,6 @@ export default function NightPhaseView({
                   <div className="leading-relaxed">
                     <strong>Quản trò:</strong> Đọc to <em>"{currentRole.gmCall}"</em> và dừng 3-5 giây để bảo mật ván đấu.
                   </div>
-                </div>
-
-                <div ref={inlineAdvanceBtnRef} className="pt-2">
-                  <GothicButton
-                    variant="gold"
-                    size="md"
-                    onClick={() => handleNextStep(false)}
-                    className="w-full h-11 text-xs font-black shadow-lg flex items-center justify-center gap-1.5"
-                  >
-                    <span>Đã Gọi Xong & Cho Đi Ngủ 💤</span>
-                    <ChevronRight className="w-4 h-4 ml-0.5 inline shrink-0" />
-                  </GothicButton>
                 </div>
               </div>
             ) : isVillageCursed && ['bao-ve', 'tien-tri', 'phu-thuy', 'tho-san', 'hiep-si-kiem-gi'].includes(currentRole.id) ? (
@@ -960,18 +889,6 @@ export default function NightPhaseView({
                     </div>
                   )}
                 </div>
-
-                <div ref={inlineAdvanceBtnRef} className="pt-2">
-                  <GothicButton
-                    variant="gold"
-                    size="md"
-                    onClick={() => handleNextStep(false)}
-                    className="w-full h-11 text-xs font-black shadow-lg flex items-center justify-center gap-1.5"
-                  >
-                    <span>Đã Gọi Xong & Cho Đi Ngủ 💤</span>
-                    <ChevronRight className="w-4 h-4 ml-0.5 inline shrink-0" />
-                  </GothicButton>
-                </div>
               </div>
             ) : (
               <>
@@ -991,7 +908,7 @@ export default function NightPhaseView({
                   <div className="flex items-center gap-2">
                     <Shield className="w-5 h-5 text-teal-400" />
                     <h4 className="font-bold text-sm text-teal-200 font-cinzel">
-                      CHỌN 1 NGƯỜI ĐỂ BẢO VỆ ĐÊM NAY:
+                      Mục tiêu bảo vệ đêm nay
                     </h4>
                   </div>
 
@@ -1002,7 +919,7 @@ export default function NightPhaseView({
                         Mục tiêu bảo vệ ({isProtected ? '1/1' : nightState.protectSkipped ? 'Bỏ qua' : '0/1'}):
                       </span>
                       {isProtected ? (
-                        <span className="text-xs font-bold text-teal-300 flex items-center gap-1 animate-pulse">
+                        <span className="text-xs font-bold text-teal-300 flex items-center gap-1">
                           🛡️ Đã chọn người bảo vệ
                         </span>
                       ) : nightState.protectSkipped ? (
@@ -1010,8 +927,8 @@ export default function NightPhaseView({
                           🚫 Đêm nay không bảo vệ ai
                         </span>
                       ) : (
-                        <span className="text-xs text-slate-400">
-                          (Chạm số ghế người chơi bên dưới)
+                        <span className="text-xs text-slate-500">
+                          Chưa chọn
                         </span>
                       )}
                     </div>
@@ -1024,7 +941,7 @@ export default function NightPhaseView({
                             {isProtected ? `${protectedP?.name} (#${protectedP?.id})` : nightState.protectSkipped ? 'Không bảo vệ ai' : 'Chưa chọn'}
                           </div>
                         </div>
-                        {isProtected && <Shield className="w-5 h-5 text-teal-400 fill-teal-400 animate-bounce" />}
+                        {isProtected && <Shield className="w-5 h-5 text-teal-400 fill-teal-400 drop-shadow-[0_0_8px_rgba(20,184,166,0.6)]" />}
                       </div>
 
                       <div className="p-2.5 rounded-xl bg-black/30 border border-slate-800 flex items-center justify-between">
@@ -1080,21 +997,6 @@ export default function NightPhaseView({
                       </button>
                     )}
                   </div>
-
-                  {/* Inline Quick Advance Button when chosen */}
-                  {(nightState.protectedPlayerId || nightState.protectSkipped) && (
-                    <div ref={inlineAdvanceBtnRef} className="pt-2 animate-fade-in">
-                      <GothicButton
-                        variant="witch"
-                        size="md"
-                        onClick={() => handleNextStep(false)}
-                        className="w-full h-11 text-xs font-black shadow-lg flex items-center justify-center gap-1.5"
-                      >
-                        <span>Xác Nhận & Đi Ngủ 💤</span>
-                        <ChevronRight className="w-4 h-4 ml-0.5 inline shrink-0" />
-                      </GothicButton>
-                    </div>
-                  )}
                 </div>
               );
             })()}
@@ -1172,9 +1074,9 @@ export default function NightPhaseView({
 
                 <div className="space-y-4 pt-1">
                   <div className="flex items-center gap-2">
-                    <Skull className="w-5 h-5 text-rose-500 animate-bounce" />
+                    <Skull className="w-5 h-5 text-rose-500 drop-shadow-[0_0_8px_rgba(225,29,72,0.7)]" />
                     <h4 className="font-bold text-sm text-rose-300 font-cinzel">
-                      QUẢN TRÒ CHỌN MỤC TIÊU BẦY SÓI CẮN:
+                      Mục tiêu bầy Sói cắn
                     </h4>
                   </div>
 
@@ -1192,7 +1094,7 @@ export default function NightPhaseView({
                             Con mồi đêm nay ({hasTarget ? `${selectedWolfTargets.length}/${wolfCanKillDouble ? 2 : 1}` : nightState.wolfSkipped ? 'Không cắn' : `0/${wolfCanKillDouble ? 2 : 1}`}):
                           </span>
                           {hasTarget ? (
-                            <span className="text-xs font-bold text-rose-400 flex items-center gap-1 animate-pulse">
+                            <span className="text-xs font-bold text-rose-400 flex items-center gap-1">
                               🩸 Đã chọn mục tiêu cắn
                             </span>
                           ) : nightState.wolfSkipped ? (
@@ -1200,8 +1102,8 @@ export default function NightPhaseView({
                               🚫 Bầy Sói không cắn ai
                             </span>
                           ) : (
-                            <span className="text-xs text-slate-400">
-                              (Chạm số ghế con mồi bên dưới)
+                            <span className="text-xs text-slate-500">
+                              Chưa chọn
                             </span>
                           )}
                         </div>
@@ -1216,7 +1118,7 @@ export default function NightPhaseView({
                                 {target1 && !nightState.wolfSkipped ? `${target1.name} (#${target1.id})` : nightState.wolfSkipped ? 'Bầy Sói không cắn ai' : 'Chưa chọn'}
                               </div>
                             </div>
-                            {target1 && !nightState.wolfSkipped && <Skull className="w-5 h-5 text-rose-500 fill-rose-500 animate-bounce" />}
+                            {target1 && !nightState.wolfSkipped && <Skull className="w-5 h-5 text-rose-500 fill-rose-500 drop-shadow-[0_0_8px_rgba(225,29,72,0.8)]" />}
                           </div>
 
                           {wolfCanKillDouble && (
@@ -1227,7 +1129,7 @@ export default function NightPhaseView({
                                   {target2 && !nightState.wolfSkipped ? `${target2.name} (#${target2.id})` : 'Chưa chọn'}
                                 </div>
                               </div>
-                              {target2 && !nightState.wolfSkipped && <Skull className="w-5 h-5 text-rose-500 fill-rose-500 animate-bounce" />}
+                              {target2 && !nightState.wolfSkipped && <Skull className="w-5 h-5 text-rose-500 fill-rose-500 drop-shadow-[0_0_8px_rgba(225,29,72,0.8)]" />}
                             </div>
                           )}
                         </div>
@@ -1245,7 +1147,7 @@ export default function NightPhaseView({
 
                   {/* SÓI CUỒNG NỘ (SÓI CON CHẾT) BANNER */}
                   {wolfCanKillDouble && (
-                    <div className="p-3 rounded-2xl bg-gradient-to-r from-rose-950 via-red-900/60 to-rose-950 border border-rose-500 text-rose-200 shadow-md flex items-center gap-2.5 animate-pulse">
+                    <div className="p-3 rounded-2xl bg-gradient-to-r from-rose-950 via-red-900/60 to-rose-950 border border-rose-500 text-rose-200 shadow-[0_0_20px_rgba(225,29,72,0.35)] ring-1 ring-rose-500/50 flex items-center gap-2.5">
                       <WolfIcon className="w-6 h-6 shrink-0 drop-shadow-[0_0_8px_rgba(225,29,72,0.8)]" />
                       <div>
                         <div className="font-bold text-xs uppercase tracking-wider text-rose-100 font-cinzel">BẦY SÓI CUỒNG NỘ: ĐƯỢC CẮN 2 NẠN NHÂN</div>
@@ -1278,7 +1180,7 @@ export default function NightPhaseView({
                           type="button"
                           onClick={() => onSaveAction('undo_curse_convert', nightState.lastCursedVictimId)}
                           className="text-[11px] font-bold px-2.5 py-1 rounded-xl bg-purple-900 hover:bg-purple-800 border border-purple-500 text-purple-200 transition-all cursor-pointer self-end sm:self-auto shrink-0 shadow-sm"
-                          title="Bấm để hủy nguyền và trả lại vai ban đầu nếu bấm nhầm"
+                          title="Hủy nguyền & phục hồi vai ban đầu"
                         >
                           ↩ Hoàn tác nguyền
                         </button>
@@ -1397,21 +1299,6 @@ export default function NightPhaseView({
                     </div>
                   </div>
                 )}
-
-                {/* Inline Quick Advance for Wolves */}
-                {(nightState.wolfTargetId || nightState.wolfSkipped) && (
-                  <div ref={inlineAdvanceBtnRef} className="pt-2 animate-fade-in">
-                    <GothicButton
-                      variant="blood"
-                      size="md"
-                      onClick={() => handleNextStep(false)}
-                      className="w-full h-11 text-xs font-black shadow-lg flex items-center justify-center gap-1.5"
-                    >
-                      <span>Xác Nhận & Đi Ngủ 💤</span>
-                      <ChevronRight className="w-4 h-4 ml-0.5 inline shrink-0" />
-                    </GothicButton>
-                  </div>
-                )}
               </div>
             )}
 
@@ -1422,7 +1309,7 @@ export default function NightPhaseView({
                   <div className="flex items-center gap-2">
                     <Eye className="w-5 h-5 text-purple-400" />
                     <h4 className="font-bold text-sm text-purple-200 font-cinzel">
-                      BẤM VÀO NGƯỜI ĐỂ LẬT THẺ BÀI:
+                      Mục tiêu soi đêm nay
                     </h4>
                   </div>
                 </div>
@@ -1554,21 +1441,6 @@ export default function NightPhaseView({
                   variant="seer"
                   isWolfPlayer={isWolfPlayer}
                 />
-
-                {/* Inline Quick Advance for Seer */}
-                {selectedSeerTarget && (
-                  <div ref={inlineAdvanceBtnRef} className="pt-2 animate-fade-in">
-                    <GothicButton
-                      variant="witch"
-                      size="md"
-                      onClick={() => handleNextStep(false)}
-                      className="w-full h-11 text-xs font-black shadow-lg flex items-center justify-center gap-1.5"
-                    >
-                      <span>Đã Soi Bài & Đi Ngủ 💤</span>
-                      <ChevronRight className="w-4 h-4 ml-0.5 inline shrink-0" />
-                    </GothicButton>
-                  </div>
-                )}
               </div>
             )}
 
@@ -1599,7 +1471,7 @@ export default function NightPhaseView({
                   <div className="flex items-center gap-2">
                     <Sparkles className="w-5 h-5 text-purple-400" />
                     <h4 className="font-bold text-sm text-purple-200 font-cinzel">
-                      PHÙ THỦY QUYẾT ĐỊNH CỨU / ĐẦU ĐỘC:
+                      Thuốc Phù Thủy
                     </h4>
                   </div>
 
@@ -1722,7 +1594,7 @@ export default function NightPhaseView({
                   <div className="flex items-center gap-2">
                     <Heart className="w-5 h-5 text-pink-400 fill-pink-500/40" />
                     <h4 className="font-bold text-sm text-pink-200 font-cinzel">
-                      CUPID GHÉP ĐÔI 2 NGƯỜI YÊU NHAU (ĐÊM 1):
+                      Ghép đôi Cupid
                     </h4>
                   </div>
 
@@ -1798,21 +1670,6 @@ export default function NightPhaseView({
                       </button>
                     </div>
                   )}
-
-                  {/* Inline Quick Advance for Cupid */}
-                  {chosen.length === 2 && (
-                    <div ref={inlineAdvanceBtnRef} className="pt-2 animate-fade-in">
-                      <GothicButton
-                        variant="witch"
-                        size="md"
-                        onClick={() => handleNextStep(false)}
-                        className="w-full h-11 text-xs font-black shadow-lg flex items-center justify-center gap-1.5"
-                      >
-                        <span>Đã Ghép Đôi & Đi Ngủ 💤</span>
-                        <ChevronRight className="w-4 h-4 ml-0.5 inline shrink-0" />
-                      </GothicButton>
-                    </div>
-                  )}
                 </div>
               );
             })()}
@@ -1823,7 +1680,7 @@ export default function NightPhaseView({
                 <div className="flex items-center gap-2">
                   <Flame className="w-5 h-5 text-amber-400" />
                   <h4 className="font-bold text-sm text-amber-200 font-cinzel">
-                    ĐỨA TRẺ HOANG DÃ CHỌN 1 THẦN TƯỢNG (IDOL):
+                    Thần Tượng liên kết
                   </h4>
                 </div>
 
@@ -1883,7 +1740,7 @@ export default function NightPhaseView({
                 <div className="flex items-center gap-2">
                   <Ghost className="w-5 h-5 text-purple-400" />
                   <h4 className="font-bold text-sm text-purple-200 font-cinzel">
-                    ẢNH TỬ CHỌN 1 BẢN THỂ (CHỦ THỂ LIÊN KẾT):
+                    Bản Thể liên kết
                   </h4>
                 </div>
 
@@ -1946,7 +1803,7 @@ export default function NightPhaseView({
                     <div className="flex items-center gap-2">
                       <Wand2 className="w-5 h-5 text-indigo-400" />
                       <h4 className="font-bold text-sm text-indigo-200 font-cinzel">
-                        NGƯỜI THỔI SÁO MÊ HOẶC 2 NGƯỜI CHƠI ({piperChosen.length}/2):
+                        Mê hoặc Người Thổi Sáo ({piperChosen.length}/2)
                       </h4>
                     </div>
                   </div>
@@ -2000,7 +1857,7 @@ export default function NightPhaseView({
                   <div className="flex items-center gap-2">
                     <Ghost className="w-5 h-5 text-slate-300" />
                     <h4 className="font-bold text-sm text-slate-200 font-cinzel">
-                      CON QUẠ GIEO 2 PHIẾU PHẠT VÀO 1 NGƯỜI:
+                      Dấu ấn Quạ
                     </h4>
                   </div>
                   <button
@@ -2069,7 +1926,7 @@ export default function NightPhaseView({
                     <div className="flex items-center gap-2">
                       <Eye className="w-5 h-5 text-amber-400" />
                       <h4 className="font-bold text-sm text-amber-200 font-cinzel">
-                        CÁO CHỌN 1 TÂM ĐIỂM ĐỂ QUÉT NHÓM 3 NGƯỜI:
+                        Đánh hơi của Cáo
                       </h4>
                     </div>
                     <button
@@ -2086,26 +1943,21 @@ export default function NightPhaseView({
                   </div>
 
                   <p className="text-xs text-slate-400">
-                    Cáo chỉ 1 người, Quản trò kiểm tra người đó và 2 người ngồi sát 2 bên. Nếu <span className="text-emerald-300 font-bold">CÓ SÓI</span>: Cáo giữ năng lực. Nếu <span className="text-rose-400 font-bold">KHÔNG CÓ SÓI</span>: Cáo mất vĩnh viễn năng lực!
+                    Kiểm tra tâm điểm và 2 người ngồi kề cận. Có Sói: giữ phép; Không có Sói: mất phép.
                   </p>
 
                   {foxCenterPlayer && triplet.length === 3 && (
-                    <div className={`p-4 rounded-2xl border text-center space-y-1.5 backdrop-blur-md animate-fade-in ${
+                    <div className={`p-3.5 rounded-2xl border text-center space-y-1 backdrop-blur-md animate-fade-in ${
                       tripletHasWolf
-                        ? 'bg-gradient-to-r from-emerald-950/90 via-[#062419] to-emerald-950/90 border-emerald-500 text-emerald-100 shadow-[0_0_20px_rgba(16,185,129,0.3)]'
+                        ? 'bg-gradient-to-r from-emerald-950/90 via-[#062419] to-emerald-950/90 border-emerald-500 text-emerald-100 shadow-[0_0_20px_rgba(168,85,129,0.3)]'
                         : 'bg-gradient-to-r from-rose-950/90 via-[#26080e] to-rose-950/90 border-rose-500 text-rose-100 shadow-[0_0_20px_rgba(225,29,72,0.3)]'
                     }`}>
                       <div className="text-xs uppercase tracking-wider font-bold">
                         Nhóm 3 người: #{triplet[0].id} {triplet[0].name} — <strong className="underline">#{triplet[1].id} {triplet[1].name}</strong> — #{triplet[2].id} {triplet[2].name}
                       </div>
-                      <div className="text-lg font-black font-cinzel">
-                        {tripletHasWolf ? '✓ CÓ MA SÓI (Quản trò gật đầu 👍)' : '✗ KHÔNG CÓ MA SÓI (Quản trò lắc đầu 👎)'}
+                      <div className="text-base font-black font-cinzel">
+                        {tripletHasWolf ? '✓ CÓ MA SÓI (Giữ năng lực)' : '✗ KHÔNG CÓ MA SÓI (Mất năng lực)'}
                       </div>
-                      <p className="text-xs opacity-90">
-                        {tripletHasWolf 
-                          ? 'Cáo đã đánh hơi thấy Ma Sói! Cáo tiếp tục giữ năng lực cho các đêm sau.' 
-                          : 'Hoàn toàn không có Sói trong nhóm! Cáo MẤT VĨNH VIỄN NĂNG LỰC từ nay về sau.'}
-                      </p>
                     </div>
                   )}
 
@@ -2143,15 +1995,6 @@ export default function NightPhaseView({
                     <p className="text-xs text-rose-300/80 leading-relaxed">
                       {currentRole.powerLostReason}
                     </p>
-                    <div className="pt-2">
-                      <GothicButton
-                        variant="dark"
-                        size="sm"
-                        onClick={() => handleNextStep(false)}
-                      >
-                        Tiếp Tục ➔
-                      </GothicButton>
-                    </div>
                   </div>
                 );
               }
@@ -2164,7 +2007,7 @@ export default function NightPhaseView({
                     <div className="flex items-center gap-2">
                       <Skull className="w-5 h-5 text-rose-400 animate-pulse" />
                       <h4 className="font-bold text-sm text-rose-200 font-cinzel">
-                        SÓI LỚN XẤU XA CẮN THÊM 1 NẠN NHÂN:
+                        Lượt cắn Sói Lớn Xấu Xa
                       </h4>
                     </div>
                     <button
@@ -2206,7 +2049,7 @@ export default function NightPhaseView({
                     <div className="flex items-center gap-2">
                       <Skull className="w-5 h-5 text-slate-100" />
                       <h4 className="font-bold text-sm text-slate-100 font-cinzel">
-                        SÓI TRẮNG CẮN 1 CON SÓI KHÁC TRONG BẦY:
+                        Lượt cắn Sói Trắng
                       </h4>
                     </div>
                     <button
@@ -2267,7 +2110,7 @@ export default function NightPhaseView({
                   <div className="flex items-center gap-2">
                     <MoonStar className="w-5 h-5 text-indigo-400" />
                     <h4 className="font-bold text-sm text-indigo-200 font-cinzel">
-                      NGUYỆT NỮ CHỌN 1 NGƯỜI ĐỂ KHÓA PHÉP ĐÊM NAY:
+                      Khóa phép Nguyệt Nữ
                     </h4>
                   </div>
                   <button
@@ -2314,31 +2157,6 @@ export default function NightPhaseView({
               </div>
             )}
 
-            {/* Stepper Navigation Buttons (Desktop inline) */}
-            <div className="hidden md:flex justify-between items-center pt-2">
-              <GothicButton
-                variant="dark"
-                size="md"
-                disabled={safeStepIdx === 0}
-                onClick={handlePrevStep}
-                icon={ChevronLeft}
-              >
-                Bước Trước
-              </GothicButton>
-
-              <GothicButton
-                variant={isWolfStep ? 'blood' : 'witch'}
-                size="lg"
-                disabled={!stepValidation.isValid}
-                onClick={() => handleNextStep(false)}
-                className={`shadow-2xl transition-all ${
-                  !stepValidation.isValid ? 'opacity-50 cursor-not-allowed' : ''
-                }`}
-              >
-                <span>Đi Ngủ 💤</span>
-                <ChevronRight className="w-5 h-5 ml-1 inline" />
-              </GothicButton>
-            </div>
           </div>
         </div>
       ) : (
@@ -2415,7 +2233,7 @@ export default function NightPhaseView({
 
       {/* STICKY BOTTOM ACTION BAR - ONE-SCREEN MOBILE VIEWPORT */}
       {!isSummaryStep && (
-        <div ref={originalFooterRef} className="sticky bottom-0 z-30 -mx-4 -mb-4 sm:-mx-6 sm:-mb-6 p-2.5 sm:p-3 pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))] bg-[#0a0c16]/95 backdrop-blur-md border-t border-purple-900/80 shadow-[0_-8px_25px_rgba(0,0,0,0.8)] flex items-center justify-between gap-2">
+        <div className="sticky bottom-0 z-30 -mx-4 -mb-4 sm:-mx-6 sm:-mb-6 p-2.5 sm:p-3 pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))] bg-[#0a0c16]/95 backdrop-blur-md border-t border-purple-900/80 shadow-[0_-8px_25px_rgba(0,0,0,0.8)] flex items-center justify-between gap-2">
           <GothicButton
             variant="dark"
             size="sm"
@@ -2455,27 +2273,6 @@ export default function NightPhaseView({
             className="h-10 px-3 sm:px-4 text-xs font-black shrink-0 shadow-lg"
           >
             <span className="truncate">Đi Ngủ 💤</span>
-            <ChevronRight className="w-4 h-4 ml-0.5 inline shrink-0" />
-          </GothicButton>
-        </div>
-      )}
-
-      {/* SMART FLOATING ADVANCE BUTTON (Only shows when selection is valid AND user hasn't scrolled down to original footer) */}
-      {!isSummaryStep && (
-        <div
-          className={`md:hidden fixed bottom-[calc(1rem+env(safe-area-inset-bottom,0px))] right-4 z-40 transition-all duration-300 transform ${
-            showFloatingAdvanceButton
-              ? 'opacity-100 translate-y-0 scale-100 pointer-events-auto'
-              : 'opacity-0 translate-y-4 scale-95 pointer-events-none'
-          }`}
-        >
-          <GothicButton
-            variant={isWolfStep ? 'blood' : 'witch'}
-            size="md"
-            onClick={() => handleNextStep(false)}
-            className="h-11 px-4 text-xs font-black shadow-[0_4px_25px_rgba(0,0,0,0.85)] border border-purple-400/60 ring-2 ring-purple-500/40 rounded-full flex items-center gap-1.5 animate-pulse"
-          >
-            <span>Đi Ngủ 💤</span>
             <ChevronRight className="w-4 h-4 ml-0.5 inline shrink-0" />
           </GothicButton>
         </div>

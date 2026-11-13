@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { ROLES } from '../data/roles';
 import { DEFAULT_PLAYER_NAMES } from '../data/defaultPlayers';
-import { fetchTemplates, saveTemplateApi, deleteTemplateApi } from '../services/api';
-import { Layers, Plus, Trash2, Check, X, Sparkles, Shield, Eye, Skull, ArrowRight, Edit3, Search } from 'lucide-react';
+import { fetchTemplates, saveTemplateApi, deleteTemplateApi, setDefaultTemplateApi } from '../services/api';
+import { Layers, Plus, Trash2, Check, X, Sparkles, Shield, Eye, Skull, ArrowRight, Edit3, Search, Star } from 'lucide-react';
 import GothicButton from './ui/GothicButton';
 import GothicBadge from './ui/GothicBadge';
 import ClawMarks from './ui/ClawMarks';
@@ -170,6 +170,24 @@ export default function DeckTemplateModal({
       showAlert({
         title: 'LỖI LƯU BỘ BÀI',
         message: 'Không thể lưu template vào Neon DB: ' + err.message,
+        variant: 'blood'
+      });
+    }
+  };
+
+  const handleSetDefaultTemplate = async (id, e) => {
+    e.stopPropagation();
+    try {
+      await setDefaultTemplateApi(id);
+      setTemplates(prev => prev.map(t => ({
+        ...t,
+        isDefault: t.id === id
+      })));
+    } catch (err) {
+      console.error('Failed to set default template:', err);
+      showAlert({
+        title: 'LỖI CẬP NHẬT',
+        message: err.message || 'Không thể đặt bộ bài mặc định.',
         variant: 'blood'
       });
     }
@@ -481,7 +499,7 @@ export default function DeckTemplateModal({
                 </div>
               ) : templates.length === 0 ? (
                 <div className="py-12 text-center text-slate-500 text-sm">
-                  Chưa có template nào. Hãy bấm "Tạo Mới" ở trên!
+                  Chưa có bộ bài mẫu nào
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
@@ -500,9 +518,17 @@ export default function DeckTemplateModal({
                         <div>
                           <div className="flex items-start justify-between gap-2 mb-2">
                             <div>
-                              <h4 className="font-bold text-sm text-slate-100 group-hover:text-rose-400 transition-colors">
-                                {tpl.name}
-                              </h4>
+                              <div className="flex items-center gap-2">
+                                <h4 className="font-bold text-sm text-slate-100 group-hover:text-rose-400 transition-colors">
+                                  {tpl.name}
+                                </h4>
+                                {tpl.isDefault && (
+                                  <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-amber-300 bg-amber-950/80 border border-amber-600/60 px-1.5 py-0.5 rounded shrink-0">
+                                    <Star className="w-2.5 h-2.5 fill-amber-400 text-amber-400" />
+                                    Mặc định
+                                  </span>
+                                )}
+                              </div>
                               <p className="text-xs text-slate-400 mt-0.5 line-clamp-2">
                                 {tpl.desc}
                               </p>
@@ -571,6 +597,17 @@ export default function DeckTemplateModal({
                         {/* Actions */}
                         <div className="mt-4 pt-3 border-t border-purple-950/60 flex items-center justify-between">
                           <div className="flex items-center gap-3">
+                            <button
+                              type="button"
+                              onClick={(e) => handleSetDefaultTemplate(tpl.id, e)}
+                              className={`text-xs flex items-center gap-1 transition-colors cursor-pointer ${
+                                tpl.isDefault ? 'text-amber-400 font-semibold' : 'text-slate-500 hover:text-amber-300'
+                              }`}
+                              title={tpl.isDefault ? 'Bộ bài mặc định' : 'Đặt làm bộ bài mặc định'}
+                            >
+                              <Star className={`w-3.5 h-3.5 ${tpl.isDefault ? 'fill-amber-400 text-amber-400' : ''}`} />
+                              <span>{tpl.isDefault ? 'Mặc định' : 'Đặt mặc định'}</span>
+                            </button>
                             <button
                               type="button"
                               onClick={(e) => handleDeleteTemplate(tpl.id, e)}

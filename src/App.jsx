@@ -8,7 +8,7 @@ import { checkGameEnd, resolveNightPhase } from './utils/gameLogic';
 import { Player } from './domain/models/Player.js';
 import { WerewolfGame } from './domain/models/WerewolfGame.js';
 import triggerHaptic from './utils/haptics';
-import { checkNeonConnection, syncGameStateApi, loadGameStateApi, saveMatchRecordApi } from './services/api';
+import { checkNeonConnection, syncGameStateApi, loadGameStateApi, saveMatchRecordApi, fetchTemplates } from './services/api';
 import NightPhaseView from './components/NightPhaseView';
 import DayPhaseView from './components/DayPhaseView';
 import PlayersGridView from './components/PlayersGridView';
@@ -157,7 +157,7 @@ export default function App() {
   const [wolfCanKillDouble, setWolfCanKillDouble] = useState(() => savedInitial?.wolfCanKillDouble || false);
   const [pendingHunterShot, setPendingHunterShot] = useState(() => savedInitial?.pendingHunterShot || null);
   const [preLynchSnapshot, setPreLynchSnapshot] = useState(() => savedInitial?.preLynchSnapshot || null);
-  const [selectedTemplateId, setSelectedTemplateId] = useState(() => savedInitial?.selectedTemplateId || 'preset-9-11');
+  const [selectedTemplateId, setSelectedTemplateId] = useState(() => savedInitial?.selectedTemplateId || null);
   const [canWolvesKillTeammates, setCanWolvesKillTeammates] = useState(() => {
     try {
       const saved = localStorage.getItem('werewolf_rule_wolves_can_kill_teammates');
@@ -207,7 +207,7 @@ export default function App() {
     player: null
   });
 
-  // Initial load: Check Neon DB connection
+  // Initial load: Check Neon DB connection & sync default template
   useEffect(() => {
     checkNeonConnection().then(res => {
       setNeonStatus({
@@ -217,6 +217,21 @@ export default function App() {
         dbName: res.connection?.db_name
       });
     });
+
+    // If no saved state from a previous round, or template is unspecified, load default template from Neon DB
+    if (!savedInitial || savedInitial.selectedTemplateId === 'preset-9-11' || !savedInitial.selectedTemplateId) {
+      fetchTemplates().then(templates => {
+        if (templates && templates.length > 0) {
+          const defaultTmpl = templates.find(t => t.isDefault) || templates[0];
+          if (defaultTmpl) {
+            setSelectedTemplateId(defaultTmpl.id);
+            if (!savedInitial) {
+              handleApplyTemplate(defaultTmpl);
+            }
+          }
+        }
+      }).catch(err => console.warn('Failed to load initial default template:', err));
+    }
   }, []);
 
   // Auto-sync game state to localStorage & Neon DB
@@ -1753,7 +1768,7 @@ export default function App() {
               type="button"
               onClick={() => setIsCemeteryOpen(true)}
               className="h-7 sm:h-8 px-2 sm:px-2.5 rounded-lg sm:rounded-xl bg-[#1b0826] hover:bg-[#280c38] border border-purple-700/80 hover:border-purple-400 text-purple-200 text-xs font-bold flex items-center gap-1 cursor-pointer transition-all shadow-sm shrink-0"
-              title="Bấm để xem danh sách ai đã chết, chết vì sao và khi nào"
+              title={`Nghĩa trang (${players.length - alivePlayers.length} người đã chết)`}
             >
               <Skull className="w-3.5 h-3.5 text-rose-400 shrink-0" />
               <span>{players.length - alivePlayers.length}</span>

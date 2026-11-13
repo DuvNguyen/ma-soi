@@ -162,7 +162,7 @@ export default function RoleHolderBanner({
 
       {isOverCapacity && (
         <div className="text-[11px] text-rose-300 font-bold mt-1.5 pt-1.5 border-t border-rose-900/60">
-          ⚠️ Cảnh báo: Vai này chỉ có {capacity} lá bài trong ván! Hãy bấm đổi để chọn lại đúng {capacity} người.
+          ⚠️ Vượt giới hạn: Tối đa {capacity} người
         </div>
       )}
 
@@ -200,7 +200,9 @@ export default function RoleHolderBanner({
                   disabled={hasOtherRole}
                   onClick={() => {
                     onAssignRole(p.id, currentRole);
-                    setShowAssignDropdown(false);
+                    if (currentRole.id !== 'hai-chi-em' && currentRole.id !== 'ba-anh-em') {
+                      setShowAssignDropdown(false);
+                    }
                   }}
                   className={`p-2 rounded-xl text-xs font-semibold text-left border transition-all flex items-center justify-between gap-1.5 ${
                     isCurrent
@@ -218,7 +220,9 @@ export default function RoleHolderBanner({
                     <div className="font-bold truncate">{p.name}</div>
                     <div className="text-[10px] text-slate-400 truncate">
                       {isCurrent ? (
-                        <span className="text-purple-200 font-medium">✓ Đã nguyền từ vai này</span>
+                        <span className="text-purple-200 font-medium">
+                          {p.isCursedWolf ? '🔮 Bị nguyền (vai gốc)' : '✓ Đang giữ vai này'}
+                        </span>
                       ) : isCursedUnassigned ? (
                         <span className="text-purple-300 font-medium">🔮 Đã hóa Sói (chưa gán vai gốc)</span>
                       ) : hasOtherRole ? (

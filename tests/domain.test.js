@@ -1,6 +1,7 @@
 import assert from 'node:assert';
 import { Player } from '../src/domain/models/Player.js';
 import { getRoleStrategy } from '../src/domain/strategies/RoleStrategies.js';
+import { getRoleCapacity } from '../src/utils/deckUtils.js';
 
 console.log('🧪 Starting Phase 1 Domain Model & Strategy Tests...\n');
 
@@ -356,6 +357,13 @@ console.log('🧪 Starting Phase 1 Domain Model & Strategy Tests...\n');
     assert.strictEqual(gameWithCursedSeer.canRoleBeReassigned('tien-tri', 13), false, 'Cannot be given to another player');
     console.log('✅ Test 18: Cursed player assigned functional role remains a wolf and seals the role.');
 
-    console.log('\n🎉 ALL 18 DOMAIN ENGINE TESTS PASSED PERFECTLY!\n');
+    // Test 19: Hai Chị Em (capacity 2) and Ba Anh Em (capacity 3)
+    assert.strictEqual(getRoleCapacity('hai-chi-em', ['hai-chi-em']), 2, 'Hai Chị Em has capacity 2 even with 1 card in deck');
+    assert.strictEqual(getRoleCapacity('hai-chi-em', []), 2, 'Hai Chị Em default capacity is 2');
+    assert.strictEqual(getRoleCapacity('ba-anh-em', ['ba-anh-em']), 3, 'Ba Anh Em has capacity 3 even with 1 card in deck');
+    assert.strictEqual(getRoleCapacity('ba-anh-em', []), 3, 'Ba Anh Em default capacity is 3');
+    console.log('✅ Test 19: Hai Chị Em (capacity 2) and Ba Anh Em (capacity 3) multi-capacity verified.');
+
+    console.log('\n🎉 ALL 19 DOMAIN ENGINE TESTS PASSED PERFECTLY!\n');
   });
 }

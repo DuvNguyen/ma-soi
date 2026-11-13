@@ -96,7 +96,7 @@ export default function DayPhaseView({
                 ? 'bg-rose-950/80 border-rose-500 text-rose-100 shadow-[0_0_20px_rgba(225,29,72,0.35)]'
                 : 'bg-emerald-950/70 border-emerald-500/80 text-emerald-200 shadow-md'
             }`}>
-              <Skull className={`w-5 h-5 shrink-0 ${deadTonight.length > 0 ? 'text-rose-400 animate-pulse' : 'text-emerald-400'}`} />
+              <Skull className={`w-5 h-5 shrink-0 ${deadTonight.length > 0 ? 'text-rose-400 drop-shadow-[0_0_8px_rgba(225,29,72,0.8)]' : 'text-emerald-400'}`} />
               <div className="flex-1">
                 {deadTonight.length > 0 ? (
                   <span>
@@ -155,7 +155,7 @@ export default function DayPhaseView({
                 <div>
                   <div className="flex items-center gap-2">
                     <span className="text-[10px] uppercase font-black tracking-widest text-amber-400">
-                      Chức Vụ Công Khai (#09)
+                      Cảnh Sát Trưởng
                     </span>
                     <span className="text-[10px] px-1.5 py-0.2 rounded bg-amber-950/80 border border-amber-700/80 text-amber-300 font-bold">
                       Phiếu vote x2
@@ -170,12 +170,12 @@ export default function DayPhaseView({
                         </span>
                       </span>
                     ) : (
-                      <span>CHƯA BẦU CẢNH SÁT TRƯỞNG</span>
+                      <span>Chưa Bầu Cảnh Sát Trưởng</span>
                     )}
                   </h4>
                   {sheriffDead && (
                     <p className="text-xs text-rose-300 font-bold mt-0.5">
-                      ⚠️ Cảnh Sát Trưởng đã hy sinh! Theo luật, người chết phải chỉ định người kế nhiệm huy hiệu.
+                      ⚠️ Cảnh Sát Trưởng đã hy sinh — Cần chỉ định người kế nhiệm.
                     </p>
                   )}
                 </div>
@@ -255,7 +255,7 @@ export default function DayPhaseView({
 
       {/* Pending Hunter Shot Warning Banner */}
       {pendingHunterShot && (
-        <div className="p-3.5 sm:p-4 rounded-2xl bg-gradient-to-r from-amber-950/90 via-[#261205] to-[#120802] border-2 border-amber-500 text-amber-200 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-[0_0_25px_rgba(245,158,11,0.3)] animate-pulse">
+        <div className="p-3.5 sm:p-4 rounded-2xl bg-gradient-to-r from-amber-950/90 via-[#261205] to-[#120802] border-2 border-amber-500 text-amber-200 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-[0_0_25px_rgba(245,158,11,0.3)] ring-1 ring-amber-500/50">
           <div className="flex items-center gap-2.5">
             <div className="w-9 h-9 rounded-xl bg-amber-900/60 border border-amber-500 flex items-center justify-center shrink-0">
               <Crosshair className="w-5 h-5 text-amber-400" />
@@ -356,8 +356,8 @@ export default function DayPhaseView({
               <Bell className="w-5 h-5 animate-bounce" />
             </div>
             <div>
-              <h4 className="font-bold text-rose-100 text-sm font-cinzel">HẾT GIỜ THẢO LUẬN! (RUNG & CHUÔNG BÁO)</h4>
-              <p className="text-xs text-rose-300/80">Làng dừng tranh cãi và chuyển sang giai đoạn biểu quyết giơ tay!</p>
+              <h4 className="font-bold text-rose-100 text-sm font-cinzel">Hết giờ thảo luận</h4>
+              <p className="text-xs text-rose-300/80">Chuyển sang giai đoạn biểu quyết giơ tay</p>
             </div>
           </div>
           <button
@@ -366,7 +366,7 @@ export default function DayPhaseView({
             className="px-3 py-1.5 rounded-xl bg-rose-900/80 hover:bg-rose-800 border border-rose-500 text-xs font-bold text-rose-100 flex items-center gap-1.5 shrink-0 cursor-pointer shadow-md"
           >
             <Volume2 className="w-3.5 h-3.5" />
-            Rung Lại 🔔
+            Báo Lại 🔔
           </button>
         </div>
       )}
@@ -387,7 +387,7 @@ export default function DayPhaseView({
         return (
           <div className={`p-4 rounded-2xl border backdrop-blur-md transition-all ${
             bearHasWolf
-              ? 'bg-gradient-to-r from-amber-950/80 via-[#261508] to-amber-950/80 border-amber-500 text-amber-200 shadow-[0_0_20px_rgba(245,158,11,0.35)] animate-pulse'
+              ? 'bg-gradient-to-r from-amber-950/80 via-[#261508] to-amber-950/80 border-amber-500 text-amber-200 shadow-[0_0_20px_rgba(245,158,11,0.35)] ring-1 ring-amber-500/40'
               : 'bg-slate-900/60 border-slate-700/60 text-slate-300'
           }`}>
             <div className="flex items-center gap-3">
@@ -404,19 +404,19 @@ export default function DayPhaseView({
                 {bearHasWolf ? (
                   <div className="mt-1">
                     <h4 className="font-cinzel font-black text-amber-200 text-sm sm:text-base">
-                      GẤU GẦM GỪZZZZ! CÓ MA SÓI NGỒI SÁT CẠNH!
+                      Gấu gầm: Có Ma Sói ngồi kề bên
                     </h4>
                     <p className="text-xs text-amber-300/80 mt-0.5">
-                      Quản trò hãy gầm lớn: Gấu phát hiện ít nhất 1 Ma Sói đang ngồi kề bên ({leftNeighbor.name} #{leftNeighbor.id} hoặc {rightNeighbor.name} #{rightNeighbor.id})!
+                      Phát hiện Ma Sói kề cận (#{leftNeighbor.id} {leftNeighbor.name} hoặc #{rightNeighbor.id} {rightNeighbor.name}).
                     </p>
                   </div>
                 ) : (
                   <div className="mt-1">
                     <h4 className="font-cinzel font-bold text-slate-200 text-sm">
-                      Gấu nằm im ngoan ngoãn.
+                      Gấu nằm im ngoan ngoãn
                     </h4>
                     <p className="text-xs text-slate-400 mt-0.5">
-                      Hai người chơi ngồi cạnh ({leftNeighbor.name} #{leftNeighbor.id} và {rightNeighbor.name} #{rightNeighbor.id}) đều không phải Ma Sói.
+                      Hai người chơi ngồi cạnh (#{leftNeighbor.id} và #{rightNeighbor.id}) không phải Ma Sói.
                     </p>
                   </div>
                 )}
@@ -528,7 +528,7 @@ export default function DayPhaseView({
           <div>
             <h3 className="font-bold text-base text-slate-100 flex items-center gap-2 font-cinzel">
               <Flame className="w-5 h-5 text-orange-400" />
-              BIỂU QUYẾT TREO CỔ (BỎ PHIẾU BAN NGÀY)
+              BIỂU QUYẾT TREO CỔ
             </h3>
           </div>
 
@@ -544,7 +544,7 @@ export default function DayPhaseView({
         {hasLynchedToday ? (
           <div className="p-5 rounded-2xl bg-gradient-to-r from-[#290508]/80 via-[#120305] to-[#290508]/80 border border-rose-600/80 text-center space-y-3 shadow-[0_0_25px_rgba(225,29,72,0.35)]">
             <div className="w-12 h-12 rounded-full bg-rose-950 border border-rose-600 mx-auto flex items-center justify-center text-rose-400 shadow-[0_0_15px_rgba(225,29,72,0.6)]">
-              <Flame className="w-6 h-6 animate-pulse" />
+              <Flame className="w-6 h-6 text-rose-400" />
             </div>
             <div>
               <div className="text-xs uppercase tracking-wider text-rose-400 font-bold mb-1">
@@ -561,7 +561,10 @@ export default function DayPhaseView({
                   variant="dark"
                   size="sm"
                   icon={RotateCcw}
-                  onClick={() => onUndoLynch(lynchedTodayPlayerId)}
+                  onClick={() => {
+                    onUndoLynch(lynchedTodayPlayerId);
+                    setExtraLynchAllowed(false);
+                  }}
                 >
                   Hoàn tác treo cổ
                 </GothicButton>
@@ -575,22 +578,7 @@ export default function DayPhaseView({
                   icon={Sparkles}
                   onClick={() => onOpenAssignRole(lynchedPlayer)}
                 >
-                  {getPlayerRole(lynchedPlayer) ? 'Đổi Vai Trò Nạn Nhân' : 'Gán / Lộ Vai Cho Nạn Nhân'}
-                </GothicButton>
-              )}
-
-              {/* ĐỔI NGƯỜI BỊ TREO CỔ (CHỌN LẠI NGƯỜI KHÁC) */}
-              {onUndoLynch && (
-                <GothicButton
-                  variant="gold"
-                  size="sm"
-                  icon={Edit3}
-                  onClick={() => {
-                    onUndoLynch(lynchedTodayPlayerId);
-                    setExtraLynchAllowed(false);
-                  }}
-                >
-                  Đổi Người Khác
+                  {getPlayerRole(lynchedPlayer) ? 'Đổi Vai Trò' : 'Gán Vai Trò'}
                 </GothicButton>
               )}
 
@@ -601,7 +589,7 @@ export default function DayPhaseView({
                   icon={Gavel}
                   onClick={() => setExtraLynchAllowed(true)}
                 >
-                  Thẩm Phán kích hoạt
+                  Thẩm Phán (Vote Thêm)
                 </GothicButton>
               )}
             </div>

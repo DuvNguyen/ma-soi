@@ -94,10 +94,10 @@ export default function DeckInventoryRadar({
               size="sm"
               onClick={onAutoAssignVillagers}
               className="text-[11px] sm:text-xs py-1 px-2.5 sm:py-1.5 sm:px-3 shadow-lg animate-pulse"
-              title="Tất cả các vai đặc biệt đã được tìm thấy. Bấm để gán toàn bộ người còn lại làm Dân Làng."
+              title="Gán toàn bộ người còn lại làm Dân Làng"
             >
               <Sparkles className="w-3 h-3 sm:w-3.5 sm:h-3.5 mr-1 inline" />
-              <span>Gán Dân Làng Cho {unassignedPlayers.length} Ghế Còn Lại</span>
+              <span>Gán Dân Làng ({unassignedPlayers.length})</span>
             </GothicButton>
           )}
 

@@ -2,6 +2,7 @@ import {
   testConnection, 
   getTemplates, 
   saveTemplate, 
+  setDefaultTemplate,
   deleteTemplate, 
   getRosters, 
   saveRoster, 
@@ -58,6 +59,12 @@ export function neonApiPlugin() {
               const saved = await saveTemplate(body);
               return res.end(JSON.stringify({ ok: true, template: saved }));
             }
+          }
+
+          if (url.startsWith('/api/templates/') && url.endsWith('/default') && req.method === 'POST') {
+            const id = url.replace('/api/templates/', '').replace('/default', '');
+            const resData = await setDefaultTemplate(id);
+            return res.end(JSON.stringify({ ok: true, ...resData }));
           }
 
           if (url.startsWith('/api/templates/') && req.method === 'DELETE') {

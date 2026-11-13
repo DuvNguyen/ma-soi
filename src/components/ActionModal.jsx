@@ -41,10 +41,7 @@ export default function ActionModal({
                 <Shield className="w-5 h-5 fill-teal-400" />
               </div>
               <div>
-                <h4 className="font-bold text-teal-200 text-sm font-cinzel">BẢO VỆ CHE CHỞ</h4>
-                <p className="text-xs text-teal-300/80 mt-0.5">
-                  Chọn 1 người để bảo hộ. <span className="text-rose-400 font-semibold">Cấm bảo vệ người của đêm trước.</span>
-                </p>
+                <h4 className="font-bold text-teal-200 text-sm font-cinzel">BẢO VỆ</h4>
               </div>
             </div>
 
@@ -126,10 +123,7 @@ export default function ActionModal({
                 <Eye className="w-5 h-5" />
               </div>
               <div>
-                <h4 className="font-bold text-purple-200 text-sm font-cinzel">TIÊN TRI SOI THẤU LINH HỒN</h4>
-                <p className="text-xs text-purple-300/80 mt-0.5">
-                  Chọn 1 người chơi để soi danh tính thực sự.
-                </p>
+                <h4 className="font-bold text-purple-200 text-sm font-cinzel">TIÊN TRI</h4>
               </div>
             </div>
 
@@ -152,9 +146,7 @@ export default function ActionModal({
                     <span>👨‍🌾 LÀ DÂN LÀNG (Lương thiện)</span>
                   )}
                 </div>
-                <p className="text-xs mt-2 opacity-90">
-                  Mục tiêu: <strong>{seerResult.player.name}</strong> ({getPlayerRole(seerResult.player)?.name || 'Chưa lộ vai'})
-                </p>
+                
               </div>
             )}
 
@@ -209,15 +201,12 @@ export default function ActionModal({
       case 'wolves': {
         return (
           <div className="space-y-4">
-            <div className="flex items-center gap-3 p-3.5 bg-gradient-to-r from-rose-950 via-[#260508] to-black border border-rose-700 rounded-2xl shadow-[0_0_25px_rgba(225,29,72,0.4)] animate-pulse">
+            <div className="flex items-center gap-3 p-3.5 bg-gradient-to-r from-rose-950 via-[#260508] to-black border border-rose-700 rounded-2xl shadow-[0_0_25px_rgba(225,29,72,0.4)]">
               <div className="w-10 h-10 rounded-xl bg-rose-950 border border-rose-500 flex items-center justify-center text-rose-300 shrink-0 shadow-[0_0_15px_rgba(225,29,72,0.6)]">
                 <Skull className="w-5 h-5 fill-rose-500 text-rose-300" />
               </div>
               <div>
-                <h4 className="font-bold text-rose-200 text-sm font-cinzel">BẦY MA SÓI KHÁT MÁU</h4>
-                <p className="text-xs text-rose-300/80 mt-0.5">
-                  Thống nhất chọn con mồi bị cắn xé đêm nay.
-                </p>
+                <h4 className="font-bold text-rose-200 text-sm font-cinzel">BẦY MA SÓI</h4>
               </div>
             </div>
 
@@ -285,10 +274,7 @@ export default function ActionModal({
                 <Sparkles className="w-5 h-5" />
               </div>
               <div>
-                <h4 className="font-bold text-purple-200 text-sm font-cinzel">PHÙ THỦY DƯỢC PHẨM</h4>
-                <p className="text-xs text-purple-300/80 mt-0.5">
-                  Bình cứu người & bình đầu độc kẻ thù.
-                </p>
+                <h4 className="font-bold text-purple-200 text-sm font-cinzel">PHÙ THỦY</h4>
               </div>
             </div>
 
@@ -374,7 +360,9 @@ export default function ActionModal({
                   })}
                 </div>
               ) : (
-                <p className="text-xs text-slate-500 italic">Đã hết thuốc độc.</p>
+                <div className="p-3 text-xs text-slate-500 text-center rounded-xl bg-[#10121d] border border-slate-800">
+                  Đã hết thuốc độc
+                </div>
               )}
             </div>
 
@@ -388,7 +376,7 @@ export default function ActionModal({
                   onClose();
                 }}
               >
-                Xác Nhận Hành Động Phù Thủy
+                Xác Nhận
               </GothicButton>
             </div>
           </div>
@@ -424,10 +412,7 @@ export default function ActionModal({
                 <Heart className="w-5 h-5 fill-pink-500 text-pink-400 animate-pulse" />
               </div>
               <div>
-                <h4 className="font-bold text-pink-200 text-sm font-cinzel">CUPID KẾT DUYÊN ÁI TÌNH (ĐÊM 1)</h4>
-                <p className="text-xs text-pink-300/80 mt-0.5">
-                  Chọn đúng 2 người chơi. Nếu 1 Sói + 1 Dân thì thành <strong>PHE THỨ BA</strong>!
-                </p>
+                <h4 className="font-bold text-pink-200 text-sm font-cinzel">CUPID GHÉP ĐÔI</h4>
               </div>
             </div>
 
@@ -497,7 +482,7 @@ export default function ActionModal({
                   onClose();
                 }}
               >
-                Ghép Đôi 2 Người Này ({selectedPair.length}/2) ❤️
+                Xác Nhận Ghép Đôi ❤️
               </GothicButton>
             </div>
           </div>
@@ -509,12 +494,9 @@ export default function ActionModal({
         return (
           <div className="space-y-4">
             <div className="flex items-center gap-3 p-3.5 bg-gradient-to-r from-amber-950 via-[#2a1306] to-black border border-amber-700 rounded-2xl shadow-[0_0_20px_rgba(245,158,11,0.3)]">
-              <Crosshair className="w-6 h-6 text-amber-400 shrink-0 animate-spin-slow" />
+              <Crosshair className="w-6 h-6 text-amber-400 shrink-0" />
               <div>
-                <h4 className="font-bold text-amber-200 text-sm font-cinzel">PHÁT SÚNG CUỐI CÙNG CỦA THỢ SĂN</h4>
-                <p className="text-xs text-amber-300/80 mt-0.5">
-                  Thợ Săn ngã xuống và được kéo theo 1 người bất kỳ cùng chết.
-                </p>
+                <h4 className="font-bold text-amber-200 text-sm font-cinzel">PHÁT SÚNG THỢ SĂN</h4>
               </div>
             </div>
 
@@ -565,7 +547,7 @@ export default function ActionModal({
                 }}
                 className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:text-slate-200 border border-slate-800 hover:border-slate-700 transition-colors cursor-pointer"
               >
-                Bỏ qua phát súng (Không bắn)
+                Bỏ qua
               </button>
             </div>
           </div>
@@ -586,9 +568,7 @@ export default function ActionModal({
                 <User className="w-5 h-5 text-purple-300" />
                 <div>
                   <h4 className="font-bold text-purple-200 text-sm font-cinzel">GÁN VAI TRÒ CHO NGƯỜI CHƠI</h4>
-                  <p className="text-xs text-purple-300/80 mt-0.5">
-                    Vai trò: <strong className="text-white">{role?.name}</strong> ([{role?.teamCode}] {role?.team})
-                  </p>
+                  
                 </div>
               </div>
 
@@ -605,7 +585,9 @@ export default function ActionModal({
                       disabled={hasOtherRole}
                       onClick={() => {
                         onAssignRole(p.id, role);
-                        onClose();
+                        if (role?.id !== 'hai-chi-em' && role?.id !== 'ba-anh-em') {
+                          onClose();
+                        }
                       }}
                       className={`w-full flex items-center justify-between p-3 rounded-2xl border text-left transition-all ${
                         isAssigned
@@ -724,11 +706,9 @@ export default function ActionModal({
                         </span>
                       )}
                     </h4>
-                    <p className="text-xs text-purple-200/80">
-                      Hiện tại: <strong className={targetCurrentRole ? 'text-amber-300' : 'text-slate-400'}>
-                        {targetCurrentRole ? `${targetCurrentRole.name} ([${targetCurrentRole.teamCode}])` : 'Chưa có vai trò'}
-                      </strong>
-                    </p>
+                    <div className="text-xs text-slate-400 font-sans">
+                      {targetCurrentRole ? targetCurrentRole.name : 'Chưa có vai trò'}
+                    </div>
                   </div>
                 </div>
 
@@ -737,7 +717,9 @@ export default function ActionModal({
                     type="button"
                     onClick={() => {
                       onAssignRole(targetPlayer.id, null);
-                      onClose();
+                      if (targetCurrentRoleId !== 'hai-chi-em' && targetCurrentRoleId !== 'ba-anh-em') {
+                        onClose();
+                      }
                     }}
                     title="Gỡ vai trò này"
                     className="px-2.5 py-1 rounded-lg bg-rose-950/70 hover:bg-rose-900 border border-rose-700/80 text-rose-300 text-xs font-bold transition-all flex items-center gap-1 cursor-pointer shrink-0 active:scale-95"
@@ -788,7 +770,9 @@ export default function ActionModal({
                       type="button"
                       onClick={() => {
                         onAssignRole(targetPlayer.id, r);
-                        onClose();
+                        if (r.id !== 'hai-chi-em' && r.id !== 'ba-anh-em') {
+                          onClose();
+                        }
                       }}
                       className={`w-full flex items-center justify-between p-2.5 sm:p-3 rounded-2xl border text-left transition-all cursor-pointer ${
                         isCurrent
@@ -903,7 +887,7 @@ export default function ActionModal({
         </div>
 
         {/* Body */}
-        <div className="p-4 md:p-5 overflow-y-auto">
+        <div className="p-4 md:p-5 overflow-y-auto pb-24 sm:pb-8">
           {renderContent()}
         </div>
       </div>

@@ -33,6 +33,19 @@ export async function saveTemplateApi(template) {
   return await res.json();
 }
 
+export async function setDefaultTemplateApi(id) {
+  try {
+    const res = await fetch(`/api/templates/${id}/default`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' }
+    });
+    return await res.json();
+  } catch (err) {
+    console.error('Failed to set default template:', err);
+    throw err;
+  }
+}
+
 export async function deleteTemplateApi(id) {
   const res = await fetch(`/api/templates/${id}`, { method: 'DELETE' });
   return await res.json();

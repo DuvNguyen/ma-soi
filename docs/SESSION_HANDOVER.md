@@ -1,6 +1,53 @@
 # Session Handover - Werewolf Moderator Web App
 
 ## 1. Tổng Quan Tiến Độ & Tính Năng Đã Triển Khai
+- **Hoàn Tất Tính Năng: Chọn Bộ Bài Mặc Định Trực Tiếp Vào Neon DB ([UnifiedGameSetupModal.jsx](file:///projects/werewolf/src/components/UnifiedGameSetupModal.jsx), [DeckTemplateModal.jsx](file:///projects/werewolf/src/components/DeckTemplateModal.jsx), [App.jsx](file:///projects/werewolf/src/App.jsx), [db.js](file:///projects/werewolf/src/server/db.js), [api.js](file:///projects/werewolf/src/services/api.js))**:
+  - **Di Trú Database (Neon Postgres)**: Bổ sung trường `is_default BOOLEAN NOT NULL DEFAULT FALSE` vào bảng `deck_templates`, hỗ trợ tự động migration trong `ensureTablesExist()`.
+  - **Cập Nhật Bộ Bài Mặc Định Ban Đầu**: Đã set `is_default = TRUE` cho template `"14 lá đặc chức năng"` (19 lá, ID: `template-1794537835909` theo ảnh mobile chụp của Quản trò).
+  - **Backend API & Vite Plugin**:
+    - Thêm route `POST /api/templates/:id/default` vào cả [api/index.js](file:///projects/werewolf/api/index.js) (Vercel serverless) và [src/server/viteApiPlugin.js](file:///projects/werewolf/src/server/viteApiPlugin.js) (local dev).
+    - Thao tác transaction/query atomic: reset toàn bộ `is_default = FALSE` trước khi kích hoạt `is_default = TRUE` cho bộ bài được chọn.
+    - `getTemplates()` trả về bộ bài được sắp xếp ưu tiên `ORDER BY is_default DESC, created_at DESC`.
+  - **Giao Diện [UnifiedGameSetupModal.jsx](file:///projects/werewolf/src/components/UnifiedGameSetupModal.jsx) & [DeckTemplateModal.jsx](file:///projects/werewolf/src/components/DeckTemplateModal.jsx)**:
+    - Hiển thị huy hiệu `⭐ Mặc định` trang nhã phong cách Soft Bento cạnh tên bộ bài mặc định.
+    - Thêm nút `Đặt mặc định` / `⭐ Mặc định` cho từng thẻ bài, cho phép Quản trò chuyển đổi bộ bài mặc định chỉ với 1 chạm.
+    - Tự động ưu tiên chọn bộ bài mặc định khi khởi tạo ván đấu mới hoặc mở modal cài đặt.
+  - **Tự Động Áp Dụng Tại [App.jsx](file:///projects/werewolf/src/App.jsx)**: Khi tải ứng dụng (không có ván chơi cũ dở dang), hệ thống tự động fetch và nạp cấu hình bộ bài mặc định từ Neon DB.
+
+- **Hoàn Tất Giai Đoạn 2: Tinh Gọn Thao Tác Biểu Quyết Ban Ngày & Tiết Chế Hiệu Ứng Trầm Tĩnh Chuẩn Soft Bento Gothic ([DayPhaseView.jsx](file:///projects/werewolf/src/components/DayPhaseView.jsx), [NightPhaseView.jsx](file:///projects/werewolf/src/components/NightPhaseView.jsx), [SheriffSuccessionModal.jsx](file:///projects/werewolf/src/components/SheriffSuccessionModal.jsx), [CemeteryModal.jsx](file:///projects/werewolf/src/components/CemeteryModal.jsx))**:
+  - **Khử Trùng Lặp Thao Tác Án Treo Cổ ([DayPhaseView.jsx](file:///projects/werewolf/src/components/DayPhaseView.jsx))**: Loại bỏ nút thừa `Đổi Người Khác` (vốn gọi trùng lặp `onUndoLynch` như nút `Hoàn tác treo cổ`), rút gọn nhãn nút `Đổi Vai Trò Nạn Nhân` thành `Đổi Vai Trò`, tinh gọn nhãn Thẩm Phán thành `Thẩm Phán (Vote Thêm)`. Hàng nút điều khiển án treo cổ nay vừa khít hoàn hảo trên 1 hàng duy nhất trên mobile.
+  - **Tiết Chế Animation Nhấp Nháy & Nảy Bật Không Cần Thiết**:
+    - Thay thế các hiệu ứng `animate-bounce` nhảy nhót trên icon Khiên Bảo Vệ, Đầu Lâu Ma Sói bằng hiệu ứng viền dạ quang tĩnh thanh lịch (`drop-shadow-[0_0_8px_rgba(...)]`).
+    - Gỡ bỏ `animate-pulse` trên các huy hiệu trạng thái chọn mục tiêu (`🛡️ Đã chọn người bảo vệ`, `🩸 Đã chọn mục tiêu cắn`, `Sói Cuồng Nộ`), thẻ Người Thuần Phục Gấu, và biểu ngữ Thợ Săn. Giao diện trở nên trầm tĩnh, huyền bí và sang trọng theo đúng chuẩn Gothic Bento.
+  - **Tối Ưu Padding & Vùng Chạm Trên Mobile ([SheriffSuccessionModal.jsx](file:///projects/werewolf/src/components/SheriffSuccessionModal.jsx))**: Bổ sung `pb-4` vào lưới chọn ghế người kế nhiệm huy hiệu, đảm bảo hàng ghế dưới cùng không bao giờ bị mép bo tròn cắt xén hay khó chạm trên màn hình điện thoại.
+
+- **Hoàn Tất Giai Đoạn 1: Kiểm Toán & Chuẩn Hóa Toàn Diện UI/UX & Văn Phong Hệ Thống ([ActionModal.jsx](file:///projects/werewolf/src/components/ActionModal.jsx), [NightPhaseView.jsx](file:///projects/werewolf/src/components/NightPhaseView.jsx), [DayPhaseView.jsx](file:///projects/werewolf/src/components/DayPhaseView.jsx), [RoleHolderBanner.jsx](file:///projects/werewolf/src/components/RoleHolderBanner.jsx), [GameOverModal.jsx](file:///projects/werewolf/src/components/GameOverModal.jsx), [DeckTemplateModal.jsx](file:///projects/werewolf/src/components/DeckTemplateModal.jsx), [GameSettingsModal.jsx](file:///projects/werewolf/src/components/GameSettingsModal.jsx), [DeckInventoryRadar.jsx](file:///projects/werewolf/src/components/DeckInventoryRadar.jsx), [PlayersGridView.jsx](file:///projects/werewolf/src/components/PlayersGridView.jsx), [App.jsx](file:///projects/werewolf/src/App.jsx), [SheriffSuccessionModal.jsx](file:///projects/werewolf/src/components/SheriffSuccessionModal.jsx))**:
+  - **Sửa 100% Lỗi Markup JSX & Phục Hồi Header Chuẩn Tại [ActionModal.jsx](file:///projects/werewolf/src/components/ActionModal.jsx)**:
+    - Khắc phục lỗi build vite vỡ thẻ do biểu thức rỗng `) : ()` tại nhánh kiểm tra bình độc Phù Thủy; bổ sung thông báo trạng thái `Đã hết thuốc độc`.
+    - Phục hồi các tiêu đề chuẩn Bento Gothic (`BẢO VỆ`, `TIÊN TRI`, `BẦY MA SÓI`, `PHÙ THỦY`, `CUPID GHÉP ĐÔI`, `PHÁT SÚNG THỢ SĂN`) và xóa bỏ triệt để các thẻ `</div>` mồ côi / thừa.
+    - Sửa nhãn nút Cupid từ cụm cộc lốc `Ghép Đôi 2 ❤️` thành `Xác Nhận Ghép Đôi ❤️`.
+  - **Loại Bỏ Hoàn Toàn AI Meta-Text & Văn Bản Hướng Dẫn Thừa (Zero Over-Instruction)**:
+    - Xóa bỏ `(Chạm số ghế người chơi bên dưới)` và `(Chạm số ghế con mồi bên dưới)` tại [NightPhaseView.jsx](file:///projects/werewolf/src/components/NightPhaseView.jsx).
+    - Cắt gọn cảnh báo `Chưa gán ai là... Chạm số ghế người chơi để gán` thành `Chưa gán vai...`.
+    - Rút gọn tooltip giải thích nút bấm rườm rà tại [App.jsx](file:///projects/werewolf/src/App.jsx) (`title="Nghĩa trang ({deadCount})"`), [DeckInventoryRadar.jsx](file:///projects/werewolf/src/components/DeckInventoryRadar.jsx) (`title="Gán toàn bộ người còn lại làm Dân Làng"`), và [PlayersGridView.jsx](file:///projects/werewolf/src/components/PlayersGridView.jsx).
+    - Xóa dòng meta-text `Chạm ra ngoài để đóng` tại footer [GameSettingsModal.jsx](file:///projects/werewolf/src/components/GameSettingsModal.jsx).
+  - **Chuẩn Hóa Tiêu Đề Gothic Bento Thanh Lịch (Hạ Giọng Shouty ALL CAPS)**:
+    - Thay thế toàn bộ các tiêu đề in hoa dạng mệnh lệnh dài trong [NightPhaseView.jsx](file:///projects/werewolf/src/components/NightPhaseView.jsx) (`Mục tiêu bảo vệ đêm nay`, `Mục tiêu bầy Sói cắn`, `Mục tiêu soi đêm nay`, `Thuốc Phù Thủy`, `Ghép đôi Cupid`, `Thần Tượng liên kết`, `Bản Thể liên kết`, `Dấu ấn Quạ`, `Đánh hơi của Cáo`, `Lượt cắn Sói Lớn Xấu Xa`, `Lượt cắn Sói Trắng`, `Khóa phép Nguyệt Nữ`).
+    - Cắt gọt văn bản kịch bản quá đà của Gấu tại [DayPhaseView.jsx](file:///projects/werewolf/src/components/DayPhaseView.jsx) (`GẤU GẦM GỪZZZZ!... Quản trò hãy gầm lớn` ➔ `Gấu gầm: Có Ma Sói ngồi kề bên`), chuông báo (`Hết giờ thảo luận ➔ Chuyển sang biểu quyết`), và nhãn chiến thắng trang trọng tại [GameOverModal.jsx](file:///projects/werewolf/src/components/GameOverModal.jsx) (`PHE CHIẾN THẮNG`).
+  - **Vượt Qua 100% Bộ Test Domain & E2E (19 Domain Tests + Full Match Simulation)** và build production thành công tuyệt đối.
+
+- **Hỗ Trợ Multi-Select & Giữ Trạng Thái Mở Cho Hai Chị Em (2 người) & Ba Anh Em (3 người) ([RoleClaimBox.jsx](file:///projects/werewolf/src/components/RoleClaimBox.jsx), [RoleHolderBanner.jsx](file:///projects/werewolf/src/components/RoleHolderBanner.jsx), [ActionModal.jsx](file:///projects/werewolf/src/components/ActionModal.jsx), [deckUtils.js](file:///projects/werewolf/src/utils/deckUtils.js), [NightPhaseView.jsx](file:///projects/werewolf/src/components/NightPhaseView.jsx))**:
+  - **Chuẩn hóa dung lượng vai (Capacity)**: `getRoleCapacity` đảm bảo vai `hai-chi-em` luôn có dung lượng tối thiểu là 2 người (`capacity >= 2`), và `ba-anh-em` luôn có dung lượng tối thiểu là 3 người (`capacity >= 3`), kể cả khi Quản trò chỉ thêm 1 thẻ cấu hình đại diện trong bộ bài.
+  - **Gán nhiều người (Multi-select) tại RoleClaimBox**: Cho phép Quản trò chạm chọn liên tiếp 2 người cho Hai Chị Em (hoặc 3 người cho Ba Anh Em), hiển thị thẻ tóm tắt slot người chọn và nút xác nhận `Xác Nhận (X/2) Hai Chị Em ✓` / `Xác Nhận (X/3) Ba Anh Em ✓`.
+  - **Không tự động đóng drawer/modal khi chọn xong**: Tại `RoleHolderBanner` và `ActionModal`, khi gán/bỏ gán người chơi cho vai Hai Chị Em hoặc Ba Anh Em, danh sách giữ nguyên trạng thái mở để Quản trò thoải mái gán tiếp người thứ 2/thứ 3 mà không bị sập drawer.
+  - **Khắc phục lỗi text hiển thị `✓ Đã nguyền từ vai này`**: Đã sửa tại `RoleHolderBanner.jsx`, hiển thị đúng `✓ Đang giữ vai này` cho người chơi bình thường (chỉ hiện `🔮 Bị nguyền (vai gốc)` nếu người đó thực sự trúng lời nguyền Sói).
+  - **Thêm Step Validation chuẩn kịch bản đêm**: Bước gọi Hai Chị Em bắt buộc gán đủ đúng 2 người (`count === 2`), Ba Anh Em bắt buộc đủ 3 người (`count === 3`) mới cho phép Quản trò bấm `Đi Ngủ 💤`.
+
+- **Loại Bỏ Hoàn Toàn Nút To Trùng Lặp Ở Các Role Kịch Bản Đêm ([NightPhaseView.jsx](file:///projects/werewolf/src/components/NightPhaseView.jsx))**:
+  - **Khắc phục lỗi 2 nút "Đi Ngủ" cùng xuất hiện trên màn hình**: Trước đây khi Quản trò chọn xong mục tiêu cho các vai (Cupid chọn 2 người, Tiên Tri soi bài, Ma Sói cắn, Bảo Vệ khiên, hoặc các vai chưa gán/đã chết/lời nguyền Già Làng), một nút to ngang toàn màn hình (`w-full h-11`) tự động bung ra ngay giữa màn hình (`Đã Ghép Đôi & Đi Ngủ 💤`, `Đã Soi Bài & Đi Ngủ 💤`, `Xác Nhận & Đi Ngủ 💤`...), nằm đè ngay sát thanh điều hướng dính đáy (`Sticky Bottom Action Bar`).
+  - **Giữ thanh Sticky Bottom duy nhất & chuẩn xác**: Quản trò thao tác bằng thanh Action Bar cố định ở đáy màn hình (`Bước Trước` / Huy hiệu trạng thái `✓ Đã ghép đôi ✓` / `Đi Ngủ 💤 >`), loại bỏ hoàn toàn các nút to chiếm diện tích và nút floating dư thừa.
+  - **Dọn dẹp code sạch sẽ**: Xóa bỏ các state, ref, và IntersectionObserver không cần thiết (`inlineButtonNode`, `inlineAdvanceBtnRef`, `showFloatingAdvanceButton`, `isOriginalFooterVisible`).
+
 - **Áp Dụng Bộ Typography Mới Chuẩn Gothic Occult ([index.html](file:///home/levi/Desktop/Projects/werewolf/index.html), [index.css](file:///home/levi/Desktop/Projects/werewolf/src/index.css))**:
   - **Bộ Font 3 Tầng Đẳng Cấp**:
     - **Tiêu đề, Nhãn Cổ Kính**: `Cinzel` (`wght@600;700;800;900`).
