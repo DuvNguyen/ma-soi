@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Shield, Eye, Skull, Sparkles, Heart, Crosshair, AlertTriangle, Check, X, User } from 'lucide-react';
+import { Shield, Eye, Skull, Sparkles, Heart, Crosshair, AlertTriangle, Check, X, User, Scale } from 'lucide-react';
 import GothicButton from './ui/GothicButton';
 import GothicBadge from './ui/GothicBadge';
 import WolfIcon from './ui/WolfIcon';
@@ -26,6 +26,7 @@ export default function ActionModal({
   const [seerResult, setSeerResult] = useState(null);
   const [witchSaved, setWitchSaved] = useState(nightState?.witchSaved || false);
   const [witchPoisonId, setWitchPoisonId] = useState(nightState?.witchPoisonTargetId || null);
+  const [bannedVoterIds, setBannedVoterIds] = useState([]);
 
   const wolfVictim = players.find(p => p.id === nightState?.wolfTargetId);
 
@@ -549,6 +550,98 @@ export default function ActionModal({
               >
                 Bỏ qua
               </button>
+            </div>
+          </div>
+        );
+      }
+
+      // ================= DI NGÔN NGƯỜI THẾ THÂN =================
+      case 'scapegoat_decree': {
+        const toggleBan = (id) => {
+          setBannedVoterIds(prev => 
+            prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
+          );
+        };
+
+        return (
+          <div className="space-y-4">
+            <div className="flex items-center gap-3 p-3.5 bg-gradient-to-r from-amber-950 via-[#261505] to-[#120a02] border border-amber-700/80 rounded-2xl shadow-[0_0_20px_rgba(245,158,11,0.3)]">
+              <div className="w-10 h-10 rounded-xl bg-amber-950 border border-amber-600 flex items-center justify-center text-amber-400 shrink-0">
+                <Scale className="w-5 h-5" />
+              </div>
+              <div className="min-w-0">
+                <h4 className="font-bold text-amber-200 text-sm font-cinzel">DI NGÔN NGƯỜI THẾ THÂN</h4>
+                <p className="text-[11px] text-amber-300/80 truncate">
+                  Chỉ định người chơi bị cấm biểu quyết trong ngày tiếp theo
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-1.5 max-h-[50vh] overflow-y-auto pr-1 custom-scrollbar">
+              {alivePlayers.map(p => {
+                const isBanned = bannedVoterIds.includes(p.id);
+                return (
+                  <button
+                    key={p.id}
+                    type="button"
+                    onClick={() => toggleBan(p.id)}
+                    className={`w-full flex items-center justify-between p-2.5 rounded-xl border text-left transition-all cursor-pointer ${
+                      isBanned
+                        ? 'bg-rose-950/60 border-rose-600 text-rose-100 shadow-[0_0_12px_rgba(225,29,72,0.3)]'
+                        : 'bg-[#121422] border-slate-800 hover:border-slate-700 text-slate-300'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <div className={`w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold font-cinzel border ${
+                        isBanned ? 'bg-rose-900 border-rose-500 text-white' : 'bg-slate-900 border-slate-700 text-slate-300'
+                      }`}>
+                        #{p.id}
+                      </div>
+                      <div>
+                        <div className="font-bold text-xs text-white">{p.name}</div>
+                        <div className="text-[10px] text-slate-400">{getPlayerRole(p)?.name || 'Chưa lộ vai'}</div>
+                      </div>
+                    </div>
+
+                    <span className={`text-[11px] font-bold px-2.5 py-1 rounded-lg border ${
+                      isBanned
+                        ? 'bg-rose-950 text-rose-300 border-rose-600'
+                        : 'bg-slate-900 text-slate-400 border-slate-800'
+                    }`}>
+                      {isBanned ? '🚫 Cấm Biểu Quyết' : 'Được Biểu Quyết'}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+
+            <div className="pt-3 border-t border-slate-800 flex items-center justify-between gap-2">
+              <button
+                type="button"
+                onClick={() => setBannedVoterIds([])}
+                className="text-xs text-slate-400 hover:text-white cursor-pointer px-2 py-1"
+              >
+                Không cấm ai
+              </button>
+              <div className="flex items-center gap-2">
+                <GothicButton
+                  variant="dark"
+                  size="sm"
+                  onClick={onClose}
+                >
+                  Bỏ Qua
+                </GothicButton>
+                <GothicButton
+                  variant="gold"
+                  size="sm"
+                  onClick={() => {
+                    onSaveAction('scapegoat_decree', bannedVoterIds);
+                    onClose();
+                  }}
+                >
+                  Xác Nhận Di Ngôn ({bannedVoterIds.length})
+                </GothicButton>
+              </div>
             </div>
           </div>
         );

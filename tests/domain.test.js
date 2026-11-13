@@ -421,6 +421,37 @@ console.log('🧪 Starting Phase 1 Domain Model & Strategy Tests...\n');
     assert.strictEqual(canShootWhenPoisoned, false, 'Poisoned Hunter cannot fire death shot');
     console.log('✅ Test 21: Hunter retroactive role assignment & poison check verified.');
 
-    console.log('\n🎉 ALL 21 DOMAIN ENGINE TESTS PASSED PERFECTLY!\n');
+    // Test 22: Scapegoat (Người Thế Thân) tie-vote lynch detection & decree serialization
+    const scapegoat = new Player({ id: 16, name: 'Khánh', currentRoleId: 'nguoi-the-than', isAlive: true });
+    const villagerOther = new Player({ id: 17, name: 'Mai', currentRoleId: 'dan-lang', isAlive: true });
+    const wolfOther = new Player({ id: 18, name: 'Tùng', currentRoleId: 'soi-thuong', isAlive: true });
+
+    const scapegoatGame = new WerewolfGame({
+      roundNumber: 1,
+      isNight: false,
+      players: [scapegoat, villagerOther, wolfOther],
+      deckRoleIds: ['nguoi-the-than', 'dan-lang', 'soi-thuong']
+    });
+
+    const scapegoatLynchRes = scapegoatGame.lynchPlayer(16);
+    assert.strictEqual(scapegoatLynchRes.success, true);
+    assert.strictEqual(scapegoatLynchRes.isScapegoatLynch, true, 'Lynching Scapegoat must flag isScapegoatLynch');
+    assert.strictEqual(scapegoatLynchRes.game.getPlayer(16).isAlive, false);
+
+    // Test Scapegoat decree state persistence in game JSON roundtrip
+    const gameWithDecree = scapegoatLynchRes.game.clone({
+      scapegoatBannedVoterIds: [17],
+      scapegoatBannedRound: 2
+    });
+    const serialized = gameWithDecree.toJSON();
+    assert.deepStrictEqual(serialized.scapegoatBannedVoterIds, [17]);
+    assert.strictEqual(serialized.scapegoatBannedRound, 2);
+
+    const deserialized = WerewolfGame.fromJSON(serialized);
+    assert.deepStrictEqual(deserialized.scapegoatBannedVoterIds, [17]);
+    assert.strictEqual(deserialized.scapegoatBannedRound, 2);
+    console.log('✅ Test 22: Scapegoat (Người Thế Thân) tie-vote lynch & decree persistence verified.');
+
+    console.log('\n🎉 ALL 22 DOMAIN ENGINE TESTS PASSED PERFECTLY!\n');
   });
 }

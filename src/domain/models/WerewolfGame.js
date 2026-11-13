@@ -30,6 +30,8 @@ export class WerewolfGame {
     this.canWolvesKillTeammates = Boolean(state.canWolvesKillTeammates);
     this.isVillageCursed = Boolean(state.isVillageCursed);
     this.wolfCanKillDouble = Boolean(state.wolfCanKillDouble);
+    this.scapegoatBannedVoterIds = state.scapegoatBannedVoterIds || [];
+    this.scapegoatBannedRound = state.scapegoatBannedRound ?? null;
     this.updatedAt = state.updatedAt || new Date().toISOString();
   }
 
@@ -288,6 +290,7 @@ export class WerewolfGame {
     }
 
     // 5. Treo cổ người chơi
+    const isScapegoatLynch = targetRole?.id === 'nguoi-the-than';
     const deadTarget = target.kill('Bị dân làng biểu quyết treo cổ trên giàn thiêu', `Ngày ${this.roundNumber}`);
     let updatedPlayers = this.players.map(p => p.id === playerId ? deadTarget : p);
     let deadSheriff = deadTarget.isSheriff ? deadTarget : null;
@@ -349,6 +352,7 @@ export class WerewolfGame {
       deadSheriff,
       loverPartnerDied,
       hunterTrigger,
+      isScapegoatLynch,
       transformedShadows,
       gameEndResult,
       game: nextGame
@@ -510,6 +514,8 @@ export class WerewolfGame {
       canWolvesKillTeammates: this.canWolvesKillTeammates,
       isVillageCursed: this.isVillageCursed,
       wolfCanKillDouble: this.wolfCanKillDouble,
+      scapegoatBannedVoterIds: this.scapegoatBannedVoterIds,
+      scapegoatBannedRound: this.scapegoatBannedRound,
       updatedAt: this.updatedAt
     };
   }

@@ -156,6 +156,8 @@ export default function App() {
   const [isVillageCursed, setIsVillageCursed] = useState(() => savedInitial?.isVillageCursed || false);
   const [wolfCanKillDouble, setWolfCanKillDouble] = useState(() => savedInitial?.wolfCanKillDouble || false);
   const [pendingHunterShot, setPendingHunterShot] = useState(() => savedInitial?.pendingHunterShot || null);
+  const [scapegoatBannedVoterIds, setScapegoatBannedVoterIds] = useState(() => savedInitial?.scapegoatBannedVoterIds || []);
+  const [scapegoatBannedRound, setScapegoatBannedRound] = useState(() => savedInitial?.scapegoatBannedRound ?? null);
   const [preLynchSnapshot, setPreLynchSnapshot] = useState(() => savedInitial?.preLynchSnapshot || null);
   const [selectedTemplateId, setSelectedTemplateId] = useState(() => savedInitial?.selectedTemplateId || null);
   const [canWolvesKillTeammates, setCanWolvesKillTeammates] = useState(() => {
@@ -253,6 +255,8 @@ export default function App() {
         isVillageCursed,
         wolfCanKillDouble,
         pendingHunterShot,
+        scapegoatBannedVoterIds,
+        scapegoatBannedRound,
         preLynchSnapshot,
         selectedTemplateId,
         currentNightStepIdx,
@@ -270,7 +274,7 @@ export default function App() {
       // 2. Cloud DB sync (Neon)
       syncGameStateApi(stateToSave);
     }
-  }, [roundNumber, isNight, activeTab, players, deckRoleIds, rolesInGame, nightState, lynchedTodayPlayerId, gameEndResult, isVillageCursed, wolfCanKillDouble, pendingHunterShot, preLynchSnapshot, selectedTemplateId, currentNightStepIdx, gameDiary, canWolvesKillTeammates]);
+  }, [roundNumber, isNight, activeTab, players, deckRoleIds, rolesInGame, nightState, lynchedTodayPlayerId, gameEndResult, isVillageCursed, wolfCanKillDouble, pendingHunterShot, scapegoatBannedVoterIds, scapegoatBannedRound, preLynchSnapshot, selectedTemplateId, currentNightStepIdx, gameDiary, canWolvesKillTeammates]);
 
   // Helper canonical diary chronologist: merges & sorts chapters strictly by round number and phase (Night before Day)
   const appendToDiary = (prevDiary, newEntry) => {
@@ -329,6 +333,8 @@ export default function App() {
     setGameEndResult(null);
     setLynchedTodayPlayerId(null);
     setPendingHunterShot(null);
+    setScapegoatBannedVoterIds([]);
+    setScapegoatBannedRound(null);
     setPreLynchSnapshot(null);
     setIsVillageCursed(false);
     setWolfCanKillDouble(false);
@@ -373,6 +379,8 @@ export default function App() {
     setIsVillageCursed(false);
     setWolfCanKillDouble(false);
     setPendingHunterShot(null);
+    setScapegoatBannedVoterIds([]);
+    setScapegoatBannedRound(null);
     setPreLynchSnapshot(null);
     setCurrentNightStepIdx(0);
     setGameDiary([]);
@@ -426,6 +434,8 @@ export default function App() {
     setGameEndResult(null);
     setLynchedTodayPlayerId(null);
     setPendingHunterShot(null);
+    setScapegoatBannedVoterIds([]);
+    setScapegoatBannedRound(null);
     setPreLynchSnapshot(null);
     setIsVillageCursed(false);
     setWolfCanKillDouble(false);
@@ -467,6 +477,8 @@ export default function App() {
     setGameEndResult(null);
     setLynchedTodayPlayerId(null);
     setPendingHunterShot(null);
+    setScapegoatBannedVoterIds([]);
+    setScapegoatBannedRound(null);
     setPreLynchSnapshot(null);
     setIsVillageCursed(false);
     setWolfCanKillDouble(false);
@@ -507,6 +519,8 @@ export default function App() {
     setGameEndResult(null);
     setLynchedTodayPlayerId(null);
     setPendingHunterShot(null);
+    setScapegoatBannedVoterIds([]);
+    setScapegoatBannedRound(null);
     setPreLynchSnapshot(null);
     setIsVillageCursed(false);
     setWolfCanKillDouble(false);
@@ -866,6 +880,18 @@ export default function App() {
         setPendingHunterShot(null);
       } else if (type === 'skip_hunter') {
         setPendingHunterShot(null);
+      } else if (type === 'scapegoat_decree') {
+        const bannedList = Array.isArray(payload) ? payload : (payload?.bannedVoterIds || []);
+        setScapegoatBannedVoterIds(bannedList);
+        setScapegoatBannedRound(roundNumber + 1);
+        if (bannedList.length > 0) {
+          const names = players.filter(p => bannedList.includes(p.id)).map(p => `#${p.id} ${p.name}`).join(', ');
+          showAlert({
+            title: 'DI NGÔN NGƯỜI THẾ THÂN ⚖️',
+            message: `Người Thế Thân đã thi hành quyền năng di ngôn!\n\nNgười chơi bị cấm biểu quyết trong Ngày ${roundNumber + 1}:\n${names}`,
+            variant: 'gold'
+          });
+        }
       }
       return next;
     });
@@ -1247,6 +1273,15 @@ export default function App() {
         player: hunterTrigger
       });
     }
+
+    if (result.isScapegoatLynch) {
+      setActionModal({
+        isOpen: true,
+        actionType: 'scapegoat_decree',
+        player: target,
+        role: target.getRole()
+      });
+    }
   };
 
   const handleLynchPlayer = (playerId) => {
@@ -1376,6 +1411,15 @@ export default function App() {
         player: hunterTrigger
       });
     }
+
+    if (result.isScapegoatLynch) {
+      setActionModal({
+        isOpen: true,
+        actionType: 'scapegoat_decree',
+        player: target,
+        role: target.getRole()
+      });
+    }
   };
 
   // Kị Sĩ Thách Đấu Quyết Đấu Ban Ngày (Kị Sĩ lật bài 1 lần duy nhất)
@@ -1448,6 +1492,8 @@ export default function App() {
       setGameEndResult(preLynchSnapshot.gameEndResult || null);
       setLynchedTodayPlayerId(preLynchSnapshot.lynchedTodayPlayerId || null);
       setPendingHunterShot(null);
+      setScapegoatBannedVoterIds([]);
+      setScapegoatBannedRound(null);
       setPreLynchSnapshot(null);
       setActionModal(prev => ({ ...prev, isOpen: false }));
       return;
@@ -1471,6 +1517,8 @@ export default function App() {
     setLynchedTodayPlayerId(null);
     setGameEndResult(nextGame.gameEndResult);
     setPendingHunterShot(null);
+    setScapegoatBannedVoterIds([]);
+    setScapegoatBannedRound(null);
     setPreLynchSnapshot(null);
     setActionModal(prev => ({ ...prev, isOpen: false }));
   };
@@ -1872,12 +1920,14 @@ export default function App() {
                 player: p
               });
             }}
+            scapegoatBannedVoterIds={roundNumber === scapegoatBannedRound ? scapegoatBannedVoterIds : []}
           />
         </div>
 
         <div style={{ display: activeTab === 'table' ? 'block' : 'none' }}>
           <PlayersGridView
             players={players}
+            scapegoatBannedVoterIds={roundNumber === scapegoatBannedRound ? scapegoatBannedVoterIds : []}
             onOpenRosters={() => {
               setSetupModalTab('rosters');
               setIsSetupOpen(true);

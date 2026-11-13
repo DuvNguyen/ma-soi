@@ -1,10 +1,10 @@
 import React from 'react';
-import { Heart, Skull, Shield, Eye, UserCheck, AlertCircle, Sparkles, Star, Edit3, Users } from 'lucide-react';
+import { Heart, Skull, Shield, Eye, UserCheck, AlertCircle, Sparkles, Star, Edit3, Users, Scale } from 'lucide-react';
 import GothicBadge from './ui/GothicBadge';
 import WolfIcon from './ui/WolfIcon';
 import { isWolfPlayer, getPlayerRole, getPlayerOriginalRole } from '../utils/roleUtils';
 
-export default function PlayersGridView({ players, onOpenAssignRole, onOpenRosters }) {
+export default function PlayersGridView({ players, onOpenAssignRole, onOpenRosters, scapegoatBannedVoterIds = [] }) {
   const aliveCount = players.filter(p => p.isAlive).length;
   const wolfCount = players.filter(p => p.isAlive && isWolfPlayer(p)).length;
   const villagerCount = players.filter(p => p.isAlive && !isWolfPlayer(p) && getPlayerRole(p)?.teamCode === 'V').length;
@@ -123,6 +123,9 @@ export default function PlayersGridView({ players, onOpenAssignRole, onOpenRoste
                   </span>
                   {p.isSheriff && <Star className="w-3 h-3 text-amber-400 fill-amber-400 shrink-0" title="Cảnh Sát Trưởng (x2 phiếu)" />}
                   {partner && <Heart className="w-3 h-3 text-pink-400 fill-pink-500 shrink-0" />}
+                  {scapegoatBannedVoterIds?.includes(p.id) && (
+                    <Scale className="w-3 h-3 text-rose-400 shrink-0" title="Bị cấm biểu quyết (Di ngôn Người Thế Thân)" />
+                  )}
                 </div>
 
                 {/* Player Name */}
