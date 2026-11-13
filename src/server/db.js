@@ -214,7 +214,7 @@ export async function getMatchRecords(limit = 30) {
     SELECT 
       id, room_name, player_count, total_rounds, winner_team, 
       winner_description, started_at, finished_at, status, 
-      cupid_pair, created_at
+      cupid_pair, created_at, players_snapshot
     FROM match_records 
     ORDER BY created_at DESC 
     LIMIT ${limit}
@@ -230,6 +230,7 @@ export async function getMatchRecords(limit = 30) {
     finishedAt: r.finished_at,
     status: r.status,
     cupidPair: typeof r.cupid_pair === 'string' ? JSON.parse(r.cupid_pair) : r.cupid_pair,
+    playersSnapshot: typeof r.players_snapshot === 'string' ? JSON.parse(r.players_snapshot) : (r.players_snapshot || []),
     createdAt: r.created_at
   }));
 }

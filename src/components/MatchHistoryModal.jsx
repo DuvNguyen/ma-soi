@@ -55,30 +55,26 @@ export default function MatchHistoryModal({ isOpen, onClose }) {
   };
 
   const handleOpenDetail = async (matchItem) => {
-    // Nếu ván đấu đã có sẵn chi tiết playersSnapshot & nightLogs (như lưu từ localStorage)
-    if (matchItem.playersSnapshot || matchItem.nightLogs) {
+    if (Array.isArray(matchItem.playersSnapshot) && matchItem.playersSnapshot.length > 0) {
       setSelectedMatch(matchItem);
       setIsDetailOpen(true);
       return;
     }
 
-    // Nếu chỉ là tóm tắt từ API, fetch chi tiết
     setIsLoadingDetail(true);
     try {
       const res = await fetch(`/api/matches/${matchItem.id}`);
       const data = await res.json();
       if (data.ok && data.match) {
         setSelectedMatch(data.match);
-        setIsDetailOpen(true);
       } else {
         setSelectedMatch(matchItem);
-        setIsDetailOpen(true);
       }
     } catch (err) {
       setSelectedMatch(matchItem);
-      setIsDetailOpen(true);
     } finally {
       setIsLoadingDetail(false);
+      setIsDetailOpen(true);
     }
   };
 
@@ -124,17 +120,30 @@ export default function MatchHistoryModal({ isOpen, onClose }) {
 
   if (!isOpen) return null;
 
-  const getWinnerBadge = (team) => {
-    switch (team) {
-      case 'V':
-        return <span className="px-2 py-0.5 rounded text-[11px] font-bold bg-blue-950 text-blue-300 border border-blue-600">🔵 Phe Dân Làng Thắng</span>;
-      case 'W':
-        return <span className="px-2 py-0.5 rounded text-[11px] font-bold bg-rose-950 text-rose-300 border border-rose-600">🔴 Phe Ma Sói Thắng</span>;
-      case '3':
-        return <span className="px-2 py-0.5 rounded text-[11px] font-bold bg-purple-950 text-purple-300 border border-purple-500">🟣 Phe Thứ Ba Thắng</span>;
-      default:
-        return <span className="px-2 py-0.5 rounded text-[11px] font-bold bg-slate-800 text-slate-300">Chưa Hoàn Thành</span>;
+  const getWinnerBadge = (team, desc = '') => {
+    const raw = String(team || '').trim().toUpperCase();
+    if (raw === 'V' || raw.includes('VILLAGER') || raw.includes('DÂN')) {
+      return <span className="px-2 py-0.5 rounded text-[11px] font-bold bg-blue-950 text-blue-300 border border-blue-600">🔵 Phe Dân Làng Thắng</span>;
     }
+    if (raw === 'W' || raw.includes('WOLF') || raw.includes('WOLVES') || raw.includes('SÓI')) {
+      return <span className="px-2 py-0.5 rounded text-[11px] font-bold bg-rose-950 text-rose-300 border border-rose-600">🔴 Phe Ma Sói Thắng</span>;
+    }
+    if (raw === '3' || raw.includes('THIRD') || raw.includes('PIPER') || raw.includes('LOVER') || raw.includes('THỨ BA')) {
+      return <span className="px-2 py-0.5 rounded text-[11px] font-bold bg-purple-950 text-purple-300 border border-purple-500">🟣 Phe Thứ Ba Thắng</span>;
+    }
+    if (desc) {
+      const d = String(desc).toLowerCase();
+      if (d.includes('ma sói') || d.includes('sói')) {
+        return <span className="px-2 py-0.5 rounded text-[11px] font-bold bg-rose-950 text-rose-300 border border-rose-600">🔴 Phe Ma Sói Thắng</span>;
+      }
+      if (d.includes('dân làng') || d.includes('thanh trừng')) {
+        return <span className="px-2 py-0.5 rounded text-[11px] font-bold bg-blue-950 text-blue-300 border border-blue-600">🔵 Phe Dân Làng Thắng</span>;
+      }
+      if (d.includes('thổi sáo') || d.includes('cặp đôi') || d.includes('thằng ngốc')) {
+        return <span className="px-2 py-0.5 rounded text-[11px] font-bold bg-purple-950 text-purple-300 border border-purple-500">🟣 Phe Thứ Ba Thắng</span>;
+      }
+    }
+    return <span className="px-2 py-0.5 rounded text-[11px] font-bold bg-slate-800 text-slate-300">Chưa Hoàn Thành</span>;
   };
 
   return (
@@ -166,14 +175,18 @@ export default function MatchHistoryModal({ isOpen, onClose }) {
 
           <div className="flex items-center gap-2 shrink-0">
             <button
+              type="button"
               onClick={fetchMatches}
               className="p-2 rounded-xl text-slate-400 hover:text-white bg-slate-900 border border-slate-800 hover:border-slate-700 cursor-pointer transition-all"
               title="Làm mới danh sách"
+              aria-label="Làm mới danh sách ván đấu"
             >
               <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
             </button>
             <button
+              type="button"
               onClick={onClose}
+              aria-label="Đóng cửa sổ lịch sử"
               className="p-2 rounded-xl text-slate-400 hover:text-white bg-slate-900 border border-slate-800 hover:border-slate-700 cursor-pointer transition-all"
             >
               <X className="w-5 h-5" />
@@ -221,7 +234,7 @@ export default function MatchHistoryModal({ isOpen, onClose }) {
                         <span className="font-bold text-sm text-slate-100 group-hover:text-rose-400 transition-colors truncate">
                           {m.roomName || `Ván đấu Ma Sói (${m.playerCount || 0} người)`}
                         </span>
-                        {getWinnerBadge(m.winnerTeam)}
+                        {getWinnerBadge(m.winnerTeam, m.winnerDescription || m.winnerDesc)}
                       </div>
 
                       {m.winnerDescription && (
@@ -259,6 +272,7 @@ export default function MatchHistoryModal({ isOpen, onClose }) {
                           onClick={(e) => handleDeleteMatch(m.id, e)}
                           className="text-slate-500 hover:text-rose-400 p-1 cursor-pointer transition-colors"
                           title="Xóa trận này"
+                          aria-label="Xóa bản ghi trận đấu này"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>
@@ -294,6 +308,7 @@ export default function MatchHistoryModal({ isOpen, onClose }) {
                   onClick={() => setIsDetailOpen(false)}
                   className="p-1.5 rounded-lg text-rose-300 hover:text-white hover:bg-rose-950/80 cursor-pointer transition-colors shrink-0"
                   title="Quay lại danh sách"
+                  aria-label="Quay lại danh sách lịch sử"
                 >
                   <ArrowLeft className="w-5 h-5" />
                 </button>
@@ -308,10 +323,11 @@ export default function MatchHistoryModal({ isOpen, onClose }) {
               </div>
 
               <div className="flex items-center gap-2 shrink-0">
-                {getWinnerBadge(selectedMatch.winnerTeam)}
+                {getWinnerBadge(selectedMatch.winnerTeam, selectedMatch.winnerDescription || selectedMatch.winnerDesc)}
                 <button
                   type="button"
                   onClick={() => setIsDetailOpen(false)}
+                  aria-label="Đóng chi tiết ván đấu"
                   className="w-8 h-8 rounded-full bg-rose-600 hover:bg-rose-500 text-white flex items-center justify-center shadow-lg transition-transform active:scale-95 cursor-pointer ml-1"
                 >
                   <X className="w-4 h-4 stroke-[3]" />
@@ -347,34 +363,40 @@ export default function MatchHistoryModal({ isOpen, onClose }) {
                   Danh Sách Người Chơi Lúc Kết Thúc Ván:
                 </h5>
 
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                  {(selectedMatch.playersSnapshot || []).map((p) => {
-                    const isLover = selectedMatch.cupidPair?.includes(p.id);
-                    return (
-                      <div
-                        key={p.id}
-                        className={`p-2.5 rounded-xl border text-xs flex flex-col justify-between ${
-                          p.isAlive
-                            ? 'bg-[#101322] border-slate-800 text-slate-200'
-                            : 'bg-black/50 border-rose-950 text-slate-500 line-through'
-                        }`}
-                      >
-                        <div className="flex items-center justify-between">
-                          <span className="font-bold truncate">#{p.id} {p.name}</span>
-                          {p.isAlive ? (
-                            <span className="text-[9px] text-emerald-400 font-bold">Sống</span>
-                          ) : (
-                            <span className="text-[9px] text-rose-500 font-bold">Chết</span>
-                          )}
+                {Array.isArray(selectedMatch.playersSnapshot) && selectedMatch.playersSnapshot.length > 0 ? (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                    {selectedMatch.playersSnapshot.map((p) => {
+                      const isLover = selectedMatch.cupidPair?.includes(p.id);
+                      return (
+                        <div
+                          key={p.id}
+                          className={`p-2.5 rounded-xl border text-xs flex flex-col justify-between ${
+                            p.isAlive
+                              ? 'bg-[#101322] border-slate-800 text-slate-200'
+                              : 'bg-black/50 border-rose-950 text-slate-500 line-through'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between">
+                            <span className="font-bold truncate">#{p.id} {p.name}</span>
+                            {p.isAlive ? (
+                              <span className="text-[9px] text-emerald-400 font-bold">Sống</span>
+                            ) : (
+                              <span className="text-[9px] text-rose-500 font-bold">Chết</span>
+                            )}
+                          </div>
+                          <div className="text-[10px] text-slate-400 flex items-center justify-between mt-1">
+                            <span>{getPlayerRole(p)?.name || p.role?.name || p.currentRoleId || p.roleId || 'Chưa gán vai'}</span>
+                            {isLover && <Heart className="w-3 h-3 text-pink-500 fill-pink-500" />}
+                          </div>
                         </div>
-                        <div className="text-[10px] text-slate-400 flex items-center justify-between mt-1">
-                          <span>{getPlayerRole(p)?.name || p.role?.name || p.currentRoleId || p.roleId || 'Chưa gán vai'}</span>
-                          {isLover && <Heart className="w-3 h-3 text-pink-500 fill-pink-500" />}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="p-3.5 rounded-xl bg-slate-900/50 border border-slate-800 text-xs text-slate-400 text-center">
+                    Bản ghi lịch sử này chưa lưu danh sách chi tiết người chơi.
+                  </div>
+                )}
               </div>
 
               {/* Chronicle Diary */}

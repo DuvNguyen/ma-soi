@@ -640,7 +640,7 @@ export default function App() {
         totalRounds,
         totalNights,
         totalDays,
-        winnerTeam: result.winner,
+        winnerTeam: result.teamCode || (result.winner === 'Werewolves' ? 'W' : result.winner === 'Villagers' ? 'V' : result.winner ? '3' : 'NONE'),
         winnerDesc: result.description || result.reason,
         winnerDescription: result.description || result.reason,
         playerCount: players.length,
@@ -1722,7 +1722,8 @@ export default function App() {
               <button
                 type="button"
                 onClick={() => setIsLibraryOpen(true)}
-                title="Thư viện 48 vai trò Ma Sói"
+                title={`Thư viện ${ROLES.length} vai trò Ma Sói`}
+                aria-label={`Thư viện ${ROLES.length} vai trò Ma Sói`}
                 className="h-6 w-6 sm:h-7 sm:w-auto sm:px-2 rounded-md sm:rounded-lg hover:bg-slate-800 bg-amber-950/25 hover:bg-amber-950/60 text-amber-300 hover:text-amber-100 text-xs font-bold transition-all flex items-center justify-center gap-1 cursor-pointer shrink-0 border border-amber-900/40"
               >
                 <BookOpen className="w-3.5 h-3.5 text-amber-300 shrink-0" />

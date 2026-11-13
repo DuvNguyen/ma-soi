@@ -17,6 +17,7 @@ export default function NightStickyFooter({
         disabled={safeStepIdx === 0}
         onClick={onPrevStep}
         icon={ChevronLeft}
+        aria-label="Bước trước"
         className="h-10 px-2.5 sm:px-3 text-xs shrink-0"
       >
         <span className="hidden sm:inline">Bước Trước</span>
@@ -47,6 +48,7 @@ export default function NightStickyFooter({
         size="sm"
         disabled={!stepValidation.isValid}
         onClick={() => onNextStep(false)}
+        aria-label="Đi ngủ (chuyển bước)"
         className="h-10 px-3 sm:px-4 text-xs font-black shrink-0 shadow-lg"
       >
         <span className="truncate">Đi Ngủ 💤</span>

@@ -187,7 +187,12 @@ export default function PlayerRosterModal({
                 <span>Thêm Nhóm</span>
               </GothicButton>
             )}
-            <button onClick={onClose} className="p-1.5 sm:p-2 text-slate-400 hover:text-white rounded-lg cursor-pointer shrink-0">
+            <button 
+              type="button"
+              onClick={onClose} 
+              aria-label="Đóng cửa sổ danh sách người chơi"
+              className="p-1.5 sm:p-2 text-slate-400 hover:text-white rounded-lg cursor-pointer shrink-0"
+            >
               <X className="w-5 h-5" />
             </button>
           </div>

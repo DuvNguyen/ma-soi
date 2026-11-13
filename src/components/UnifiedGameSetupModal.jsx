@@ -407,7 +407,14 @@ export default function UnifiedGameSetupModal({
   // Save as new custom template
   const handleSaveAsNewTemplate = async (e) => {
     e.preventDefault();
-    if (!newTemplateNameInput.trim()) return;
+    if (!newTemplateNameInput.trim()) {
+      showAlert({
+        title: 'THIẾU TÊN BỘ BÀI',
+        message: 'Vui lòng nhập tên cho bộ bài trước khi lưu.',
+        variant: 'warning'
+      });
+      return;
+    }
 
     try {
       const newTemplate = {
@@ -628,7 +635,7 @@ export default function UnifiedGameSetupModal({
           <button
             type="button"
             onClick={onClose}
-            aria-label="Đóng"
+            aria-label="Đóng cửa sổ thiết lập ván đấu"
             title="Đóng cửa sổ (Esc)"
             className="mb-1.5 sm:mb-2 w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-slate-900 hover:bg-rose-950/80 border border-slate-700/80 hover:border-rose-600/80 text-slate-300 hover:text-rose-200 transition-all flex items-center justify-center cursor-pointer shrink-0 shadow-sm active:scale-95"
           >
@@ -702,7 +709,12 @@ export default function UnifiedGameSetupModal({
                 <form onSubmit={handleSaveAsNewTemplate} className="p-3.5 rounded-2xl bg-[#161828] border border-purple-500/60 space-y-3 animate-fade-in">
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-bold text-purple-300">Lưu cấu hình hiện tại thành bộ bài mới:</span>
-                    <button type="button" onClick={() => setIsSavingAsNew(false)} className="text-slate-400 hover:text-slate-200">
+                    <button 
+                      type="button" 
+                      onClick={() => setIsSavingAsNew(false)} 
+                      aria-label="Đóng form tạo bộ bài"
+                      className="text-slate-400 hover:text-slate-200 cursor-pointer p-1 rounded-lg"
+                    >
                       <X className="w-4 h-4" />
                     </button>
                   </div>
@@ -712,6 +724,7 @@ export default function UnifiedGameSetupModal({
                       value={newTemplateNameInput}
                       onChange={(e) => setNewTemplateNameInput(e.target.value)}
                       placeholder="Đặt tên bộ bài..."
+                      aria-label="Tên bộ bài mới"
                       className="flex-1 p-2 rounded-xl bg-slate-900 border border-slate-700 text-xs text-white focus:outline-none focus:border-purple-500"
                       autoFocus
                     />

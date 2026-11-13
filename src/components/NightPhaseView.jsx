@@ -639,6 +639,7 @@ export default function NightPhaseView({
             disabled={safeStepIdx === 0}
             onClick={handlePrevStep}
             icon={ChevronLeft}
+            aria-label="Bước trước"
           >
             Trước
           </GothicButton>
@@ -649,6 +650,7 @@ export default function NightPhaseView({
             disabled={!stepValidation.isValid}
             onClick={() => handleNextStep(false)}
             title={!stepValidation.isValid ? stepValidation.message : ''}
+            aria-label={isSummaryStep ? 'Bật trời sáng' : 'Đi ngủ (chuyển bước)'}
           >
             <span>{isSummaryStep ? '☀️ BẬT TRỜI SÁNG' : 'Đi Ngủ 💤'}</span>
             <ChevronRight className="w-4 h-4 ml-1 inline" />

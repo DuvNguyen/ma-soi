@@ -257,7 +257,12 @@ export default function DeckTemplateModal({
                 <span>Tạo Mới</span>
               </GothicButton>
             )}
-            <button onClick={onClose} className="p-1.5 sm:p-2 text-slate-400 hover:text-white rounded-lg cursor-pointer shrink-0">
+            <button 
+              type="button"
+              onClick={onClose} 
+              aria-label="Đóng cửa sổ bộ bài mẫu"
+              className="p-1.5 sm:p-2 text-slate-400 hover:text-white rounded-lg cursor-pointer shrink-0"
+            >
               <X className="w-5 h-5" />
             </button>
           </div>
