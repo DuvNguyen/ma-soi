@@ -1,5 +1,5 @@
 import React from 'react';
-import { Skull, AlertTriangle } from 'lucide-react';
+import { Skull, AlertTriangle, Crosshair } from 'lucide-react';
 
 export default function DayCasualtyAnnouncement({
   players,
@@ -7,6 +7,11 @@ export default function DayCasualtyAnnouncement({
   nightLogs
 }) {
   const deadTonight = players.filter(p => !p.isAlive && p.deathPhase === `Đêm ${roundNumber}`);
+  const deadFromHunter = players.filter(
+    p => !p.isAlive &&
+    p.deathReason?.toLowerCase().includes('thợ săn') &&
+    (p.deathPhase === `Đêm ${roundNumber}` || p.deathPhase === `Ngày ${roundNumber}`)
+  );
   const detailLogs = (nightLogs || []).filter(log => !log.startsWith('Đêm qua có ') && !log.startsWith('Đêm qua bình yên'));
 
   return (
@@ -31,6 +36,18 @@ export default function DayCasualtyAnnouncement({
         </div>
       </div>
 
+      {/* NẠN NHÂN TỪ PHÁT SÚNG THỢ SĂN */}
+      {deadFromHunter.length > 0 && (
+        <div className="p-3.5 sm:p-4 rounded-2xl border border-amber-500/80 bg-gradient-to-r from-amber-950/90 via-[#261205] to-[#120802] text-amber-100 flex items-center gap-3 font-cinzel text-sm sm:text-base font-black shadow-[0_0_20px_rgba(245,158,11,0.25)]">
+          <Crosshair className="w-5 h-5 shrink-0 text-amber-400 drop-shadow-[0_0_8px_rgba(245,158,11,0.8)]" />
+          <div className="flex-1">
+            <span>
+              Phát súng Thợ Săn tiêu diệt <span className="text-amber-300 underline font-black">{deadFromHunter.length} người</span>: {deadFromHunter.map(p => `${p.name} (#${p.id})`).join(', ')}.
+            </span>
+          </div>
+        </div>
+      )}
+
       {/* CÁC MÔ TẢ CHI TIẾT */}
       {detailLogs.length > 0 && (
         <div className="space-y-1.5 pt-1">
@@ -39,7 +56,11 @@ export default function DayCasualtyAnnouncement({
               key={index}
               className="p-2.5 rounded-xl bg-slate-900/60 backdrop-blur-sm border border-slate-700/60 text-slate-200 text-xs sm:text-sm flex items-start gap-2"
             >
-              <AlertTriangle className="w-3.5 h-3.5 text-amber-400 shrink-0 mt-0.5" />
+              {log.includes('🎯') ? (
+                <Crosshair className="w-3.5 h-3.5 text-amber-400 shrink-0 mt-0.5" />
+              ) : (
+                <AlertTriangle className="w-3.5 h-3.5 text-amber-400 shrink-0 mt-0.5" />
+              )}
               <span>{log}</span>
             </div>
           ))}

@@ -839,18 +839,44 @@ export default function App() {
       } else if (type === 'hunter') {
         const shotPlayer = players.find(p => p.id === payload);
         const shotRole = getPlayerRole(shotPlayer);
-        if (shotRole?.id === 'gia-lang') {
-          setIsVillageCursed(true);
-          showAlert({
-            title: '⚡ LỜI NGUYỀN GIÀ LÀNG GIÁNG XUỐNG!',
-            message: 'Thợ Săn đã nổ súng bắn chết Già Làng! Toàn bộ phe Dân mất sạch năng lực đặc biệt đến hết ván đấu.',
-            variant: 'danger'
-          });
-        }
 
         let shotLover = null;
         if (shotPlayer?.loverId) {
           shotLover = players.find(p => p.id === shotPlayer.loverId);
+        }
+
+        const hunterLog = `🎯 Thợ Săn đã nổ súng bắn hạ ${shotPlayer?.name || `Người chơi #${payload}`} (#${payload})!`;
+        const loverLog = shotLover && shotLover.isAlive
+          ? `💔 ${shotLover.name} (#${shotLover.id}) chết theo người yêu (${shotPlayer?.name})!`
+          : null;
+
+        // Cập nhật nightLogs để nạn nhân lập tức xuất hiện trong bản tin người chết & nhật ký
+        setNightLogs(prev => {
+          const currentLogs = prev || [];
+          const additions = [hunterLog];
+          if (loverLog) additions.push(loverLog);
+          return [...currentLogs, ...additions];
+        });
+
+        triggerHaptic('shot');
+
+        if (shotRole?.id === 'gia-lang') {
+          setIsVillageCursed(true);
+          showAlert({
+            title: '⚡ LỜI NGUYỀN GIÀ LÀNG GIÁNG XUỐNG!',
+            message: `Thợ Săn đã nổ súng bắn chết GIÀ LÀNG (${shotPlayer?.name} #${payload})!\n\nToàn bộ phe Dân mất sạch năng lực đặc biệt đến hết ván đấu.${shotLover && shotLover.isAlive ? `\n\nNgoài ra, người yêu là ${shotLover.name} (#${shotLover.id}) cũng tử trận theo vì quá đau buồn!` : ''}`,
+            variant: 'danger',
+            confirmText: 'Đã Rõ 🎯'
+          });
+        } else {
+          showAlert({
+            title: '🎯 PHÁT SÚNG CỦA THỢ SĂN!',
+            message: shotLover && shotLover.isAlive
+              ? `Thợ Săn đã nổ súng tiêu diệt ${shotPlayer?.name} (#${payload})!\n\n💔 Người yêu là ${shotLover.name} (#${shotLover.id}) cũng tử trận theo vì quá đau buồn!`
+              : `Thợ Săn đã nổ súng tiêu diệt thành công ${shotPlayer?.name} (#${payload})!`,
+            variant: 'gold',
+            confirmText: 'Đã Rõ 🎯'
+          });
         }
 
         setPlayers(current => {
@@ -880,6 +906,12 @@ export default function App() {
         setPendingHunterShot(null);
       } else if (type === 'skip_hunter') {
         setPendingHunterShot(null);
+        showAlert({
+          title: 'THỢ SĂN BỎ QUA',
+          message: 'Thợ Săn không sử dụng phát súng cuối cùng.',
+          variant: 'info',
+          confirmText: 'Đã Rõ'
+        });
       } else if (type === 'scapegoat_decree') {
         const bannedList = Array.isArray(payload) ? payload : (payload?.bannedVoterIds || []);
         setScapegoatBannedVoterIds(bannedList);
@@ -1266,6 +1298,10 @@ export default function App() {
 
     // Thợ Săn bắn trả
     if (hunterTrigger) {
+      setPendingHunterShot({
+        hunterId: hunterTrigger.id,
+        hunterName: hunterTrigger.name
+      });
       setActionModal({
         isOpen: true,
         actionType: 'hunter',
