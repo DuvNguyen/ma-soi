@@ -1,5 +1,5 @@
 import React from 'react';
-import { Flame, Ghost, Wand2, Eye, Skull, MoonStar } from 'lucide-react';
+import { Flame, Ghost, Wand2, Eye, Skull, MoonStar, Crosshair } from 'lucide-react';
 import PlayerSeatPicker from '../PlayerSeatPicker';
 import WolfIcon from '../ui/WolfIcon';
 import { getPlayerRole } from '../../utils/roleUtils';
@@ -481,6 +481,37 @@ export default function NightSpecialRolesStep({
           variant="default"
           actionLabel="Khóa phép"
         />
+      </div>
+    );
+  }
+
+  // 9. THỢ SĂN (HUNTER - ĐÊM 1 NHẬN DIỆN)
+  if (currentRole.id === 'tho-san') {
+    const hunterPlayer = players.find(p => (p.currentRoleId || p.roleId) === 'tho-san');
+    return (
+      <div className="p-4 rounded-2xl bg-[#14121e] border border-amber-500/30 text-amber-100 flex items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <div className="p-2.5 rounded-xl bg-amber-950/60 border border-amber-600/40 text-amber-300 shrink-0">
+            <Crosshair className="w-5 h-5" />
+          </div>
+          <div>
+            <div className="font-bold text-amber-200 text-sm">Nhận Diện Thợ Săn</div>
+            <div className="text-xs text-slate-400 mt-0.5">
+              Thức dậy nhận diện Đêm 1 • Tự động kích hoạt phát súng khi tử trận
+            </div>
+          </div>
+        </div>
+        <div>
+          {hunterPlayer ? (
+            <span className="text-xs font-semibold px-2.5 py-1 rounded-lg bg-emerald-950/80 border border-emerald-600 text-emerald-300">
+              #{hunterPlayer.id} {hunterPlayer.name}
+            </span>
+          ) : (
+            <span className="text-xs px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-700 text-slate-400">
+              Chưa gán
+            </span>
+          )}
+        </div>
       </div>
     );
   }

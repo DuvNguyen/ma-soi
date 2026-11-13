@@ -584,8 +584,9 @@ export default function ActionModal({
                       key={p.id}
                       disabled={hasOtherRole}
                       onClick={() => {
+                        const willTriggerHunter = role?.id === 'tho-san' && !p.isAlive;
                         onAssignRole(p.id, role);
-                        if (role?.id !== 'hai-chi-em' && role?.id !== 'ba-anh-em') {
+                        if (role?.id !== 'hai-chi-em' && role?.id !== 'ba-anh-em' && !willTriggerHunter) {
                           onClose();
                         }
                       }}
@@ -769,8 +770,9 @@ export default function ActionModal({
                       key={r.id}
                       type="button"
                       onClick={() => {
+                        const willTriggerHunter = r.id === 'tho-san' && !targetPlayer.isAlive;
                         onAssignRole(targetPlayer.id, r);
-                        if (r.id !== 'hai-chi-em' && r.id !== 'ba-anh-em') {
+                        if (r.id !== 'hai-chi-em' && r.id !== 'ba-anh-em' && !willTriggerHunter) {
                           onClose();
                         }
                       }}

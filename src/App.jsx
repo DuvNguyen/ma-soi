@@ -1020,27 +1020,54 @@ export default function App() {
       });
     });
 
-    // Special check: Nếu gán vai cho người vừa bị treo cổ hôm nay
-    if (playerId === lynchedTodayPlayerId) {
-      if (role.id === 'gia-lang') {
+    // Special check: Nếu gán vai cho người đã chết (vừa bị treo cổ hoặc chết trong đêm)
+    const targetPlayer = players.find(p => p.id === playerId);
+    const isDead = targetPlayer && (!targetPlayer.isAlive || playerId === lynchedTodayPlayerId);
+
+    if (isDead) {
+      if (role.id === 'gia-lang' && playerId === lynchedTodayPlayerId) {
         setIsVillageCursed(true);
         showAlert({
           title: '⚡ LỜI NGUYỀN GIÀ LÀNG GIÁNG XUỐNG!',
           message: 'Nạn nhân bị treo cổ chính là GIÀ LÀNG!\n\nNỗi oán hận biến thành lời nguyền: Toàn bộ phe Dân Làng bị tước đoạt toàn bộ chức năng đặc biệt từ nay về sau!',
           variant: 'danger'
         });
-      } else if (role.id === 'tho-san' && !isVillageCursed) {
-        const deadHunter = players.find(p => p.id === playerId);
-        setActionModal({
-          isOpen: true,
-          actionType: 'hunter',
-          role,
-          player: deadHunter
-        });
+      } else if (role.id === 'tho-san') {
+        const isPoisoned = targetPlayer?.deathReason && (targetPlayer.deathReason.includes('độc') || targetPlayer.deathReason.includes('thuốc độc'));
+        if (isVillageCursed) {
+          showAlert({
+            title: 'LỜI NGUYỀN GIÀ LÀNG ⚡',
+            message: `Thợ Săn ${targetPlayer.name} tử trận nhưng không thể nổ súng do toàn bộ phe Dân Làng đã bị phong ấn năng lực!`,
+            variant: 'warning'
+          });
+        } else if (isPoisoned) {
+          showAlert({
+            title: 'THỢ SĂN TRÚNG ĐỘC ☠️',
+            message: `Thợ Săn ${targetPlayer.name} tử trận do trúng độc của Phù Thủy nên bị tê liệt, không thể rút súng bắn!`,
+            variant: 'warning'
+          });
+        } else {
+          // Kích hoạt phát súng Thợ Săn & lưu vào pendingHunterShot
+          setPendingHunterShot({
+            hunterId: playerId,
+            hunterName: targetPlayer.name
+          });
+
+          const deadHunterObj = targetPlayer instanceof Player
+            ? targetPlayer.assignRole('tho-san')
+            : { ...targetPlayer, currentRoleId: 'tho-san', roleId: 'tho-san' };
+
+          setActionModal({
+            isOpen: true,
+            actionType: 'hunter',
+            role,
+            player: deadHunterObj
+          });
+        }
       } else if (role.id === 'soi-con') {
         setWolfCanKillDouble(true);
         showAlert({
-          title: '🐺 SÓI CON ĐÃ BỊ TREO CỔ!',
+          title: '🐺 SÓI CON ĐÃ BỊ TIÊU DIỆT!',
           message: 'Bầy Ma Sói nổi cơn cuồng sát: Đêm tiếp theo bầy Sói được cắn 2 người!',
           variant: 'warning'
         });

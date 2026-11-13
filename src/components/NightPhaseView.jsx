@@ -47,6 +47,7 @@ export default function NightPhaseView({
       'dua-tre-hoang-da': 3,
       'nua-nguoi-nua-soi': 3.1,
       'thang-ngoc': 3.2,
+      'tho-san': 3.3,
       'dien-vien': 3.5,
       'ba-dong': 3.6,
       'bao-ve': 4,
@@ -72,14 +73,14 @@ export default function NightPhaseView({
     };
 
     const activeRoles = rolesInGame.filter(r => {
-      if (['cupid', 'dua-tre-hoang-da', 'anh-tu', 'an-trom', 'ke-bao-thu', 'soi-lai', 'cho-soi-soi-lai', 'ba-anh-em', 'nua-nguoi-nua-soi', 'thang-ngoc'].includes(r.id) && roundNumber > 1) {
+      if (['cupid', 'dua-tre-hoang-da', 'anh-tu', 'an-trom', 'ke-bao-thu', 'soi-lai', 'cho-soi-soi-lai', 'ba-anh-em', 'nua-nguoi-nua-soi', 'thang-ngoc', 'tho-san'].includes(r.id) && roundNumber > 1) {
         return false;
       }
       if (r.id === 'cao' && nightState?.foxLostPower) {
         return false;
       }
       if ([
-        'dan-lang', 'dan-thuong', 'tho-san', 'gia-lang', 'canh-sat-truong', 
+        'dan-lang', 'dan-thuong', 'gia-lang', 'canh-sat-truong', 
         'nguoi-the-than', 'oan-nhan', 'nguoi-day-to-tan-tuy', 'hiep-si-gia', 'ky-si', 
         'thien-su', 'thien-than', 'bo-lao', 'thang-mo', 'nguoi-thuan-phuc-gau', 'than-gau',
         'co-be', 'canh-sat-characters', 'ki-si', 'thanh-vien-giao-phai'
@@ -93,7 +94,16 @@ export default function NightPhaseView({
     const nonWolfRoles = activeRoles.filter(r => !wolfVariants.includes(r.id) && r.id !== 'soi-trang');
     const hasAnyWolves = activeRoles.some(r => wolfVariants.includes(r.id) || r.id === 'soi-trang');
 
-    let finalRoles = [...nonWolfRoles];
+    let finalRoles = nonWolfRoles.map(r => {
+      if (r.id === 'tho-san' && roundNumber === 1) {
+        return {
+          ...r,
+          shortDesc: 'Thức dậy trong Đêm 1 để Quản trò nhận diện người nắm giữ vai.',
+          gmCall: 'Thợ Săn thức dậy nhận diện Quản Trò.'
+        };
+      }
+      return r;
+    });
     if (hasAnyWolves) {
       finalRoles.push({
         id: 'soi-thuong',
@@ -507,6 +517,22 @@ export default function NightPhaseView({
           isValid: true, 
           message: 'Đã chọn người khóa phép',
           shortMessage: 'Đã khóa phép ✓'
+        };
+      }
+
+      case 'tho-san': {
+        const hasHunter = players.some(p => (p.currentRoleId || p.roleId) === 'tho-san');
+        if (!hasHunter) {
+          return {
+            isValid: true,
+            message: 'Chưa gán người giữ vai Thợ Săn (có thể gán sau khi chết)',
+            shortMessage: 'Chưa gán vai'
+          };
+        }
+        return {
+          isValid: true,
+          message: 'Thợ Săn đã nhận diện Quản Trò',
+          shortMessage: 'Đã nhận diện ✓'
         };
       }
 

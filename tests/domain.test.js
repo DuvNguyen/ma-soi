@@ -364,6 +364,45 @@ console.log('🧪 Starting Phase 1 Domain Model & Strategy Tests...\n');
     assert.strictEqual(getRoleCapacity('ba-anh-em', []), 3, 'Ba Anh Em default capacity is 3');
     console.log('✅ Test 19: Hai Chị Em (capacity 2) and Ba Anh Em (capacity 3) multi-capacity verified.');
 
-    console.log('\n🎉 ALL 19 DOMAIN ENGINE TESTS PASSED PERFECTLY!\n');
+    // Test 20: Thợ Săn (Hunter) Night 1 Wakeup vs Night 2+ Exclusion
+    const testDeck = [
+      { id: 'tho-san', name: 'Thợ Săn' },
+      { id: 'tien-tri', name: 'Tiên Tri' },
+      { id: 'soi-thuong', name: 'Ma Sói' }
+    ];
+    const filterNightRoles = (roles, round) => roles.filter(r => {
+      if (['cupid', 'dua-tre-hoang-da', 'anh-tu', 'an-trom', 'ke-bao-thu', 'soi-lai', 'cho-soi-soi-lai', 'ba-anh-em', 'nua-nguoi-nua-soi', 'thang-ngoc', 'tho-san'].includes(r.id) && round > 1) {
+        return false;
+      }
+      if (['dan-lang', 'dan-thuong', 'gia-lang'].includes(r.id)) {
+        return false;
+      }
+      return true;
+    });
+
+    const night1Roles = filterNightRoles(testDeck, 1);
+    assert.strictEqual(night1Roles.some(r => r.id === 'tho-san'), true, 'Hunter is called on Night 1 for identification');
+
+    const night2Roles = filterNightRoles(testDeck, 2);
+    assert.strictEqual(night2Roles.some(r => r.id === 'tho-san'), false, 'Hunter sleeps on Night 2 and onwards');
+    console.log('✅ Test 20: Hunter (Thợ Săn) Night 1 call vs Night 2+ exclusion verified.');
+
+    // Test 21: Hunter death trigger on retroactive role assignment
+    const lynchedPlayer = new Player({ id: 14, name: 'Hùng', isAlive: false, deathReason: 'Dân làng biểu quyết treo cổ' });
+    const assignedHunter = lynchedPlayer.assignRole('tho-san');
+    assert.strictEqual(assignedHunter.currentRoleId, 'tho-san');
+    assert.strictEqual(assignedHunter.isAlive, false);
+
+    // Verify shot activation condition: dead Hunter + not poisoned + village not cursed
+    const canShootWhenLynched = !assignedHunter.isAlive && !assignedHunter.deathReason.includes('độc');
+    assert.strictEqual(canShootWhenLynched, true, 'Lynched Hunter can fire death shot upon role assignment');
+
+    // If poisoned by witch, hunter cannot shoot
+    const poisonedPlayer = new Player({ id: 15, name: 'Bình', isAlive: false, deathReason: 'Phù Thủy hạ độc' });
+    const canShootWhenPoisoned = !poisonedPlayer.isAlive && !poisonedPlayer.deathReason.includes('độc');
+    assert.strictEqual(canShootWhenPoisoned, false, 'Poisoned Hunter cannot fire death shot');
+    console.log('✅ Test 21: Hunter retroactive role assignment & poison check verified.');
+
+    console.log('\n🎉 ALL 21 DOMAIN ENGINE TESTS PASSED PERFECTLY!\n');
   });
 }

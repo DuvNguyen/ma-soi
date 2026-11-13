@@ -561,6 +561,33 @@ Theo quy chuẩn [docs/game-rules.md](file:///home/levi/Desktop/Projects/werewol
   - Trong nhánh `curse_convert`: Kích hoạt ngay `evaluateGameEnd` khi một người bị Sói Nguyền lây nhiễm thành Ma Sói, đảm bảo nếu số Sói đạt ngưỡng cân bằng hoặc áp đảo Dân Làng (`aliveWolves >= aliveVillagers`), modal **Phe Ma Sói Chiến Thắng** nổ ra ngay tức khắc.
   - Đảm bảo 100% test case logic (Sói bằng Người 2v2, Nguyền thêm Sói 2v2, Bán Sói thức tỉnh 2v1) đều chạy PASS.
 
+## 29. Hoàn Thiện Thợ Săn (Gọi Đêm 1 Nhận Diện & Kích Hoạt Nổ Súng Hồi Tố Khi Bị Treo Cổ/Chết)
+- **Thợ Săn thức dậy nhận diện Quản Trò vào Đêm 1 (`NightPhaseView.jsx`, `NightSpecialRolesStep.jsx`)**:
+  - Gán thứ tự gọi đêm `orderPriority['tho-san'] = 3.3` (ngay sau Thằng Ngốc 3.2 và trước Diễn Viên 3.5).
+  - Thợ Săn chỉ thức dậy vào Đêm 1 (`roundNumber === 1`) để Quản trò nhận diện người nắm giữ vai; từ Đêm 2 trở đi (`roundNumber > 1`) tự động ngủ suốt đêm theo chuẩn luật quốc tế.
+  - Xóa `'tho-san'` khỏi danh sách loại bỏ thụ động ban ngày.
+  - Tích hợp giao diện nhận diện riêng trong `NightSpecialRolesStep.jsx` với icon `Crosshair` phong cách Soft Bento Dark Gothic, hiển thị thông tin người nắm giữ và câu xướng Quản trò chuẩn xác.
+- **Kích hoạt nổ súng hồi tố khi gán Thợ Săn cho người đã chết / bị treo cổ (`App.jsx`, `ActionModal.jsx`)**:
+  - **Khắc phục Race Condition đóng modal (`ActionModal.jsx`)**: Trước đây, khi Quản trò click gán vai `tho-san` cho nạn nhân vừa bị treo cổ, `ActionModal` lập tức gọi `onClose()`, đè bẹp và đóng mất popup nổ súng mà `handleAssignRole` vừa kích hoạt. Đã sửa: kiểm tra `willTriggerHunter = (role?.id === 'tho-san' && !p.isAlive)`, nếu đúng thì bỏ qua `onClose()`.
+  - **Mở rộng phạm vi kích hoạt (`App.jsx`)**: Không chỉ kiểm tra `playerId === lynchedTodayPlayerId`, mà kích hoạt cho bất kỳ người chơi nào đã chết (`!targetPlayer.isAlive`). Đồng thời lưu trạng thái `setPendingHunterShot({ hunterId, hunterName })` để hiển thị banner nổ súng ban ngày và chặn bước chuyển đêm cho đến khi phát súng được thực hiện.
+  - **Bảo toàn quy tắc miễn trừ súng**: Nếu làng đang chịu Lời Nguyền Già Làng (`isVillageCursed`) hoặc Thợ Săn tử trận do trúng độc Phù Thủy, súng bị tê liệt và hệ thống thông báo lý do rõ ràng.
+- **Bộ Kiểm Thử & CI**:
+  - Thêm Test 20 (Thợ Săn gọi Đêm 1, ngủ Đêm 2+) và Test 21 (Nổ súng hồi tố khi gán vai cho người chết & kiểm tra trúng độc).
+  - Vượt qua 21/21 Unit Tests Domain + Toàn bộ E2E Match Simulation (100% PASS).
+  - Build Vite production hoàn tất không lỗi.
+
+## 30. Lộ Trình Kế Tiếp (Upcoming Phases Roadmap)
+- **Phase 4: Tái Cấu Trúc & Module Hóa [DayPhaseView.jsx](file:///projects/werewolf/src/components/DayPhaseView.jsx) + Tinh Gọn Action Engine Ban Ngày**:
+  - `DayPhaseView.jsx` hiện là component lớn nhất còn lại trong ứng dụng.
+  - Tách thành các subcomponents theo SRP tương tự Phase 3:
+    - `DayDiscussionStep.jsx`: Đồng hồ đếm ngược, chuông thảo luận, cảnh báo Gấu gầm.
+    - `DayVotingStep.jsx`: Bảng biểu quyết treo cổ, xử lý phạt Con Quạ (+2 phiếu), kiểm tra hòa phiếu (Người Thế Thân).
+    - `DayVictimActionStep.jsx`: Thẩm phán can thiệp vote lần 2, Kị Sĩ khiêu chiến ban ngày, Thợ Săn nổ súng.
+    - `DayNightTransitionStep.jsx`: Kiểm tra di chúc Cảnh Sát Trưởng và nút chuyển đêm.
+- **Phase 5: Kiểm Thử E2E Tự Động Cho Toàn Bộ 48 Vai Trò Mở Rộng**:
+  - Mở rộng kịch bản test cho các vai trò đặc biệt: Người Thổi Sáo (thắng khi mê hoặc cả làng), Sói Trắng (cắn sói đêm chẵn), Nguyệt Nữ (khóa phép), Thiên Sứ (thắng ngày 1/đêm 1).
+
+
 
 
 
