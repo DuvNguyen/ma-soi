@@ -158,10 +158,12 @@ export default function DayDiscussionTimer({
               {bearData.bearHasWolf ? (
                 <div className="mt-1">
                   <h4 className="font-cinzel font-black text-amber-200 text-sm sm:text-base">
-                    Gấu gầm: Có Ma Sói ngồi kề bên
+                    {bearData.isSelfWolf ? 'Gấu gầm: Người Thuần Hóa bị nhiễm Sói' : 'Gấu gầm: Có Ma Sói ngồi kề bên'}
                   </h4>
                   <p className="text-xs text-amber-300/80 mt-0.5">
-                    Phát hiện Ma Sói kề cận (#{bearData.leftNeighbor.id} {bearData.leftNeighbor.name} hoặc #{bearData.rightNeighbor.id} {bearData.rightNeighbor.name}).
+                    {bearData.isSelfWolf
+                      ? `Bản thân Người Thuần Phục Gấu (#${bearData.bearTamer.id} ${bearData.bearTamer.name}) đã bị nhiễm nanh Sói nên Gấu luôn gầm gừ!`
+                      : `Phát hiện Ma Sói kề cận (#${bearData.leftNeighbor.id} ${bearData.leftNeighbor.name} hoặc #${bearData.rightNeighbor.id} ${bearData.rightNeighbor.name}).`}
                   </p>
                 </div>
               ) : (

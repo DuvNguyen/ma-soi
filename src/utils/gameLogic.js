@@ -179,6 +179,7 @@ export function resolveNightPhase(players, nightActions, roundNumber) {
     whiteWolfVictimId,
     isCursedInfect,
     lastCursedVictimId,
+    hypnotistTargetId,
     isVillageCursed = false
   } = nightActions;
 
@@ -238,6 +239,37 @@ export function resolveNightPhase(players, nightActions, roundNumber) {
     }
 
     const targetRole = getPlayerRole(target);
+
+    // THẦY THÔI MIÊN THẾ MẠNG: Nếu Thầy Thôi Miên bị cắn chết, bùa mê chuyển sang mục tiêu bị thôi miên chết thay
+    if ((targetRole?.id === 'thay-thoi-mien' || target.currentRoleId === 'thay-thoi-mien' || target.roleId === 'thay-thoi-mien') && !isVillageCursed) {
+      const scapegoat = hypnotistTargetId ? updatedPlayers.find(p => p.id === hypnotistTargetId && p.isAlive && p.id !== target.id) : null;
+      if (scapegoat) {
+        killedPlayerIds.add(scapegoat.id);
+        deathReasons[scapegoat.id] = `Chết thay cho Thầy Thôi Miên (${target.name}) do bị trúng thuật thôi miên`;
+        logs.push(`🛡️ THẾ MẠNG THÔI MIÊN: Thầy Thôi Miên (${target.name} #${target.id}) bị Ma Sói cắn nhưng bùa mê đã chuyển hướng sang ${scapegoat.name} (#${scapegoat.id}) chết thay!`);
+
+        const scapegoatRole = getPlayerRole(scapegoat);
+        if (scapegoatRole?.id === 'hiep-si-kiem-gi') {
+          const scapegoatIdx = updatedPlayers.findIndex(p => p.id === scapegoat.id);
+          const aliveWolves = updatedPlayers.filter(p => p.isAlive && isWolfPlayer(p) && p.id !== scapegoat.id);
+          if (aliveWolves.length > 0 && scapegoatIdx !== -1) {
+            aliveWolves.sort((a, b) => {
+              const idxA = updatedPlayers.findIndex(p => p.id === a.id);
+              const idxB = updatedPlayers.findIndex(p => p.id === b.id);
+              const distA = (idxA - scapegoatIdx + updatedPlayers.length) % updatedPlayers.length;
+              const distB = (idxB - scapegoatIdx + updatedPlayers.length) % updatedPlayers.length;
+              return distA - distB;
+            });
+            const targetWolf = aliveWolves[0];
+            targetWolf.poisonedByRustySword = true;
+            targetWolf.rustySwordPoisonRound = roundNumber + 1;
+            logs.push(`🗡️ KIẾM GỈ NHIỄM ĐỘC: Hiệp Sĩ Kiếm Gỉ (${scapegoat.name}) chết thay cho Thầy Thôi Miên, nhưng thanh kiếm gỉ đã chém nhiễm độc con Sói ngồi gần nhất bên trái (${targetWolf.name} #${targetWolf.id})!`);
+          }
+        }
+        return;
+      }
+    }
+
     // Check Elder (Già Làng - 2 lives against wolves)
     if (targetRole?.id === 'gia-lang' && (target.elderLives || 2) > 1) {
       target.elderLives = (target.elderLives || 2) - 1;
@@ -303,7 +335,15 @@ export function resolveNightPhase(players, nightActions, roundNumber) {
         logs.push(`🛡️ ${bbTarget.name} bị Sói Lớn Xấu Xa cắn thêm nhưng đã được BẢO VỆ che chở an toàn!`);
       } else {
         const targetRole = getPlayerRole(bbTarget);
-        if (targetRole?.id === 'gia-lang' && (bbTarget.elderLives || 2) > 1) {
+        const scapegoat = ((targetRole?.id === 'thay-thoi-mien' || bbTarget.currentRoleId === 'thay-thoi-mien' || bbTarget.roleId === 'thay-thoi-mien') && !isVillageCursed && hypnotistTargetId)
+          ? updatedPlayers.find(p => p.id === hypnotistTargetId && p.isAlive && p.id !== bbTarget.id)
+          : null;
+
+        if (scapegoat) {
+          killedPlayerIds.add(scapegoat.id);
+          deathReasons[scapegoat.id] = `Chết thay cho Thầy Thôi Miên (${bbTarget.name}) do bị trúng thuật thôi miên`;
+          logs.push(`🛡️ THẾ MẠNG THÔI MIÊN: Thầy Thôi Miên (${bbTarget.name} #${bbTarget.id}) bị Sói Lớn Xấu Xa cắn nhưng bùa mê đã chuyển hướng sang ${scapegoat.name} (#${scapegoat.id}) chết thay!`);
+        } else if (targetRole?.id === 'gia-lang' && (bbTarget.elderLives || 2) > 1) {
           bbTarget.elderLives = (bbTarget.elderLives || 2) - 1;
           logs.push(`Già Làng ${bbTarget.name} bị Sói Lớn Xấu Xa cắn nhưng sống sót nhờ mạng sống thứ nhất (Còn 1 mạng)!`);
         } else if (targetRole?.id === 'nua-nguoi-nua-soi' || bbTarget.currentRoleId === 'nua-nguoi-nua-soi' || bbTarget.roleId === 'nua-nguoi-nua-soi') {

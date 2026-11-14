@@ -20,15 +20,18 @@ export default function RoleClaimBox({
 
   const isSisters = currentRole?.id === 'hai-chi-em';
   const isBrothers = currentRole?.id === 'ba-anh-em';
-  const isMultiAssign = isWolfStep || isSisters || isBrothers;
+  const isWolfBrothers = currentRole?.id === 'anh-em-soi';
+  const isMultiAssign = isWolfStep || isSisters || isBrothers || isWolfBrothers;
 
-  // Calculate capacity: Wolves configured by deck; Hai Chị Em is 2; Ba Anh Em is 3
+  // Calculate capacity: Wolves configured by deck; Hai Chị Em is 2; Ba Anh Em is 3; Anh Em Sói is 2
   const targetCapacity = isWolfStep
     ? (deckRoleIds.filter(id => WOLF_ROLE_IDS.includes(id)).length || 2)
     : isSisters
     ? 2
     : isBrothers
     ? 3
+    : isWolfBrothers
+    ? 2
     : 1;
 
   const hasCursedInDeck = deckRoleIds.some(id => ['soi-quy', 'nguoi-cha-cua-soi', 'soi-nguyen'].includes(id));
@@ -487,12 +490,12 @@ export default function RoleClaimBox({
             </button>
           ) : (
             <div className="text-xs text-slate-500">
-              {isWolfStep ? 'Chưa chọn Ma Sói' : isSisters ? 'Chưa chọn 2 Chị Em' : 'Chưa chọn 3 Anh Em'}
+              {isWolfStep ? 'Chưa chọn Ma Sói' : isSisters ? 'Chưa chọn 2 Chị Em' : isWolfBrothers ? 'Chưa chọn 2 Anh Em Sói' : 'Chưa chọn 3 Anh Em'}
             </div>
           )}
 
           <GothicButton
-            variant={isWolfStep ? 'blood' : 'witch'}
+            variant={isWolfStep || isWolfBrothers ? 'blood' : 'witch'}
             size="md"
             disabled={selectedWolfIds.length !== targetCapacity}
             onClick={handleConfirmMulti}
@@ -504,6 +507,8 @@ export default function RoleClaimBox({
                 ? `Xác Nhận (${selectedWolfIds.length}/${targetCapacity}) Sói ✓`
                 : isSisters
                 ? `Xác Nhận (${selectedWolfIds.length}/2) Hai Chị Em ✓`
+                : isWolfBrothers
+                ? `Xác Nhận (${selectedWolfIds.length}/2) Anh Em Sói ✓`
                 : `Xác Nhận (${selectedWolfIds.length}/3) Ba Anh Em ✓`}
             </span>
           </GothicButton>

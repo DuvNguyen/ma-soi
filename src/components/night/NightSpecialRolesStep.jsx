@@ -512,6 +512,47 @@ export default function NightSpecialRolesStep({
     );
   }
 
+  // 8.1 THẦY THÔI MIÊN (HYPNOTIST - MÊ HOẶC THẾ MẠNG)
+  if (currentRole.id === 'thay-thoi-mien') {
+    return (
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Wand2 className="w-5 h-5 text-blue-400" />
+            <h4 className="font-bold text-sm text-blue-200 font-cinzel">
+              Mê hoặc Thế Mạng
+            </h4>
+          </div>
+          <button
+            type="button"
+            onClick={() => onSaveAction('hypnotist', null, { hypnotistSkipped: true })}
+            className={`text-xs px-3 py-1 rounded-xl border transition-all font-bold cursor-pointer ${
+              nightState.hypnotistSkipped
+                ? 'bg-blue-950 border-blue-500 text-blue-200 shadow-md'
+                : 'bg-slate-900 hover:bg-slate-800 border-slate-700 text-slate-300'
+            }`}
+          >
+            🚫 Không Mê Hoặc
+          </button>
+        </div>
+
+        <PlayerSeatPicker
+          players={alivePlayers}
+          selectedIds={nightState.hypnotistTargetId && !nightState.hypnotistSkipped ? [nightState.hypnotistTargetId] : []}
+          disabledIds={[
+            ...alivePlayers.filter(p => (p.currentRoleId || p.roleId) === 'thay-thoi-mien' || getPlayerRole(p)?.id === 'thay-thoi-mien').map(p => p.id),
+            ...(nightState.lastNightHypnotistId ? [nightState.lastNightHypnotistId] : [])
+          ]}
+          onSelect={(id) => {
+            onSaveAction('hypnotist', id, { hypnotistSkipped: false });
+          }}
+          variant="default"
+          actionLabel="Mê hoặc"
+        />
+      </div>
+    );
+  }
+
   // 9. THỢ SĂN (HUNTER - ĐÊM 1 NHẬN DIỆN)
   if (currentRole.id === 'tho-san') {
     const hunterPlayer = players.find(p => (p.currentRoleId || p.roleId) === 'tho-san');

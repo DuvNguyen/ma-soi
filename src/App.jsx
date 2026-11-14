@@ -60,6 +60,9 @@ export const DEFAULT_NIGHT_STATE = {
   moonPriestessSkipped: false,
   whiteWolfVictimId: null,
   whiteWolfSkipped: false,
+  hypnotistTargetId: null,
+  lastNightHypnotistId: null,
+  hypnotistSkipped: false,
   skippedRoles: []
 };
 
@@ -875,6 +878,9 @@ export default function App() {
       } else if (type === 'moonPriestess') {
         next.silencedPlayerId = payload;
         next.moonPriestessSkipped = !!extra.moonPriestessSkipped;
+      } else if (type === 'hypnotist') {
+        next.hypnotistTargetId = payload;
+        next.hypnotistSkipped = !!extra.hypnotistSkipped;
       } else if (type === 'hunter') {
         const shotPlayer = players.find(p => p.id === payload);
         const shotRole = getPlayerRole(shotPlayer);
@@ -1808,6 +1814,9 @@ export default function App() {
       moonPriestessSkipped: false,
       whiteWolfVictimId: null,
       whiteWolfSkipped: false,
+      hypnotistTargetId: null,
+      lastNightHypnotistId: prev.hypnotistTargetId,
+      hypnotistSkipped: false,
       skippedRoles: []
     }));
   };

@@ -19,6 +19,12 @@ export function getRoleCapacity(roleId, deckRoleIds = []) {
     return Math.max(countInDeck, 3);
   }
 
+  // Anh Em Sói (Wolf Brothers: Sói Anh & Sói Em) is specifically 2 players
+  if (roleId === 'anh-em-soi') {
+    const countInDeck = deckRoleIds ? deckRoleIds.filter(id => id === roleId).length : 0;
+    return Math.max(countInDeck, 2);
+  }
+
   // If role is common villager, allow multiple
   if (roleId === 'dan-lang' || roleId === 'dan-thuong') {
     if (deckRoleIds && deckRoleIds.length > 0) {

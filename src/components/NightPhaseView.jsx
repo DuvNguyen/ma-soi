@@ -93,7 +93,7 @@ export default function NightPhaseView({
       return true;
     });
 
-    const wolfVariants = ['soi-thuong', 'soi-con', 'soi-lon-xau-xa', 'nguoi-cha-cua-soi', 'soi-quy', 'soi-bi-nguyen'];
+    const wolfVariants = ['soi-thuong', 'soi-con', 'soi-lon-xau-xa', 'nguoi-cha-cua-soi', 'soi-quy', 'soi-bi-nguyen', 'soi-lua', 'anh-em-soi'];
     const nonWolfRoles = activeRoles.filter(r => !wolfVariants.includes(r.id) && r.id !== 'soi-trang');
     const hasAnyWolves = activeRoles.some(r => wolfVariants.includes(r.id) || r.id === 'soi-trang');
 

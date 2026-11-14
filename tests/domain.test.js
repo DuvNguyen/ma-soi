@@ -1,4 +1,6 @@
 import assert from 'node:assert';
+import fs from 'node:fs';
+import path from 'node:path';
 import { Player } from '../src/domain/models/Player.js';
 import { getRoleStrategy } from '../src/domain/strategies/RoleStrategies.js';
 import { getRoleCapacity } from '../src/utils/deckUtils.js';
@@ -674,6 +676,38 @@ console.log('🧪 Starting Phase 1 Domain Model & Strategy Tests...\n');
     assert.strictEqual(customNightFilter(customNightDeck, 4).length, 1, 'Only Tiên Tri active in Night 4 (Diễn Viên expired)');
     console.log('✅ Test 37: Wolf Brothers & Actor night step duration verified.');
 
-    console.log('\n🎉 ALL 37 DOMAIN ENGINE TESTS PASSED PERFECTLY!\n');
+    // Test 38: getRoleCapacity supports anh-em-soi with capacity 2
+    assert.strictEqual(getRoleCapacity('anh-em-soi', ['anh-em-soi']), 2, 'anh-em-soi capacity must be at least 2');
+    assert.strictEqual(getRoleCapacity('anh-em-soi', ['anh-em-soi', 'anh-em-soi', 'anh-em-soi']), 3, 'anh-em-soi capacity scales if deck has 3');
+    console.log('✅ Test 38: anh-em-soi capacity = 2 in getRoleCapacity verified.');
+
+    // Test 39: Wolf variants list in NightPhaseView includes soi-lua and anh-em-soi
+    const nightViewContent = fs.readFileSync(path.join(process.cwd(), 'src/components/NightPhaseView.jsx'), 'utf8');
+    assert.ok(nightViewContent.includes("'soi-lua'"), 'wolfVariants must include soi-lua');
+    assert.ok(nightViewContent.includes("'anh-em-soi'"), 'wolfVariants must include anh-em-soi');
+    console.log('✅ Test 39: wolfVariants includes soi-lua & anh-em-soi in NightPhaseView verified.');
+
+    // Test 40: Hypnotist (thay-thoi-mien) scapegoat redirect on wolf bite
+    const hypTargetPlayer = new Player({ id: 58, name: 'Dân Bị Thôi Miên', currentRoleId: 'dan-lang', roleId: 'dan-lang', isAlive: true });
+    const hypnotistPlayer = new Player({ id: 59, name: 'Thầy Thôi Miên 59', currentRoleId: 'thay-thoi-mien', roleId: 'thay-thoi-mien', isAlive: true });
+    const attackingWolf = new Player({ id: 60, name: 'Sói Đói 60', currentRoleId: 'soi-thuong', roleId: 'soi-thuong', isAlive: true });
+
+    const hypGame = new WerewolfGame({
+      roundNumber: 1,
+      isNight: true,
+      players: [hypTargetPlayer, hypnotistPlayer, attackingWolf]
+    });
+
+    const hypRes = hypGame.resolveNight({
+      wolfTargetId: 59, // Wolves attack Hypnotist!
+      hypnotistTargetId: 58 // Hypnotist hypnotized player 58
+    });
+
+    assert.strictEqual(hypRes.game.getPlayer(59).isAlive, true, 'Thầy Thôi Miên must survive the wolf bite!');
+    assert.strictEqual(hypRes.game.getPlayer(58).isAlive, false, 'Hypnotized target (#58) must die as a scapegoat!');
+    assert.ok(hypRes.game.getPlayer(58).deathReason.includes('Thầy Thôi Miên'), 'Death reason mentions scapegoat redirect');
+    console.log('✅ Test 40: Hypnotist scapegoat redirection verified.');
+
+    console.log('\n🎉 ALL 40 DOMAIN ENGINE TESTS PASSED PERFECTLY!\n');
   });
 }
