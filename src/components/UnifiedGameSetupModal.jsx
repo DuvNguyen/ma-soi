@@ -94,6 +94,7 @@ export default function UnifiedGameSetupModal({
   const [isSavingAsNew, setIsSavingAsNew] = useState(false);
   const [newTemplateNameInput, setNewTemplateNameInput] = useState('');
   const [isSavingTemplate, setIsSavingTemplate] = useState(false);
+  const isSubmittingNewTemplateRef = useRef(false);
   const [settingDefaultId, setSettingDefaultId] = useState(null);
   const [deletingTemplateId, setDeletingTemplateId] = useState(null);
 
@@ -418,8 +419,9 @@ export default function UnifiedGameSetupModal({
   // Save as new custom template
   const handleSaveAsNewTemplate = async (e) => {
     e.preventDefault();
-    if (isSavingTemplate) return;
-    if (!newTemplateNameInput.trim()) {
+    if (isSavingTemplate || isSubmittingNewTemplateRef.current) return;
+    const trimmedName = newTemplateNameInput.trim();
+    if (!trimmedName) {
       showAlert({
         title: 'THIẾU TÊN BỘ BÀI',
         message: 'Vui lòng nhập tên cho bộ bài trước khi lưu.',
@@ -428,11 +430,25 @@ export default function UnifiedGameSetupModal({
       return;
     }
 
+    // Check for duplicate deck name (case-insensitive)
+    const existing = (templates || []).find(
+      t => t.name.trim().toLowerCase() === trimmedName.toLowerCase()
+    );
+    if (existing) {
+      showAlert({
+        title: 'TRÙNG TÊN BỘ BÀI',
+        message: `Đã tồn tại bộ bài mang tên "${existing.name}". Vui lòng đặt tên khác hoặc chỉnh sửa bộ bài hiện có.`,
+        variant: 'warning'
+      });
+      return;
+    }
+
+    isSubmittingNewTemplateRef.current = true;
     setIsSavingTemplate(true);
     try {
       const newTemplate = {
         id: `template-${Date.now()}`,
-        name: newTemplateNameInput.trim(),
+        name: trimmedName,
         desc: `${selectedRoleIds.length} lá bài tự chọn (${selectedRoleIds.length} người chơi)`,
         playerCount: selectedRoleIds.length,
         roleIds: selectedRoleIds,
@@ -456,6 +472,7 @@ export default function UnifiedGameSetupModal({
       });
     } finally {
       setIsSavingTemplate(false);
+      isSubmittingNewTemplateRef.current = false;
     }
   };
 

@@ -22,7 +22,21 @@ async function fetchWithIdempotency(key, url, options = {}) {
   const promise = (async () => {
     try {
       const res = await fetch(url, { ...options, headers });
-      const data = await res.json().catch(() => ({ ok: res.ok }));
+      const contentType = res.headers?.get ? (res.headers.get('content-type') || '') : '';
+      let data = null;
+      if (typeof res.json === 'function' && (contentType.includes('application/json') || !contentType)) {
+        data = await res.json().catch(() => null);
+      }
+      if (!data && typeof res.text === 'function') {
+        const text = await res.text().catch(() => '');
+        data = res.ok ? { ok: true, text } : { ok: false, error: text ? text.slice(0, 150) : `HTTP ${res.status}` };
+      }
+      if (!data) {
+        data = { ok: Boolean(res.ok) };
+      }
+      if (!res.ok || data.ok === false) {
+        throw new Error(data.error || `Yêu cầu thất bại (${res.status || 'lỗi máy chủ'})`);
+      }
       return data;
     } finally {
       inFlightRequests.delete(key);

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { ROLES } from '../data/roles';
 import { DEFAULT_PLAYER_NAMES } from '../data/defaultPlayers';
 import { fetchTemplates, saveTemplateApi, deleteTemplateApi, setDefaultTemplateApi } from '../services/api';
@@ -23,6 +23,7 @@ export default function DeckTemplateModal({
   const [isCreating, setIsCreating] = useState(false);
   const [editingTemplateId, setEditingTemplateId] = useState(null);
   const [isSaving, setIsSaving] = useState(false);
+  const isSavingRef = useRef(false);
   const [settingDefaultId, setSettingDefaultId] = useState(null);
   const [deletingTemplateId, setDeletingTemplateId] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -125,9 +126,10 @@ export default function DeckTemplateModal({
 
   const handleSaveNewTemplate = async (e) => {
     e.preventDefault();
-    if (isSaving) return;
+    if (isSaving || isSavingRef.current) return;
 
-    if (!newTemplateName.trim()) {
+    const trimmedName = newTemplateName.trim();
+    if (!trimmedName) {
       showAlert({
         title: 'THIẾU THÔNG TIN BỘ BÀI',
         message: 'Vui lòng nhập tên cho bộ bài template trước khi lưu.',
@@ -135,6 +137,20 @@ export default function DeckTemplateModal({
       });
       return;
     }
+
+    // Check duplicate name
+    const existing = (templates || []).find(
+      t => t.id !== editingTemplateId && t.name.trim().toLowerCase() === trimmedName.toLowerCase()
+    );
+    if (existing) {
+      showAlert({
+        title: 'TRÙNG TÊN BỘ BÀI',
+        message: `Đã có bộ bài mang tên "${existing.name}". Vui lòng đặt tên khác để tránh nhầm lẫn.`,
+        variant: 'warning'
+      });
+      return;
+    }
+
     const roleIds = getFlattenedRoleIds();
     if (roleIds.length === 0) {
       showAlert({
@@ -156,13 +172,14 @@ export default function DeckTemplateModal({
 
     const templateToSave = {
       id: editingTemplateId || `template-${Date.now()}`,
-      name: newTemplateName.trim(),
+      name: trimmedName,
       desc: newTemplateDesc.trim() || `${totalCards} lá bài tự chọn (${totalCards} người chơi)`,
       playerCount: totalCards,
       roleIds: roleIds,
       playerNames: playerNames
     };
 
+    isSavingRef.current = true;
     setIsSaving(true);
     try {
       await saveTemplateApi(templateToSave);
@@ -180,6 +197,7 @@ export default function DeckTemplateModal({
       });
     } finally {
       setIsSaving(false);
+      isSavingRef.current = false;
     }
   };
 

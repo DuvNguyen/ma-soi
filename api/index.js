@@ -102,10 +102,14 @@ export default async function handler(req, res) {
   let path = '';
   if (req.query?.path) {
     path = Array.isArray(req.query.path) ? req.query.path.join('/') : req.query.path;
-  } else if (req.url) {
-    path = req.url.split('?')[0].replace(/^\/api\/?/, '');
+  } else {
+    const rawUrl = req.headers?.['x-matched-path'] || req.headers?.['x-original-url'] || req.url || '';
+    path = rawUrl.split('?')[0].replace(/^\/api\/?/, '');
   }
   path = (path || '').replace(/^\/+|\/+$/g, '');
+  if (path === 'index.js' || path === 'index') {
+    path = '';
+  }
 
   try {
     // 1. DB Health Check
