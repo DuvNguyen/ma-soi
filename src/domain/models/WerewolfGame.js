@@ -125,7 +125,8 @@ export class WerewolfGame {
 
     let updatedPlayers = rawResult.updatedPlayers.map(p => Player.fromJSON(p));
     let logs = [...rawResult.logs];
-    let wolfCanKillDouble = this.wolfCanKillDouble;
+    // Sói cuồng sát chỉ diễn ra duy nhất 1 đêm sau khi Sói Con chết; sau khi đêm săn kết thúc thì trở lại bình thường
+    let wolfCanKillDouble = false;
     let isVillageCursed = rawResult.elderKilledByWitch ? true : this.isVillageCursed;
     let nextNightState = { ...this.nightState };
 
@@ -209,6 +210,7 @@ export class WerewolfGame {
       transformedShadows,
       elderKilledByWitch: rawResult.elderKilledByWitch,
       killedWolfPup: Boolean(killedWolfPup),
+      wolfCanKillDouble,
       gameEndResult
     };
   }
@@ -332,6 +334,16 @@ export class WerewolfGame {
       transformedShadows.push(...shadowRes2.transformedShadows);
     }
 
+    // 8. Kiểm tra Đứa Trẻ Hoang Dã mất Thần Tượng khi bị treo cổ
+    const wcRes1 = this._checkWildChildIdolDeath(updatedPlayers, deadTarget);
+    updatedPlayers = wcRes1.updatedPlayers;
+    let transformedWildChildren = [...wcRes1.transformedWildChildren];
+    if (loverPartnerDied) {
+      const wcRes2 = this._checkWildChildIdolDeath(updatedPlayers, loverPartnerDied);
+      updatedPlayers = wcRes2.updatedPlayers;
+      transformedWildChildren.push(...wcRes2.transformedWildChildren);
+    }
+
     const winResult = checkGameEnd(updatedPlayers);
     const gameEndResult = winResult.isEnded ? winResult : null;
 
@@ -355,6 +367,7 @@ export class WerewolfGame {
       hunterTrigger,
       isScapegoatLynch,
       transformedShadows,
+      transformedWildChildren,
       gameEndResult,
       game: nextGame
     };
@@ -388,6 +401,32 @@ export class WerewolfGame {
   }
 
   /**
+   * Helper kiểm tra và chuyển hóa Đứa Trẻ Hoang Dã khi Thần Tượng tử trận (Private)
+   */
+  _checkWildChildIdolDeath(playerList, deadPlayer) {
+    if (!deadPlayer) return { updatedPlayers: playerList, transformedWildChildren: [] };
+    const transformedWildChildren = [];
+    const updatedPlayers = playerList.map(p => {
+      if (p.isAlive && (p.currentRoleId === 'dua-tre-hoang-da' || p.roleId === 'dua-tre-hoang-da' || p.getRole()?.id === 'dua-tre-hoang-da') && p.idolId === deadPlayer.id) {
+        const transformed = p.clone({
+          originalRoleId: p.originalRoleId || p.currentRoleId || 'dua-tre-hoang-da',
+          currentRoleId: 'soi-thuong',
+          roleId: 'soi-thuong',
+          isCursedWolf: true,
+          curseNight: this.roundNumber
+        });
+        transformedWildChildren.push({
+          wildChild: transformed,
+          idol: deadPlayer
+        });
+        return transformed;
+      }
+      return p;
+    });
+    return { updatedPlayers, transformedWildChildren };
+  }
+
+  /**
    * Kị Sĩ Thách Đấu (Knight Duel)
    */
   knightDuel(knightId, targetId) {
@@ -402,6 +441,7 @@ export class WerewolfGame {
     let logs = [];
     let deadSheriff = null;
     let transformedShadows = [];
+    let transformedWildChildren = [];
     let hunterTrigger = null;
     let wolfCanKillDouble = this.wolfCanKillDouble;
 
@@ -437,7 +477,7 @@ export class WerewolfGame {
       }
     }
 
-    // Cascade 2: Kiểm tra toàn bộ nạn nhân cho Cảnh Trưởng, Thợ Săn, Sói Con, Ảnh Tử
+    // Cascade 2: Kiểm tra toàn bộ nạn nhân cho Cảnh Trưởng, Thợ Săn, Sói Con, Ảnh Tử, Đứa Trẻ Hoang Dã
     casualties.forEach(deadP => {
       if (deadP.isSheriff) deadSheriff = deadP;
       if (deadP.getRole()?.id === 'soi-con') {
@@ -450,6 +490,13 @@ export class WerewolfGame {
       const shadowRes = this._checkShadowInheritance(updatedPlayers, deadP);
       updatedPlayers = shadowRes.updatedPlayers;
       transformedShadows.push(...shadowRes.transformedShadows);
+
+      const wcRes = this._checkWildChildIdolDeath(updatedPlayers, deadP);
+      updatedPlayers = wcRes.updatedPlayers;
+      transformedWildChildren.push(...wcRes.transformedWildChildren);
+      wcRes.transformedWildChildren.forEach(item => {
+        logs.push(`🐺 THẦN TƯỢNG TỬ TRẬN: Thần tượng (${deadP.name}) của Đứa Trẻ Hoang Dã (${item.wildChild.name}) đã chết trong trận thách đấu! Đứa Trẻ căm phẫn hóa thành Ma Sói!`);
+      });
     });
 
     const winResult = checkGameEnd(updatedPlayers);
@@ -471,6 +518,7 @@ export class WerewolfGame {
       hunterTrigger,
       wolfCanKillDouble,
       transformedShadows,
+      transformedWildChildren,
       logs,
       gameEndResult,
       game: nextGame

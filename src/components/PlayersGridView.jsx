@@ -4,7 +4,7 @@ import GothicBadge from './ui/GothicBadge';
 import WolfIcon from './ui/WolfIcon';
 import { isWolfPlayer, getPlayerRole, getPlayerOriginalRole } from '../utils/roleUtils';
 
-export default function PlayersGridView({ players, onOpenAssignRole, onOpenRosters, scapegoatBannedVoterIds = [] }) {
+export default function PlayersGridView({ players, onOpenAssignRole, onOpenRosters, scapegoatBannedVoterIds = [], nightState = {} }) {
   const aliveCount = players.filter(p => p.isAlive).length;
   const wolfCount = players.filter(p => p.isAlive && isWolfPlayer(p)).length;
   const villagerCount = players.filter(p => p.isAlive && !isWolfPlayer(p) && getPlayerRole(p)?.teamCode === 'V').length;
@@ -86,6 +86,7 @@ export default function PlayersGridView({ players, onOpenAssignRole, onOpenRoste
             const pRole = getPlayerRole(p);
             const origRole = getPlayerOriginalRole(p);
             const hasRole = Boolean(pRole || p.currentRoleId || p.roleId);
+            const isSilenced = nightState?.silencedPlayerId === p.id && !nightState?.moonPriestessSkipped;
 
             return (
               <button
@@ -122,7 +123,9 @@ export default function PlayersGridView({ players, onOpenAssignRole, onOpenRoste
                     #{p.id}
                   </span>
                   {p.isSheriff && <Star className="w-3 h-3 text-amber-400 fill-amber-400 shrink-0" title="Cảnh Sát Trưởng (x2 phiếu)" />}
-                  {partner && <Heart className="w-3 h-3 text-pink-400 fill-pink-500 shrink-0" />}
+                  {partner && <Heart className="w-3 h-3 text-pink-400 fill-pink-500 shrink-0" title="Người yêu" />}
+                  {p.isHypnotized && <span className="text-[11px] shrink-0 select-none" title="Bị Người Thổi Sáo thôi miên">🎵</span>}
+                  {isSilenced && <span className="text-[11px] shrink-0 select-none" title="Bị Nguyệt Nữ cấm lặng hôm nay">🔇</span>}
                   {scapegoatBannedVoterIds?.includes(p.id) && (
                     <Scale className="w-3 h-3 text-rose-400 shrink-0" title="Bị cấm biểu quyết (Di ngôn Người Thế Thân)" />
                   )}
@@ -156,13 +159,25 @@ export default function PlayersGridView({ players, onOpenAssignRole, onOpenRoste
                         </span>
                       </div>
                     ) : (
-                      <span className={`text-[9px] font-bold px-1.5 py-0.2 rounded block truncate ${
-                        isWolf
-                          ? 'bg-rose-950 text-rose-300 border border-rose-800'
-                          : 'bg-purple-950 text-purple-300 border border-purple-800'
-                      }`}>
-                        {pRole?.name || 'Đã gán vai'}
-                      </span>
+                      <div className="space-y-0.5">
+                        <span className={`text-[9px] font-bold px-1.5 py-0.2 rounded block truncate ${
+                          isWolf
+                            ? 'bg-rose-950 text-rose-300 border border-rose-800'
+                            : 'bg-purple-950 text-purple-300 border border-purple-800'
+                        }`}>
+                          {pRole?.name || 'Đã gán vai'}
+                        </span>
+                        {p.isAlive && (p.currentRoleId === 'dua-tre-hoang-da' || p.roleId === 'dua-tre-hoang-da') && p.idolId && (
+                          <span className="text-[8px] text-amber-300 font-medium block truncate" title={`Thần tượng: Ghế #${p.idolId}`}>
+                            ★ Idol: #{p.idolId}
+                          </span>
+                        )}
+                        {p.isAlive && (p.currentRoleId === 'anh-tu' || p.roleId === 'anh-tu') && p.shadowHostId && (
+                          <span className="text-[8px] text-purple-300 font-medium block truncate" title={`Bản thể: Ghế #${p.shadowHostId}`}>
+                            👻 Bản thể: #{p.shadowHostId}
+                          </span>
+                        )}
+                      </div>
                     )
                   ) : (
                     <span className="text-[9px] text-slate-500 italic block truncate">
@@ -197,6 +212,14 @@ export default function PlayersGridView({ players, onOpenAssignRole, onOpenRoste
           <div className="flex items-center gap-1.5">
             <Heart className="w-3.5 h-3.5 text-pink-400 fill-pink-500" />
             <span>Cặp Đôi Yêu Nhau</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <span className="text-xs">🎵</span>
+            <span>Bị Thôi Miên</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <span className="text-xs">🔇</span>
+            <span>Bị Câm Lặng</span>
           </div>
         </div>
       </div>

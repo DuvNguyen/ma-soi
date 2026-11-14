@@ -1,5 +1,5 @@
 import React from 'react';
-import { Flame, Ghost, Wand2, Eye, Skull, MoonStar, Crosshair } from 'lucide-react';
+import { Flame, Ghost, Wand2, Eye, Skull, MoonStar, Crosshair, Users } from 'lucide-react';
 import PlayerSeatPicker from '../PlayerSeatPicker';
 import WolfIcon from '../ui/WolfIcon';
 import { getPlayerRole } from '../../utils/roleUtils';
@@ -140,23 +140,34 @@ export default function NightSpecialRolesStep({
   // 3. NGƯỜI THỔI SÁO (PIED PIPER)
   if (currentRole.id === 'nguoi-thoi-sao') {
     const piperChosen = nightState.piperChosenIds || [];
+    const piperPlayer = players.find(p => (p.currentRoleId || p.roleId) === 'nguoi-thoi-sao' || getPlayerRole(p)?.id === 'nguoi-thoi-sao');
+    const hypnotizedCount = alivePlayers.filter(p => p.isHypnotized && p.id !== piperPlayer?.id).length;
+    const targetVictimsCount = Math.max(0, alivePlayers.length - (piperPlayer?.isAlive ? 1 : 0));
+
     return (
       <div className="space-y-3">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
           <div className="flex items-center gap-2">
             <Wand2 className="w-5 h-5 text-indigo-400" />
             <h4 className="font-bold text-sm text-indigo-200 font-cinzel">
               Mê hoặc Người Thổi Sáo ({piperChosen.length}/2)
             </h4>
           </div>
+          <span className="text-xs px-2.5 py-1 rounded-lg bg-indigo-950/80 border border-indigo-700/80 text-indigo-300 font-bold">
+            Tiến độ: {hypnotizedCount}/{targetVictimsCount} người bị mê hoặc
+          </span>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5">
           {alivePlayers.map(p => {
+            const isSelf = p.id === piperPlayer?.id;
             const isSelected = piperChosen.includes(p.id);
+            const isAlreadyHypnotized = Boolean(p.isHypnotized);
+
             return (
               <button
                 key={p.id}
+                disabled={isSelf}
                 onClick={() => {
                   let next = [];
                   if (piperChosen.includes(p.id)) {
@@ -169,8 +180,12 @@ export default function NightSpecialRolesStep({
                   onSaveAction('piper', next);
                 }}
                 className={`p-3 rounded-2xl border text-left transition-all duration-200 flex items-center justify-between cursor-pointer ${
-                  isSelected
-                    ? 'bg-indigo-950 border-indigo-400 text-indigo-100 shadow-[0_0_15px_rgba(99,102,241,0.5)]'
+                  isSelf
+                    ? 'opacity-30 cursor-not-allowed bg-black/40 border-slate-900 text-slate-600'
+                    : isSelected
+                    ? 'bg-indigo-950 border-indigo-400 text-indigo-100 shadow-[0_0_15px_rgba(99,102,241,0.5)] ring-1 ring-indigo-400'
+                    : isAlreadyHypnotized
+                    ? 'bg-[#18102a] border-purple-800/80 text-purple-200'
                     : 'bg-[#121422] hover:bg-[#1a1730] border-slate-800 text-slate-300'
                 }`}
               >
@@ -179,12 +194,20 @@ export default function NightSpecialRolesStep({
                     {p.id}
                   </div>
                   <div className="truncate">
-                    <div className="font-bold text-sm">{p.name}</div>
-                    <div className="text-xs text-slate-400">{getPlayerRole(p)?.name || '❓ Chưa lộ vai'}</div>
+                    <div className="font-bold text-sm truncate">{p.name}</div>
+                    <div className="text-xs text-slate-400 truncate">{getPlayerRole(p)?.name || '❓ Chưa lộ vai'}</div>
                   </div>
                 </div>
 
-                {isSelected && <span className="text-xs font-bold text-indigo-300">🎶 Thôi miên</span>}
+                <div className="shrink-0 flex items-center gap-1">
+                  {isSelf ? (
+                    <span className="text-[10px] text-slate-500">Bản thân</span>
+                  ) : isSelected ? (
+                    <span className="text-xs font-bold text-indigo-300">🎶 Đêm nay</span>
+                  ) : isAlreadyHypnotized ? (
+                    <span className="text-[10px] font-bold text-purple-300">🎵 Đã mê</span>
+                  ) : null}
+                </div>
               </button>
             );
           })}
@@ -520,5 +543,100 @@ export default function NightSpecialRolesStep({
     );
   }
 
-  return null;
+  // 10. HAI CHỊ EM (TWO SISTERS - ĐÊM 1 NHẬN DIỆN)
+  if (currentRole.id === 'hai-chi-em') {
+    const sisters = players.filter(p => (p.currentRoleId || p.roleId) === 'hai-chi-em' || getPlayerRole(p)?.id === 'hai-chi-em');
+    return (
+      <div className="p-4 rounded-2xl bg-[#14121e] border border-pink-500/30 text-pink-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <div className="p-2.5 rounded-xl bg-pink-950/60 border border-pink-600/40 text-pink-300 shrink-0">
+            <Users className="w-5 h-5" />
+          </div>
+          <div>
+            <div className="font-bold text-pink-200 text-sm">Hai Chị Em Nhận Diện Nhau</div>
+            <div className="text-xs text-slate-400 mt-0.5">
+              Thức dậy trong Đêm 1 để biết mặt nhau và cùng thuộc phe Dân Làng
+            </div>
+          </div>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          {sisters.length > 0 ? (
+            sisters.map(s => (
+              <span key={s.id} className="text-xs font-semibold px-2.5 py-1 rounded-lg bg-pink-950/80 border border-pink-600 text-pink-200">
+                #{s.id} {s.name}
+              </span>
+            ))
+          ) : (
+            <span className="text-xs px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-700 text-slate-400">
+              Chưa gán vai
+            </span>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // 11. BA ANH EM (THREE BROTHERS - ĐÊM 1 NHẬN DIỆN)
+  if (currentRole.id === 'ba-anh-em') {
+    const brothers = players.filter(p => (p.currentRoleId || p.roleId) === 'ba-anh-em' || getPlayerRole(p)?.id === 'ba-anh-em');
+    return (
+      <div className="p-4 rounded-2xl bg-[#14121e] border border-blue-500/30 text-blue-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <div className="p-2.5 rounded-xl bg-blue-950/60 border border-blue-600/40 text-blue-300 shrink-0">
+            <Users className="w-5 h-5" />
+          </div>
+          <div>
+            <div className="font-bold text-blue-200 text-sm">Ba Anh Em Nhận Diện Nhau</div>
+            <div className="text-xs text-slate-400 mt-0.5">
+              Thức dậy trong Đêm 1 để biết mặt nhau và cùng thuộc phe Dân Làng
+            </div>
+          </div>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          {brothers.length > 0 ? (
+            brothers.map(b => (
+              <span key={b.id} className="text-xs font-semibold px-2.5 py-1 rounded-lg bg-blue-950/80 border border-blue-600 text-blue-200">
+                #{b.id} {b.name}
+              </span>
+            ))
+          ) : (
+            <span className="text-xs px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-700 text-slate-400">
+              Chưa gán vai
+            </span>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // Giao diện dự phòng tiêu chuẩn cho các vai trò đêm khác
+  const assignedHolders = players.filter(p => (p.currentRoleId || p.roleId) === currentRole.id || getPlayerRole(p)?.id === currentRole.id);
+  return (
+    <div className="p-4 rounded-2xl bg-[#14121e] border border-purple-500/30 text-purple-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      <div className="flex items-center gap-3">
+        <div className="p-2.5 rounded-xl bg-purple-950/60 border border-purple-600/40 text-purple-300 shrink-0">
+          <MoonStar className="w-5 h-5" />
+        </div>
+        <div>
+          <div className="font-bold text-purple-200 text-sm">{currentRole.name}</div>
+          <div className="text-xs text-slate-400 mt-0.5">
+            {currentRole.shortDesc || currentRole.gmCall || 'Gọi thức dậy trong đêm theo diễn biến ván đấu.'}
+          </div>
+        </div>
+      </div>
+      <div className="flex flex-wrap items-center gap-2">
+        {assignedHolders.length > 0 ? (
+          assignedHolders.map(h => (
+            <span key={h.id} className="text-xs font-semibold px-2.5 py-1 rounded-lg bg-purple-950/80 border border-purple-600 text-purple-200">
+              #{h.id} {h.name}
+            </span>
+          ))
+        ) : (
+          <span className="text-xs px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-700 text-slate-400">
+            Chưa gán vai
+          </span>
+        )}
+      </div>
+    </div>
+  );
 }

@@ -17,7 +17,9 @@ export const DEFAULT_PLAYER_PROPS = {
   poisonedByRustySword: false,
   rustySwordPoisonRound: null,
   hasUsedKnightDuel: false,
-  shadowHostId: null
+  shadowHostId: null,
+  isHypnotized: false,
+  idolId: null
 };
 
 /**
@@ -44,6 +46,8 @@ export class Player {
     this.rustySwordPoisonRound = data.rustySwordPoisonRound ?? null;
     this.hasUsedKnightDuel = Boolean(data.hasUsedKnightDuel);
     this.shadowHostId = data.shadowHostId ?? null;
+    this.isHypnotized = Boolean(data.isHypnotized);
+    this.idolId = data.idolId ?? null;
   }
 
   /**
@@ -248,7 +252,9 @@ export class Player {
       poisonedByRustySword: this.poisonedByRustySword,
       rustySwordPoisonRound: this.rustySwordPoisonRound,
       hasUsedKnightDuel: this.hasUsedKnightDuel,
-      shadowHostId: this.shadowHostId
+      shadowHostId: this.shadowHostId,
+      isHypnotized: this.isHypnotized,
+      idolId: this.idolId
     };
   }
 

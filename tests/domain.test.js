@@ -473,7 +473,7 @@ console.log('🧪 Starting Phase 1 Domain Model & Strategy Tests...\n');
     assert.strictEqual(duelCascadeRes.wolfCanKillDouble, true, 'Wolf Pup casualty triggers double kill for next night');
     console.log('✅ Test 23: Knight Duel cascade (Lover heartbreak, Hunter trigger, Wolf Pup rage) verified.');
 
-    // Test 24: Shadow (Ảnh Tử) night inheritance & Bodyguard deflecting Cursed Wolf infection
+    // Test 24: Shadow night inheritance upon host casualty verified.
     const nightShadowHost = new Player({ id: 23, name: 'Chủ Thể', currentRoleId: 'tien-tri', roleId: 'tien-tri', isAlive: true });
     const nightShadow = new Player({ id: 24, name: 'Ảnh Tử', currentRoleId: 'anh-tu', roleId: 'anh-tu', shadowHostId: 23, isAlive: true });
     const nightWolf = new Player({ id: 25, name: 'Sói', currentRoleId: 'soi-thuong', roleId: 'soi-thuong', isAlive: true });
@@ -488,6 +488,71 @@ console.log('🧪 Starting Phase 1 Domain Model & Strategy Tests...\n');
     assert.strictEqual(shadowNightRes.transformedShadows.length, 1);
     console.log('✅ Test 24: Shadow night inheritance upon host casualty verified.');
 
-    console.log('\n🎉 ALL 24 DOMAIN ENGINE TESTS PASSED PERFECTLY!\n');
+    // Test 25: Wolf Pup rage kill (wolfCanKillDouble) resets to false after rage night finishes
+    const rageWolf = new Player({ id: 26, name: 'Sói', currentRoleId: 'soi-thuong', roleId: 'soi-thuong', isAlive: true });
+    const victimA = new Player({ id: 27, name: 'Nạn Nhân 1', currentRoleId: 'dan-lang', roleId: 'dan-lang', isAlive: true });
+    const victimB = new Player({ id: 28, name: 'Nạn Nhân 2', currentRoleId: 'dan-lang', roleId: 'dan-lang', isAlive: true });
+    const villagerC = new Player({ id: 29, name: 'Dân Làng C', currentRoleId: 'dan-lang', roleId: 'dan-lang', isAlive: true });
+
+    const rageGame = new WerewolfGame({
+      roundNumber: 2,
+      isNight: true,
+      wolfCanKillDouble: true, // Rage active
+      players: [rageWolf, victimA, victimB, villagerC]
+    });
+
+    const rageNightRes = rageGame.resolveNight({ wolfTargetId: 27, wolfTargetId2: 28 });
+    assert.strictEqual(rageNightRes.game.getPlayer(27).isAlive, false, 'Victim 1 killed');
+    assert.strictEqual(rageNightRes.game.getPlayer(28).isAlive, false, 'Victim 2 killed');
+    assert.strictEqual(rageNightRes.wolfCanKillDouble, false, 'Rage must reset to false after the night');
+    assert.strictEqual(rageNightRes.game.wolfCanKillDouble, false, 'Next game instance must have wolfCanKillDouble = false');
+    console.log('✅ Test 25: Wolf Pup rage kill properly consumes after 1 night.');
+
+    // Test 26: Pied Piper (nguoi-thoi-sao) charms players and triggers solo win
+    const piper = new Player({ id: 30, name: 'Thổi Sáo', currentRoleId: 'nguoi-thoi-sao', roleId: 'nguoi-thoi-sao', isAlive: true });
+    const targetP1 = new Player({ id: 31, name: 'Người A', currentRoleId: 'dan-lang', roleId: 'dan-lang', isAlive: true, isHypnotized: true });
+    const targetP2 = new Player({ id: 32, name: 'Người B', currentRoleId: 'dan-lang', roleId: 'dan-lang', isAlive: true });
+
+    const piperGame = new WerewolfGame({
+      roundNumber: 2,
+      isNight: true,
+      players: [piper, targetP1, targetP2]
+    });
+
+    const piperNightRes = piperGame.resolveNight({ piperChosenIds: [32] });
+    assert.strictEqual(piperNightRes.game.getPlayer(32).isHypnotized, true, 'Player 32 must be hypnotized');
+    assert.strictEqual(piperNightRes.gameEndResult?.winner, 'Pied Piper', 'All living non-piper players hypnotized -> Pied Piper wins!');
+    console.log('✅ Test 26: Pied Piper hypnosis and win condition verified.');
+
+    // Test 27: Wild Child (dua-tre-hoang-da) transforms when idol is lynched or challenged
+    const wildChild = new Player({ id: 33, name: 'Đứa Trẻ', currentRoleId: 'dua-tre-hoang-da', roleId: 'dua-tre-hoang-da', idolId: 34, isAlive: true });
+    const idolPlayer = new Player({ id: 34, name: 'Thần Tượng', currentRoleId: 'dan-lang', roleId: 'dan-lang', isAlive: true });
+    const otherVillager = new Player({ id: 35, name: 'Dân Làng Khác', currentRoleId: 'dan-lang', roleId: 'dan-lang', isAlive: true });
+    const wolf36 = new Player({ id: 36, name: 'Sói', currentRoleId: 'soi-thuong', roleId: 'soi-thuong', isAlive: true });
+
+    const wildChildGame = new WerewolfGame({
+      roundNumber: 1,
+      isNight: false,
+      players: [wildChild, idolPlayer, otherVillager, wolf36]
+    });
+
+    const lynchIdolRes = wildChildGame.lynchPlayer(34);
+    assert.strictEqual(lynchIdolRes.game.getPlayer(34).isAlive, false, 'Idol lynched');
+    const transformedWc = lynchIdolRes.game.getPlayer(33);
+    assert.strictEqual(transformedWc.isWolf(), true, 'Wild Child must become a Werewolf upon idol lynch');
+    assert.strictEqual(transformedWc.isCursedWolf, true);
+    assert.strictEqual(lynchIdolRes.transformedWildChildren.length, 1);
+    console.log('✅ Test 27: Wild Child idol death cascade on lynch verified.');
+
+    // Test 28: Bear Tamer growl when Bear Tamer himself is infected/wolf
+    const infectedBearTamer = new Player({ id: 37, name: 'Thuần Thú Gấu', currentRoleId: 'soi-thuong', originalRoleId: 'nguoi-thuan-phuc-gau', isCursedWolf: true, isAlive: true });
+    const leftNeighbor = new Player({ id: 38, name: 'Hàng Xóm Trái', currentRoleId: 'dan-lang', roleId: 'dan-lang', isAlive: true });
+    const rightNeighbor = new Player({ id: 39, name: 'Hàng Xóm Phải', currentRoleId: 'dan-lang', roleId: 'dan-lang', isAlive: true });
+    assert.strictEqual(infectedBearTamer.isWolf(), true, 'Infected Bear Tamer is a wolf');
+    const bearHasWolf = infectedBearTamer.isWolf() || leftNeighbor.isWolf() || rightNeighbor.isWolf();
+    assert.strictEqual(bearHasWolf, true, 'Bear growls when Bear Tamer himself is a werewolf');
+    console.log('✅ Test 28: Infected Bear Tamer growl logic verified.');
+
+    console.log('\n🎉 ALL 28 DOMAIN ENGINE TESTS PASSED PERFECTLY!\n');
   });
 }

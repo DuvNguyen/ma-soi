@@ -11,8 +11,13 @@ export default function DayDiscussionTimer({
   setIsTimerRunning,
   formatTime,
   alivePlayers,
-  players
+  players,
+  nightState = {}
 }) {
+  const silencedPlayer = nightState?.silencedPlayerId && !nightState?.moonPriestessSkipped
+    ? players.find(p => p.id === nightState.silencedPlayerId)
+    : null;
+
   // Bear Tamer logic
   const bearTamer = players.find(p => p.isAlive && ((p.currentRoleId || p.roleId) === 'nguoi-thuan-phuc-gau' || getPlayerRole(p)?.id === 'nguoi-thuan-phuc-gau' || (p.currentRoleId || p.roleId) === 'than-gau'));
   let bearData = null;
@@ -23,13 +28,36 @@ export default function DayDiscussionTimer({
     if (idx !== -1) {
       const leftNeighbor = sortedAlive[(idx - 1 + sortedAlive.length) % sortedAlive.length];
       const rightNeighbor = sortedAlive[(idx + 1) % sortedAlive.length];
-      const bearHasWolf = isWolfPlayer(leftNeighbor) || isWolfPlayer(rightNeighbor);
-      bearData = { bearTamer, leftNeighbor, rightNeighbor, bearHasWolf };
+      const isSelfWolf = isWolfPlayer(bearTamer);
+      const bearHasWolf = isSelfWolf || isWolfPlayer(leftNeighbor) || isWolfPlayer(rightNeighbor);
+      bearData = { bearTamer, leftNeighbor, rightNeighbor, bearHasWolf, isSelfWolf };
     }
   }
 
   return (
     <div className="space-y-4">
+      {/* Silenced Player Warning Banner (Nguyệt Nữ) */}
+      {silencedPlayer && silencedPlayer.isAlive && (
+        <div className="p-3.5 rounded-2xl bg-gradient-to-r from-purple-950/80 via-[#1c1228] to-purple-950/80 border border-purple-600/80 text-purple-200 shadow-[0_0_20px_rgba(168,85,247,0.3)] flex items-center justify-between gap-3 animate-fade-in">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-purple-900 border border-purple-500 flex items-center justify-center text-purple-300 text-lg shrink-0">
+              🔇
+            </div>
+            <div>
+              <h4 className="font-bold text-purple-100 text-sm font-cinzel">
+                Bị Câm Lặng: #{silencedPlayer.id} {silencedPlayer.name}
+              </h4>
+              <p className="text-xs text-purple-300/80 mt-0.5">
+                Bị Nguyệt Nữ khóa miệng trong đêm. Người chơi này bị cấm phát biểu trong suốt ngày hôm nay!
+              </p>
+            </div>
+          </div>
+          <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-purple-950 text-purple-300 border border-purple-700 shrink-0">
+            Nguyệt Nữ
+          </span>
+        </div>
+      )}
+
       {/* Discussion Timer Card */}
       <div className="p-4 rounded-2xl bg-[#10121d]/60 backdrop-blur-md border border-slate-700/60 flex flex-col sm:flex-row items-center justify-between gap-4">
         <div className="flex items-center gap-3">

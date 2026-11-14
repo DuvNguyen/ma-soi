@@ -152,6 +152,16 @@ export default function DayVotingSection({
                             <Scale className="w-2.5 h-2.5" /> Cấm biểu quyết
                           </span>
                         )}
+                        {nightState?.silencedPlayerId === p.id && !nightState?.moonPriestessSkipped && (
+                          <span className="text-[9px] px-1.5 py-0.2 rounded font-black bg-slate-900 text-slate-300 border border-slate-700 shadow-sm flex items-center gap-0.5" title="Bị Nguyệt Nữ cấm phát biểu">
+                            🔇 Câm lặng
+                          </span>
+                        )}
+                        {p.isHypnotized && (
+                          <span className="text-[9px] px-1.5 py-0.2 rounded font-black bg-purple-950 text-purple-300 border border-purple-600 shadow-[0_0_8px_rgba(168,85,247,0.5)] flex items-center gap-0.5" title="Bị Người Thổi Sáo thôi miên">
+                            🎵 Thôi miên
+                          </span>
+                        )}
                       </div>
                       <div className="text-[11px] text-slate-400">
                         Vai: {p.isCursedWolf && origRole ? (

@@ -118,6 +118,7 @@ export default function DayPhaseView({
         formatTime={formatTime}
         alivePlayers={alivePlayers}
         players={players}
+        nightState={nightState}
       />
 
       {/* 5. Special Day Action: Knight Duel */}

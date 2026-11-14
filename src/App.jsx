@@ -825,6 +825,12 @@ export default function App() {
         }));
       } else if (type === 'wildChild') {
         next.wildChildIdolId = payload;
+        setPlayers(current => current.map(p => {
+          if ((p.currentRoleId || p.roleId) === 'dua-tre-hoang-da' || getPlayerRole(p)?.id === 'dua-tre-hoang-da') {
+            return { ...p, idolId: payload };
+          }
+          return p;
+        }));
       } else if (type === 'shadowHost') {
         next.shadowHostId = payload;
         setPlayers(current => current.map(p => {
@@ -835,6 +841,12 @@ export default function App() {
         }));
       } else if (type === 'piper') {
         next.piperChosenIds = payload;
+        setPlayers(current => current.map(p => {
+          if (Array.isArray(payload) && payload.includes(p.id)) {
+            return { ...p, isHypnotized: true };
+          }
+          return p;
+        }));
       } else if (type === 'raven') {
         next.ravenTargetId = payload;
         next.ravenSkipped = !!extra.ravenSkipped;
@@ -1477,6 +1489,17 @@ export default function App() {
       });
     }
 
+    if (result.transformedWildChildren && result.transformedWildChildren.length > 0) {
+      result.transformedWildChildren.forEach(({ wildChild, idol }) => {
+        triggerHaptic('alarm');
+        showAlert({
+          title: '🐺 ĐỨA TRẺ HOANG DÃ HÓA SÓI!',
+          message: `Thần tượng của Đứa Trẻ Hoang Dã (${idol.name} #${idol.id}) đã qua đời!\n\nĐứa Trẻ Hoang Dã (${wildChild.name} #${wildChild.id}) nổi giận và chính thức biến thành Ma Sói!`,
+          variant: 'blood'
+        });
+      });
+    }
+
     if (endResult) {
       setGameEndResult(endResult);
       return;
@@ -1524,7 +1547,7 @@ export default function App() {
     const result = game.knightDuel(knightId, targetId);
     if (!result.success) return;
 
-    const { game: nextGame, knight, target, isWolf, deadSheriff, transformedShadows, hunterTrigger, wolfCanKillDouble: nextWolfDouble, logs, gameEndResult: endResult } = result;
+    const { game: nextGame, knight, target, isWolf, deadSheriff, transformedShadows, transformedWildChildren, hunterTrigger, wolfCanKillDouble: nextWolfDouble, logs, gameEndResult: endResult } = result;
 
     if (nextWolfDouble) {
       setWolfCanKillDouble(true);
@@ -1556,6 +1579,18 @@ export default function App() {
           title: '👻 ẢNH TỬ KẾ THỪA LINH HỒN!',
           message: `Chủ thể của Ảnh Tử (${host.name} #${host.id}) đã qua đời!\n\nẢnh Tử (${shadow.name} #${shadow.id}) lập tức hấp thu linh hồn và chính thức trở thành: ${newRole?.name || inheritRoleId}!`,
           variant: 'purple'
+        });
+      });
+    }
+
+    // Thông báo nếu có Đứa Trẻ Hoang Dã mất thần tượng hóa sói
+    if (transformedWildChildren && transformedWildChildren.length > 0) {
+      transformedWildChildren.forEach(({ wildChild, idol }) => {
+        triggerHaptic('alarm');
+        showAlert({
+          title: '🐺 ĐỨA TRẺ HOANG DÃ HÓA SÓI!',
+          message: `Thần tượng (${idol.name} #${idol.id}) đã qua đời trong trận thách đấu!\n\nĐứa Trẻ Hoang Dã (${wildChild.name} #${wildChild.id}) nổi giận và chính thức biến thành Ma Sói!`,
+          variant: 'blood'
         });
       });
     }
@@ -2026,6 +2061,7 @@ export default function App() {
         <div style={{ display: activeTab === 'table' ? 'block' : 'none' }}>
           <PlayersGridView
             players={players}
+            nightState={nightState}
             scapegoatBannedVoterIds={roundNumber === scapegoatBannedRound ? scapegoatBannedVoterIds : []}
             onOpenRosters={() => {
               setSetupModalTab('rosters');

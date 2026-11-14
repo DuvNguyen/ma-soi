@@ -346,6 +346,16 @@ export function resolveNightPhase(players, nightActions, roundNumber) {
     }
   }
 
+  // 4.1. Process Pied Piper (Người Thổi Sáo) charm
+  if (nightActions.piperChosenIds && Array.isArray(nightActions.piperChosenIds)) {
+    nightActions.piperChosenIds.forEach(id => {
+      const p = updatedPlayers.find(x => x.id === id);
+      if (p && p.isAlive) {
+        p.isHypnotized = true;
+      }
+    });
+  }
+
   // 5. Check Wild Child (Đứa Trẻ Hoang Dã) idol death
   updatedPlayers.forEach(p => {
     if (p.isAlive && getPlayerRole(p)?.id === 'dua-tre-hoang-da' && p.idolId) {
