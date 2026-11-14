@@ -7,6 +7,17 @@ import { getRole, getPlayerRole, getPlayerOriginalRole, isWolfPlayer } from './r
 export function checkGameEnd(players, extraRules = {}) {
   const alivePlayers = players.filter(p => p.isAlive);
   
+  // 0. Special case: All players died simultaneously (Draw / Tie)
+  if (alivePlayers.length === 0) {
+    return {
+      isEnded: true,
+      winner: 'Draw',
+      winnerTitle: 'Cả Làng Diệt Vong (Hòa Cờ)! 🪦',
+      teamCode: '?',
+      description: 'Không một ai sống sót sau cuộc tàn sát đẫm máu. Ngôi làng chìm trong bóng tối vĩnh hằng!'
+    };
+  }
+
   // Count teams
   let aliveWolves = 0;
   let aliveVillagers = 0;
@@ -62,23 +73,19 @@ export function checkGameEnd(players, extraRules = {}) {
     }
   }
 
-  // 2. Special 3rd party: Cross-team Couple (Cặp đôi khác phe: 1 Sói + 1 Dân)
+  // 2. Special 3rd party: Surviving Couple (Cặp đôi sống sót cuối cùng)
   if (couplePlayers.length === 2 && alivePlayers.length === 2) {
     const p1 = couplePlayers[0];
     const p2 = couplePlayers[1];
-    const isP1Wolf = isWolfPlayer(p1);
-    const isP2Wolf = isWolfPlayer(p2);
-    if ((isP1Wolf && !isP2Wolf) || (!isP1Wolf && isP2Wolf)) {
-      const p1Role = getPlayerRole(p1);
-      const p2Role = getPlayerRole(p2);
-      return {
-        isEnded: true,
-        winner: 'Lovers',
-        winnerTitle: 'Cặp Đôi Tình Yêu Khác Phe Chiến Thắng!',
-        teamCode: '3',
-        description: `${p1.name} (${p1Role?.name || 'Chưa rõ'}) và ${p2.name} (${p2Role?.name || 'Chưa rõ'}) là hai người duy nhất sống sót vượt qua mọi định kiến!`
-      };
-    }
+    const p1Role = getPlayerRole(p1);
+    const p2Role = getPlayerRole(p2);
+    return {
+      isEnded: true,
+      winner: 'Lovers',
+      winnerTitle: 'Cặp Đôi Tình Yêu Chiến Thắng! 💘',
+      teamCode: '3',
+      description: `${p1.name} (${p1Role?.name || 'Chưa rõ'}) và ${p2.name} (${p2Role?.name || 'Chưa rõ'}) là hai người duy nhất sống sót bảo vệ tình yêu đến cùng!`
+    };
   }
 
   // 3. Special 3rd party: White Werewolf (Sói Trắng)
@@ -87,14 +94,26 @@ export function checkGameEnd(players, extraRules = {}) {
     return {
       isEnded: true,
       winner: 'White Werewolf',
-      winnerTitle: 'Sói Trắng Độc Chiếm Ngôi Làng!',
+      winnerTitle: 'Sói Trắng Độc Chiếm Ngôi Làng! 🐺👑',
       teamCode: '3',
-      description: 'Sói Trắng là kẻ duy nhất sống sót!'
+      description: 'Sói Trắng là kẻ duy nhất sống sót sau khi thanh trừng cả Dân Làng lẫn bầy Ma Sói!'
     };
   }
 
-  // 4. Werewolves win: Number of wolves >= Number of villagers (or villagers = 0)
-  if (aliveWolves > 0 && aliveWolves >= aliveVillagers) {
+  // Nếu Sói Trắng còn sống và tất cả Dân Làng đã chết, nhưng vẫn còn Ma Sói thường:
+  // Ván đấu PHẢI TIẾP TỤC để Sói Trắng và Sói thường thanh trừng lẫn nhau!
+  const hasOtherWolves = alivePlayers.some(p => isWolfPlayer(p) && getPlayerRole(p)?.id !== 'soi-trang');
+  if (whiteWolf && hasOtherWolves && aliveVillagers === 0) {
+    return {
+      isEnded: false,
+      aliveWolves,
+      aliveVillagers,
+      totalAlive: alivePlayers.length
+    };
+  }
+
+  // 4. Werewolves win: Number of wolves >= Number of villagers (or villagers = 0) VÀ không còn Sói Trắng tranh chấp
+  if (!whiteWolf && aliveWolves > 0 && aliveWolves >= aliveVillagers) {
     return {
       isEnded: true,
       winner: 'Werewolves',
@@ -104,8 +123,8 @@ export function checkGameEnd(players, extraRules = {}) {
     };
   }
 
-  // 5. Villagers win: There were werewolves in the match, and all of them are now dead
-  if (totalWolves > 0 && aliveWolves === 0) {
+  // 5. Villagers win: Có Ma Sói trong ván và toàn bộ Ma Sói đã bị tiêu diệt, và còn ít nhất 1 dân sống
+  if (totalWolves > 0 && aliveWolves === 0 && aliveVillagers > 0) {
     return {
       isEnded: true,
       winner: 'Villagers',
@@ -357,6 +376,7 @@ export function resolveNightPhase(players, nightActions, roundNumber) {
   }
 
   // 5. Check Wild Child (Đứa Trẻ Hoang Dã) idol death
+  let transformedWildChildren = [];
   updatedPlayers.forEach(p => {
     if (p.isAlive && getPlayerRole(p)?.id === 'dua-tre-hoang-da' && p.idolId) {
       const idol = updatedPlayers.find(x => x.id === p.idolId);
@@ -369,6 +389,10 @@ export function resolveNightPhase(players, nightActions, roundNumber) {
         p.roleId = 'soi-thuong';
         delete p.role;
         delete p.originalRole;
+        transformedWildChildren.push({
+          wildChild: p,
+          idol
+        });
         logs.push(`Thần tượng (${idol.name}) của Đứa Trẻ Hoang Dã (${p.name}) đã chết! Đứa Trẻ nổi giận biến thành Ma Sói!`);
       }
     }
@@ -421,6 +445,7 @@ export function resolveNightPhase(players, nightActions, roundNumber) {
     refundWitchHeal,
     elderKilledByWitch,
     transformedShadows,
+    transformedWildChildren,
     logs
   };
 }

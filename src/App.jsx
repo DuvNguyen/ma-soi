@@ -1296,7 +1296,7 @@ export default function App() {
     });
 
     const result = game.resolveNight(nightState);
-    const { game: nextGame, deadSheriff, hunterTrigger, elderKilledByWitch, transformedShadows, logs, gameEndResult: endResult } = result;
+    const { game: nextGame, deadSheriff, hunterTrigger, elderKilledByWitch, transformedShadows, transformedWildChildren, logs, gameEndResult: endResult } = result;
 
     setPlayers(nextGame.players);
     setNightLogs(logs);
@@ -1318,6 +1318,18 @@ export default function App() {
           title: '👻 ẢNH TỬ KẾ THỪA LINH HỒN!',
           message: `Chủ thể (${host.name} #${host.id}) đã qua đời trong đêm!\n\nẢnh Tử (${shadow.name} #${shadow.id}) lập tức hấp thu linh hồn và trở thành: ${newRole?.name || inheritRoleId}!`,
           variant: 'purple'
+        });
+      });
+    }
+
+    // Thông báo nếu có Đứa Trẻ Hoang Dã biến đổi thành Sói trong đêm do Thần Tượng tử trận
+    if (transformedWildChildren && transformedWildChildren.length > 0) {
+      transformedWildChildren.forEach(({ wildChild, idol }) => {
+        triggerHaptic('warning');
+        showAlert({
+          title: '🐺 ĐỨA TRẺ HOANG DÃ HÓA SÓI!',
+          message: `Thần tượng (${idol.name} #${idol.id}) đã qua đời trong đêm!\n\nĐứa Trẻ Hoang Dã (${wildChild.name} #${wildChild.id}) nổi cơn thịnh nộ và chính thức biến thành Ma Sói!`,
+          variant: 'blood'
         });
       });
     }

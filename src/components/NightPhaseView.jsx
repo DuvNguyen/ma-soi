@@ -73,7 +73,7 @@ export default function NightPhaseView({
     };
 
     const activeRoles = rolesInGame.filter(r => {
-      if (['cupid', 'dua-tre-hoang-da', 'anh-tu', 'an-trom', 'ke-bao-thu', 'soi-lai', 'cho-soi-soi-lai', 'ba-anh-em', 'nua-nguoi-nua-soi', 'thang-ngoc', 'tho-san'].includes(r.id) && roundNumber > 1) {
+      if (['cupid', 'dua-tre-hoang-da', 'anh-tu', 'an-trom', 'ke-bao-thu', 'soi-lai', 'cho-soi-soi-lai', 'ba-anh-em', 'hai-chi-em', 'tham-phan-lap-bap', 'nua-nguoi-nua-soi', 'thang-ngoc', 'tho-san'].includes(r.id) && roundNumber > 1) {
         return false;
       }
       if (r.id === 'cao' && nightState?.foxLostPower) {
@@ -90,7 +90,7 @@ export default function NightPhaseView({
       return true;
     });
 
-    const wolfVariants = ['soi-thuong', 'soi-con', 'soi-lon-xau-xa', 'nguoi-cha-cua-soi', 'soi-quy'];
+    const wolfVariants = ['soi-thuong', 'soi-con', 'soi-lon-xau-xa', 'nguoi-cha-cua-soi', 'soi-quy', 'soi-bi-nguyen'];
     const nonWolfRoles = activeRoles.filter(r => !wolfVariants.includes(r.id) && r.id !== 'soi-trang');
     const hasAnyWolves = activeRoles.some(r => wolfVariants.includes(r.id) || r.id === 'soi-trang');
 

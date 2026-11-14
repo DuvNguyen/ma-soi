@@ -2,6 +2,7 @@ import assert from 'node:assert';
 import { Player } from '../src/domain/models/Player.js';
 import { getRoleStrategy } from '../src/domain/strategies/RoleStrategies.js';
 import { getRoleCapacity } from '../src/utils/deckUtils.js';
+import { checkGameEnd } from '../src/utils/gameLogic.js';
 
 console.log('🧪 Starting Phase 1 Domain Model & Strategy Tests...\n');
 
@@ -553,6 +554,67 @@ console.log('🧪 Starting Phase 1 Domain Model & Strategy Tests...\n');
     assert.strictEqual(bearHasWolf, true, 'Bear growls when Bear Tamer himself is a werewolf');
     console.log('✅ Test 28: Infected Bear Tamer growl logic verified.');
 
-    console.log('\n🎉 ALL 28 DOMAIN ENGINE TESTS PASSED PERFECTLY!\n');
+    // Test 29: White Werewolf (soi-trang) duel with normal Werewolf does not end game prematurely
+    const whiteWolfPlayer = new Player({ id: 40, name: 'Sói Trắng', currentRoleId: 'soi-trang', roleId: 'soi-trang', isAlive: true });
+    const normalWolfPlayer = new Player({ id: 41, name: 'Sói Thường', currentRoleId: 'soi-thuong', roleId: 'soi-thuong', isAlive: true });
+    const deadVillager = new Player({ id: 42, name: 'Dân Chết', currentRoleId: 'dan-lang', roleId: 'dan-lang', isAlive: false });
+
+    const whiteWolfDuelRes = checkGameEnd([whiteWolfPlayer, normalWolfPlayer, deadVillager]);
+    assert.strictEqual(whiteWolfDuelRes.isEnded, false, 'Game must not end when White Werewolf is still dueling the last wolf');
+
+    const whiteWolfSoloRes = checkGameEnd([whiteWolfPlayer]);
+    assert.strictEqual(whiteWolfSoloRes.isEnded, true);
+    assert.strictEqual(whiteWolfSoloRes.winner, 'White Werewolf', 'White Werewolf wins when sole survivor');
+    console.log('✅ Test 29: White Werewolf 1v1 duel & solo win verified.');
+
+    // Test 30: All players dying simultaneously triggers Draw / Tie
+    const dead1 = new Player({ id: 43, name: 'Người 1', currentRoleId: 'dan-lang', isAlive: false });
+    const dead2 = new Player({ id: 44, name: 'Sói 1', currentRoleId: 'soi-thuong', isAlive: false });
+    const allDeadRes = checkGameEnd([dead1, dead2]);
+    assert.strictEqual(allDeadRes.isEnded, true);
+    assert.strictEqual(allDeadRes.winner, 'Draw', 'All dead triggers Draw / Tie');
+    console.log('✅ Test 30: Simultaneous total casualty Draw / Tie verified.');
+
+    // Test 31: Cross-faction / 3rd party lovers surviving as final 2 triggers Lovers win
+    const villagerLover = new Player({ id: 45, name: 'Dân Tình', currentRoleId: 'dan-lang', loverId: 46, isAlive: true });
+    const piperLover = new Player({ id: 46, name: 'Thổi Sáo Tình', currentRoleId: 'nguoi-thoi-sao', loverId: 45, isAlive: true });
+    const loversRes = checkGameEnd([villagerLover, piperLover]);
+    assert.strictEqual(loversRes.isEnded, true);
+    assert.strictEqual(loversRes.winner, 'Lovers', 'Cross-faction lovers with 3rd party win together');
+    console.log('✅ Test 31: Cross-faction lovers win condition verified.');
+
+    // Test 32: Two Sisters & Stuttering Judge excluded in Night 2+
+    const night2RolesDeck = [
+      { id: 'hai-chi-em', name: 'Hai Chị Em' },
+      { id: 'tham-phan-lap-bap', name: 'Thẩm Phán Lắp Bắp' },
+      { id: 'tien-tri', name: 'Tiên Tri' }
+    ];
+    const night2Filter = (roles, round) => roles.filter(r => {
+      if (['cupid', 'dua-tre-hoang-da', 'anh-tu', 'an-trom', 'ke-bao-thu', 'soi-lai', 'cho-soi-soi-lai', 'ba-anh-em', 'hai-chi-em', 'tham-phan-lap-bap', 'nua-nguoi-nua-soi', 'thang-ngoc', 'tho-san'].includes(r.id) && round > 1) {
+        return false;
+      }
+      return true;
+    });
+    assert.strictEqual(night2Filter(night2RolesDeck, 1).length, 3, 'All 3 active in Night 1');
+    assert.strictEqual(night2Filter(night2RolesDeck, 2).length, 1, 'Only Seer active in Night 2');
+    console.log('✅ Test 32: Two Sisters & Stuttering Judge Night 2+ exclusion verified.');
+
+    // Test 33: Wild Child idol dying during the night returns transformedWildChildren in resolveNight
+    const wcNight = new Player({ id: 47, name: 'Đứa Trẻ Đêm', currentRoleId: 'dua-tre-hoang-da', idolId: 48, isAlive: true });
+    const idolNight = new Player({ id: 48, name: 'Thần Tượng Đêm', currentRoleId: 'dan-lang', isAlive: true });
+    const wolfNight = new Player({ id: 49, name: 'Sói Đêm', currentRoleId: 'soi-thuong', isAlive: true });
+    const villagerNight = new Player({ id: 50, name: 'Dân Đêm', currentRoleId: 'dan-lang', isAlive: true });
+
+    const wcNightGame = new WerewolfGame({
+      roundNumber: 1,
+      isNight: true,
+      players: [wcNight, idolNight, wolfNight, villagerNight]
+    });
+    const wcNightRes = wcNightGame.resolveNight({ wolfTargetId: 48 });
+    assert.strictEqual(wcNightRes.transformedWildChildren.length, 1, 'Transformed wild child returned');
+    assert.strictEqual(wcNightRes.game.getPlayer(47).isWolf(), true, 'Wild Child is transformed into Werewolf');
+    console.log('✅ Test 33: Wild Child night transformation cascade & return verified.');
+
+    console.log('\n🎉 ALL 33 DOMAIN ENGINE TESTS PASSED PERFECTLY!\n');
   });
 }

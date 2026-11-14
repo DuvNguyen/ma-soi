@@ -167,6 +167,8 @@ export class WerewolfGame {
 
     // 5.1 Kế thừa linh hồn của Ảnh Tử (Shadow) nếu chủ thể chết trong đêm
     const transformedShadows = rawResult.transformedShadows || [];
+    // 5.2 Biến đổi của Đứa Trẻ Hoang Dã (Wild Child) nếu Thần Tượng chết trong đêm
+    const transformedWildChildren = rawResult.transformedWildChildren || [];
 
     // 6. Thiên Sứ bị Ma Sói cắn chết ở Đêm 1 -> THẮNG NGAY LẬP TỨC
     let gameEndResult = null;
@@ -208,6 +210,7 @@ export class WerewolfGame {
       deadSheriff,
       hunterTrigger,
       transformedShadows,
+      transformedWildChildren,
       elderKilledByWitch: rawResult.elderKilledByWitch,
       killedWolfPup: Boolean(killedWolfPup),
       wolfCanKillDouble,
