@@ -20,6 +20,8 @@ export default function PlayerRosterModal({
   const [loading, setLoading] = useState(true);
   const [isCreating, setIsCreating] = useState(false);
   const [editingRosterId, setEditingRosterId] = useState(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const [deletingRosterId, setDeletingRosterId] = useState(null);
 
   // Form state
   const [rosterName, setRosterName] = useState('');
@@ -58,6 +60,8 @@ export default function PlayerRosterModal({
 
   const handleSaveRoster = async (e) => {
     e.preventDefault();
+    if (isSaving) return;
+
     if (!rosterName.trim()) {
       showAlert({
         title: 'THIẾU TÊN NHÓM',
@@ -91,6 +95,7 @@ export default function PlayerRosterModal({
       playerNames: parsedNames
     };
 
+    setIsSaving(true);
     try {
       await saveRosterApi(rosterData);
       await loadRosters();
@@ -104,6 +109,8 @@ export default function PlayerRosterModal({
         message: 'Không thể lưu danh sách người chơi: ' + err.message,
         variant: 'blood'
       });
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -122,6 +129,7 @@ export default function PlayerRosterModal({
 
   const handleDeleteRoster = async (id, e) => {
     e.stopPropagation();
+    if (deletingRosterId === id) return;
     showConfirm({
       title: 'XÓA NHÓM NGƯỜI CHƠI?',
       message: 'Bạn có chắc muốn xóa nhóm người chơi này khỏi cơ sở dữ liệu?',
@@ -129,6 +137,7 @@ export default function PlayerRosterModal({
       confirmText: 'Xóa Vĩnh Viễn 🩸',
       onConfirm: async () => {
         try {
+          setDeletingRosterId(id);
           await deleteRosterApi(id);
           setRosters(prev => prev.filter(r => r.id !== id));
         } catch (err) {
@@ -137,6 +146,8 @@ export default function PlayerRosterModal({
             message: 'Không thể xóa: ' + err.message,
             variant: 'blood'
           });
+        } finally {
+          setDeletingRosterId(null);
         }
       }
     });
@@ -187,7 +198,12 @@ export default function PlayerRosterModal({
                 <span>Thêm Nhóm</span>
               </GothicButton>
             )}
-            <button onClick={onClose} className="p-1.5 sm:p-2 text-slate-400 hover:text-white rounded-lg cursor-pointer shrink-0">
+            <button 
+              type="button"
+              onClick={onClose} 
+              aria-label="Đóng cửa sổ danh sách người chơi"
+              className="p-1.5 sm:p-2 text-slate-400 hover:text-white rounded-lg cursor-pointer shrink-0"
+            >
               <X className="w-5 h-5" />
             </button>
           </div>
@@ -312,9 +328,10 @@ Ngọc, Hoàng, Minh, Linh, Tuấn, Hương, Đạt, Phương, Quân, Trang, Vi�
                   variant="witch"
                   size="sm"
                   type="submit"
+                  disabled={isSaving}
                 >
                   <Check className="w-4 h-4 mr-1 inline" />
-                  <span>{editingRosterId ? 'Lưu Thay Đổi Nhóm' : 'Lưu Danh Sách Vào Neon DB'}</span>
+                  <span>{isSaving ? 'Đang lưu...' : (editingRosterId ? 'Lưu Thay Đổi Nhóm' : 'Lưu Danh Sách Vào Neon DB')}</span>
                 </GothicButton>
               </div>
             </form>
@@ -390,12 +407,13 @@ Ngọc, Hoàng, Minh, Linh, Tuấn, Hương, Đạt, Phương, Quân, Trang, Vi�
                           <div className="flex items-center gap-3">
                             <button
                               type="button"
+                              disabled={deletingRosterId === r.id}
                               onClick={(e) => handleDeleteRoster(r.id, e)}
-                              className="text-xs text-slate-500 hover:text-rose-400 flex items-center gap-1 transition-colors cursor-pointer"
+                              className="text-xs text-slate-500 hover:text-rose-400 disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1 transition-colors cursor-pointer"
                               title="Xóa nhóm này khỏi Neon DB"
                             >
                               <Trash2 className="w-3.5 h-3.5" />
-                              <span>Xóa</span>
+                              <span>{deletingRosterId === r.id ? 'Đang xóa...' : 'Xóa'}</span>
                             </button>
                             <button
                               type="button"

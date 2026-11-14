@@ -1,5 +1,5 @@
 import React from 'react';
-import { Flame, Check, RotateCcw, Sparkles, Gavel, UserX, Star } from 'lucide-react';
+import { Flame, Check, RotateCcw, Sparkles, Gavel, UserX, Star, Scale } from 'lucide-react';
 import GothicButton from '../ui/GothicButton';
 import GothicBadge from '../ui/GothicBadge';
 import WolfIcon from '../ui/WolfIcon';
@@ -18,7 +18,8 @@ export default function DayVotingSection({
   setSelectedLynchId,
   nightState,
   onLynchPlayer,
-  showConfirm
+  showConfirm,
+  scapegoatBannedVoterIds = []
 }) {
   const scapegoat = alivePlayers.find(p => (p.currentRoleId || p.roleId) === 'nguoi-the-than' || getPlayerRole(p)?.id === 'nguoi-the-than');
 
@@ -146,6 +147,11 @@ export default function DayVotingSection({
                             🪶 Quạ phạt (+2)
                           </span>
                         )}
+                        {scapegoatBannedVoterIds?.includes(p.id) && (
+                          <span className="text-[9px] px-1.5 py-0.2 rounded font-black bg-amber-950 text-amber-300 border border-amber-600 shadow-[0_0_8px_rgba(245,158,11,0.5)] flex items-center gap-0.5">
+                            <Scale className="w-2.5 h-2.5" /> Cấm biểu quyết
+                          </span>
+                        )}
                       </div>
                       <div className="text-[11px] text-slate-400">
                         Vai: {p.isCursedWolf && origRole ? (
@@ -169,19 +175,20 @@ export default function DayVotingSection({
             })}
           </div>
 
-          {/* TIE VOTE ACTION FOR SCAPEGOAT (NGƯỜI THẾ THÂN CHẾT THAY KHI HÒA PHIẾU) */}
+          {/* TIE VOTE ACTION FOR SCAPEGOAT (HÒA PHIẾU TREO CỔ) */}
           {scapegoat && (
-            <div className="pt-2 flex flex-wrap items-center justify-between gap-2 border-t border-slate-800">
-              <div className="text-xs text-slate-400">
-                ⚖️ Trong bàn có <strong className="text-amber-300">Người Thế Thân</strong>: Nếu biểu quyết giơ tay hòa phiếu, Người Thế Thân sẽ chết thay.
-              </div>
+            <div className="pt-2 flex items-center justify-between gap-2 border-t border-slate-800">
+              <span className="text-xs font-bold text-slate-400 flex items-center gap-1.5 font-cinzel">
+                <Scale className="w-4 h-4 text-amber-400 shrink-0" />
+                <span>Hòa phiếu biểu quyết:</span>
+              </span>
               <GothicButton
-                variant="witch"
+                variant="blood"
                 size="sm"
                 onClick={() => {
                   showConfirm({
-                    title: '⚖️ BỎ PHIẾU HÒA (NGƯỜI THẾ THÂN CHẾT THAY)?',
-                    message: `Khi số phiếu biểu quyết cao nhất bị hòa nhau:\n\nNgười Thế Thân (${scapegoat.name} #${scapegoat.id}) bị đưa lên giàn treo cổ chết thay ngay lập tức!\n\nBạn có muốn thực hiện án phạt này?`,
+                    title: 'HÒA PHIẾU: NGƯỜI THẾ THÂN CHẾT THAY',
+                    message: `Biểu quyết hòa phiếu: Người Thế Thân (${scapegoat.name} #${scapegoat.id}) bị đưa lên giàn treo thay thế.\n\nTiến hành xử tử?`,
                     variant: 'blood',
                     confirmText: 'Xử Tử Người Thế Thân ⚖️',
                     onConfirm: () => {
@@ -190,7 +197,7 @@ export default function DayVotingSection({
                   });
                 }}
               >
-                Hòa Phiếu: Người Thế Thân Chết Thay ⚖️
+                Người Thế Thân Chết Thay ⚖️
               </GothicButton>
             </div>
           )}

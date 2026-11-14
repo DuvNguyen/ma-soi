@@ -7,13 +7,39 @@ import {
   getRosters, 
   saveRoster, 
   deleteRoster,
-  getGameState,
+  getGameState, 
   saveGameState,
   getMatchRecords,
   getMatchDetail,
   saveMatchRecord,
   deleteMatchRecord
 } from './db.js';
+
+// Server-side Idempotency Cache (TTL: 60s)
+const idempotencyCache = new Map();
+const IDEMPOTENCY_TTL_MS = 60 * 1000;
+
+function getCachedResponse(key) {
+  if (!key) return null;
+  const entry = idempotencyCache.get(key);
+  if (entry && Date.now() - entry.timestamp < IDEMPOTENCY_TTL_MS) {
+    return entry.data;
+  }
+  return null;
+}
+
+function setCachedResponse(key, data) {
+  if (!key) return;
+  if (idempotencyCache.size > 200) {
+    const now = Date.now();
+    for (const [k, v] of idempotencyCache.entries()) {
+      if (now - v.timestamp > IDEMPOTENCY_TTL_MS) {
+        idempotencyCache.delete(k);
+      }
+    }
+  }
+  idempotencyCache.set(key, { data, timestamp: Date.now() });
+}
 
 export function neonApiPlugin() {
   return {
@@ -27,6 +53,22 @@ export function neonApiPlugin() {
         }
 
         res.setHeader('Content-Type', 'application/json');
+
+        const idempotencyKey = req.headers['x-idempotency-key'] || req.headers['idempotency-key'];
+        if (idempotencyKey && req.method !== 'GET') {
+          const cached = getCachedResponse(idempotencyKey);
+          if (cached) {
+            return res.end(JSON.stringify({ ...cached, _idempotent: true }));
+          }
+        }
+
+        const sendReply = (data, statusCode = 200) => {
+          if (idempotencyKey && req.method !== 'GET') {
+            setCachedResponse(idempotencyKey, data);
+          }
+          res.statusCode = statusCode;
+          return res.end(JSON.stringify(data));
+        };
 
         const readJsonBody = () => new Promise((resolve, reject) => {
           let body = '';
@@ -45,63 +87,63 @@ export function neonApiPlugin() {
           // DB Health Check
           if (url === '/api/db-check' && req.method === 'GET') {
             const conn = await testConnection();
-            return res.end(JSON.stringify({ ok: true, connection: conn, branch: process.env.NEON_BRANCH || 'production' }));
+            return sendReply({ ok: true, connection: conn, branch: process.env.NEON_BRANCH || 'production' });
           }
 
           // Templates API
           if (url === '/api/templates') {
             if (req.method === 'GET') {
               const templates = await getTemplates();
-              return res.end(JSON.stringify({ ok: true, templates }));
+              return sendReply({ ok: true, templates });
             }
             if (req.method === 'POST') {
               const body = await readJsonBody();
               const saved = await saveTemplate(body);
-              return res.end(JSON.stringify({ ok: true, template: saved }));
+              return sendReply({ ok: true, template: saved });
             }
           }
 
           if (url.startsWith('/api/templates/') && url.endsWith('/default') && req.method === 'POST') {
             const id = url.replace('/api/templates/', '').replace('/default', '');
             const resData = await setDefaultTemplate(id);
-            return res.end(JSON.stringify({ ok: true, ...resData }));
+            return sendReply({ ok: true, ...resData });
           }
 
           if (url.startsWith('/api/templates/') && req.method === 'DELETE') {
             const id = url.replace('/api/templates/', '');
             await deleteTemplate(id);
-            return res.end(JSON.stringify({ ok: true }));
+            return sendReply({ ok: true });
           }
 
           // Rosters API
           if (url === '/api/rosters') {
             if (req.method === 'GET') {
               const rosters = await getRosters();
-              return res.end(JSON.stringify({ ok: true, rosters }));
+              return sendReply({ ok: true, rosters });
             }
             if (req.method === 'POST') {
               const body = await readJsonBody();
               const saved = await saveRoster(body);
-              return res.end(JSON.stringify({ ok: true, roster: saved }));
+              return sendReply({ ok: true, roster: saved });
             }
           }
 
           if (url.startsWith('/api/rosters/') && req.method === 'DELETE') {
             const id = url.replace('/api/rosters/', '');
             await deleteRoster(id);
-            return res.end(JSON.stringify({ ok: true }));
+            return sendReply({ ok: true });
           }
 
           // Game State API
           if (url === '/api/game-state') {
             if (req.method === 'GET') {
               const state = await getGameState();
-              return res.end(JSON.stringify({ ok: true, state }));
+              return sendReply({ ok: true, state });
             }
             if (req.method === 'POST') {
               const body = await readJsonBody();
               await saveGameState(body);
-              return res.end(JSON.stringify({ ok: true }));
+              return sendReply({ ok: true });
             }
           }
 
@@ -109,12 +151,12 @@ export function neonApiPlugin() {
           if (url === '/api/matches') {
             if (req.method === 'GET') {
               const matches = await getMatchRecords();
-              return res.end(JSON.stringify({ ok: true, matches }));
+              return sendReply({ ok: true, matches });
             }
             if (req.method === 'POST') {
               const body = await readJsonBody();
               const result = await saveMatchRecord(body);
-              return res.end(JSON.stringify({ ok: true, match: result }));
+              return sendReply({ ok: true, match: result });
             }
           }
 
@@ -122,20 +164,18 @@ export function neonApiPlugin() {
             const id = url.replace('/api/matches/', '');
             const match = await getMatchDetail(id);
             if (!match) {
-              res.statusCode = 404;
-              return res.end(JSON.stringify({ ok: false, error: 'Match not found' }));
+              return sendReply({ ok: false, error: 'Match not found' }, 404);
             }
-            return res.end(JSON.stringify({ ok: true, match }));
+            return sendReply({ ok: true, match });
           }
 
           if (url.startsWith('/api/matches/') && req.method === 'DELETE') {
             const id = url.replace('/api/matches/', '');
             await deleteMatchRecord(id);
-            return res.end(JSON.stringify({ ok: true }));
+            return sendReply({ ok: true });
           }
 
-          res.statusCode = 404;
-          return res.end(JSON.stringify({ ok: false, error: 'Endpoint not found' }));
+          return sendReply({ ok: false, error: 'Endpoint not found' }, 404);
         } catch (error) {
           console.error(`API Error on ${url}:`, error);
           res.statusCode = 500;

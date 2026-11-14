@@ -7,13 +7,39 @@ import {
   getRosters, 
   saveRoster, 
   deleteRoster,
-  getGameState,
+  getGameState, 
   saveGameState,
   getMatchRecords,
   getMatchDetail,
   saveMatchRecord,
   deleteMatchRecord
 } from '../src/server/db.js';
+
+// Server-side Idempotency Cache (TTL: 60s)
+const idempotencyCache = new Map();
+const IDEMPOTENCY_TTL_MS = 60 * 1000;
+
+function getCachedResponse(key) {
+  if (!key) return null;
+  const entry = idempotencyCache.get(key);
+  if (entry && Date.now() - entry.timestamp < IDEMPOTENCY_TTL_MS) {
+    return entry.data;
+  }
+  return null;
+}
+
+function setCachedResponse(key, data) {
+  if (!key) return;
+  if (idempotencyCache.size > 200) {
+    const now = Date.now();
+    for (const [k, v] of idempotencyCache.entries()) {
+      if (now - v.timestamp > IDEMPOTENCY_TTL_MS) {
+        idempotencyCache.delete(k);
+      }
+    }
+  }
+  idempotencyCache.set(key, { data, timestamp: Date.now() });
+}
 
 async function parseBody(req) {
   if (req.body) {
@@ -49,80 +75,100 @@ export default async function handler(req, res) {
   // CORS / Headers
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET,POST,DELETE,OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-Idempotency-Key, Idempotency-Key');
 
   if (req.method === 'OPTIONS') {
     res.statusCode = 200;
     return res.end();
   }
 
+  // Idempotency check for mutating requests
+  const idempotencyKey = req.headers['x-idempotency-key'] || req.headers['idempotency-key'];
+  if (idempotencyKey && req.method !== 'GET') {
+    const cached = getCachedResponse(idempotencyKey);
+    if (cached) {
+      return sendJson(res, 200, { ...cached, _idempotent: true });
+    }
+  }
+
+  const sendWithIdempotency = (statusCode, data) => {
+    if (idempotencyKey && req.method !== 'GET' && statusCode >= 200 && statusCode < 300) {
+      setCachedResponse(idempotencyKey, data);
+    }
+    return sendJson(res, statusCode, data);
+  };
+
   // Determine path
   let path = '';
   if (req.query?.path) {
     path = Array.isArray(req.query.path) ? req.query.path.join('/') : req.query.path;
-  } else if (req.url) {
-    path = req.url.split('?')[0].replace(/^\/api\/?/, '');
+  } else {
+    const rawUrl = req.headers?.['x-matched-path'] || req.headers?.['x-original-url'] || req.url || '';
+    path = rawUrl.split('?')[0].replace(/^\/api\/?/, '');
   }
   path = (path || '').replace(/^\/+|\/+$/g, '');
+  if (path === 'index.js' || path === 'index') {
+    path = '';
+  }
 
   try {
     // 1. DB Health Check
     if (path === 'db-check' && req.method === 'GET') {
       const conn = await testConnection();
-      return sendJson(res, 200, { ok: true, connection: conn, branch: process.env.NEON_BRANCH || 'production' });
+      return sendWithIdempotency(200, { ok: true, connection: conn, branch: process.env.NEON_BRANCH || 'production' });
     }
 
     // 2. Templates API
     if (path === 'templates') {
       if (req.method === 'GET') {
         const templates = await getTemplates();
-        return sendJson(res, 200, { ok: true, templates });
+        return sendWithIdempotency(200, { ok: true, templates });
       }
       if (req.method === 'POST') {
         const body = await parseBody(req);
         const saved = await saveTemplate(body);
-        return sendJson(res, 200, { ok: true, template: saved });
+        return sendWithIdempotency(200, { ok: true, template: saved });
       }
     }
     if (path.startsWith('templates/') && path.endsWith('/default') && req.method === 'POST') {
       const id = path.replace('templates/', '').replace('/default', '');
       const resData = await setDefaultTemplate(id);
-      return sendJson(res, 200, { ok: true, ...resData });
+      return sendWithIdempotency(200, { ok: true, ...resData });
     }
     if (path.startsWith('templates/') && req.method === 'DELETE') {
       const id = path.replace('templates/', '');
       await deleteTemplate(id);
-      return sendJson(res, 200, { ok: true });
+      return sendWithIdempotency(200, { ok: true });
     }
 
     // 3. Rosters API
     if (path === 'rosters') {
       if (req.method === 'GET') {
         const rosters = await getRosters();
-        return sendJson(res, 200, { ok: true, rosters });
+        return sendWithIdempotency(200, { ok: true, rosters });
       }
       if (req.method === 'POST') {
         const body = await parseBody(req);
         const saved = await saveRoster(body);
-        return sendJson(res, 200, { ok: true, roster: saved });
+        return sendWithIdempotency(200, { ok: true, roster: saved });
       }
     }
     if (path.startsWith('rosters/') && req.method === 'DELETE') {
       const id = path.replace('rosters/', '');
       await deleteRoster(id);
-      return sendJson(res, 200, { ok: true });
+      return sendWithIdempotency(200, { ok: true });
     }
 
     // 4. Game State API
     if (path === 'game-state') {
       if (req.method === 'GET') {
         const state = await getGameState();
-        return sendJson(res, 200, { ok: true, state });
+        return sendWithIdempotency(200, { ok: true, state });
       }
       if (req.method === 'POST') {
         const body = await parseBody(req);
         await saveGameState(body);
-        return sendJson(res, 200, { ok: true });
+        return sendWithIdempotency(200, { ok: true });
       }
     }
 
@@ -130,12 +176,12 @@ export default async function handler(req, res) {
     if (path === 'matches') {
       if (req.method === 'GET') {
         const matches = await getMatchRecords();
-        return sendJson(res, 200, { ok: true, matches });
+        return sendWithIdempotency(200, { ok: true, matches });
       }
       if (req.method === 'POST') {
         const body = await parseBody(req);
         const result = await saveMatchRecord(body);
-        return sendJson(res, 200, { ok: true, match: result });
+        return sendWithIdempotency(200, { ok: true, match: result });
       }
     }
     if (path.startsWith('matches/')) {
@@ -143,13 +189,13 @@ export default async function handler(req, res) {
       if (req.method === 'GET') {
         const match = await getMatchDetail(id);
         if (!match) {
-          return sendJson(res, 404, { ok: false, error: 'Match not found' });
+          return sendWithIdempotency(404, { ok: false, error: 'Match not found' });
         }
-        return sendJson(res, 200, { ok: true, match });
+        return sendWithIdempotency(200, { ok: true, match });
       }
       if (req.method === 'DELETE') {
         await deleteMatchRecord(id);
-        return sendJson(res, 200, { ok: true });
+        return sendWithIdempotency(200, { ok: true });
       }
     }
 

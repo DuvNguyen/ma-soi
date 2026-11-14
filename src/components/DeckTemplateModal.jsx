@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { ROLES } from '../data/roles';
 import { DEFAULT_PLAYER_NAMES } from '../data/defaultPlayers';
 import { fetchTemplates, saveTemplateApi, deleteTemplateApi, setDefaultTemplateApi } from '../services/api';
@@ -22,6 +22,10 @@ export default function DeckTemplateModal({
   const [loading, setLoading] = useState(true);
   const [isCreating, setIsCreating] = useState(false);
   const [editingTemplateId, setEditingTemplateId] = useState(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const isSavingRef = useRef(false);
+  const [settingDefaultId, setSettingDefaultId] = useState(null);
+  const [deletingTemplateId, setDeletingTemplateId] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [roleSearchQuery, setRoleSearchQuery] = useState('');
 
@@ -122,7 +126,10 @@ export default function DeckTemplateModal({
 
   const handleSaveNewTemplate = async (e) => {
     e.preventDefault();
-    if (!newTemplateName.trim()) {
+    if (isSaving || isSavingRef.current) return;
+
+    const trimmedName = newTemplateName.trim();
+    if (!trimmedName) {
       showAlert({
         title: 'THIẾU THÔNG TIN BỘ BÀI',
         message: 'Vui lòng nhập tên cho bộ bài template trước khi lưu.',
@@ -130,6 +137,20 @@ export default function DeckTemplateModal({
       });
       return;
     }
+
+    // Check duplicate name
+    const existing = (templates || []).find(
+      t => t.id !== editingTemplateId && t.name.trim().toLowerCase() === trimmedName.toLowerCase()
+    );
+    if (existing) {
+      showAlert({
+        title: 'TRÙNG TÊN BỘ BÀI',
+        message: `Đã có bộ bài mang tên "${existing.name}". Vui lòng đặt tên khác để tránh nhầm lẫn.`,
+        variant: 'warning'
+      });
+      return;
+    }
+
     const roleIds = getFlattenedRoleIds();
     if (roleIds.length === 0) {
       showAlert({
@@ -151,13 +172,15 @@ export default function DeckTemplateModal({
 
     const templateToSave = {
       id: editingTemplateId || `template-${Date.now()}`,
-      name: newTemplateName.trim(),
+      name: trimmedName,
       desc: newTemplateDesc.trim() || `${totalCards} lá bài tự chọn (${totalCards} người chơi)`,
       playerCount: totalCards,
       roleIds: roleIds,
       playerNames: playerNames
     };
 
+    isSavingRef.current = true;
+    setIsSaving(true);
     try {
       await saveTemplateApi(templateToSave);
       await loadTemplates();
@@ -172,11 +195,16 @@ export default function DeckTemplateModal({
         message: 'Không thể lưu template vào Neon DB: ' + err.message,
         variant: 'blood'
       });
+    } finally {
+      setIsSaving(false);
+      isSavingRef.current = false;
     }
   };
 
   const handleSetDefaultTemplate = async (id, e) => {
     e.stopPropagation();
+    if (settingDefaultId === id) return;
+    setSettingDefaultId(id);
     try {
       await setDefaultTemplateApi(id);
       setTemplates(prev => prev.map(t => ({
@@ -190,11 +218,14 @@ export default function DeckTemplateModal({
         message: err.message || 'Không thể đặt bộ bài mặc định.',
         variant: 'blood'
       });
+    } finally {
+      setSettingDefaultId(null);
     }
   };
 
   const handleDeleteTemplate = async (id, e) => {
     e.stopPropagation();
+    if (deletingTemplateId === id) return;
     showConfirm({
       title: 'XÓA BỘ BÀI KHỎI NEON DB?',
       message: 'Bạn có chắc muốn xóa vĩnh viễn template bộ bài này?\nHành động này không thể hoàn tác.',
@@ -202,6 +233,7 @@ export default function DeckTemplateModal({
       confirmText: 'Xóa Vĩnh Viễn 🩸',
       onConfirm: async () => {
         try {
+          setDeletingTemplateId(id);
           await deleteTemplateApi(id);
           setTemplates(prev => prev.filter(t => t.id !== id));
         } catch (err) {
@@ -210,6 +242,8 @@ export default function DeckTemplateModal({
             message: 'Không thể xóa template: ' + err.message,
             variant: 'blood'
           });
+        } finally {
+          setDeletingTemplateId(null);
         }
       }
     });
@@ -257,7 +291,12 @@ export default function DeckTemplateModal({
                 <span>Tạo Mới</span>
               </GothicButton>
             )}
-            <button onClick={onClose} className="p-1.5 sm:p-2 text-slate-400 hover:text-white rounded-lg cursor-pointer shrink-0">
+            <button 
+              type="button"
+              onClick={onClose} 
+              aria-label="Đóng cửa sổ bộ bài mẫu"
+              className="p-1.5 sm:p-2 text-slate-400 hover:text-white rounded-lg cursor-pointer shrink-0"
+            >
               <X className="w-5 h-5" />
             </button>
           </div>
@@ -463,9 +502,10 @@ export default function DeckTemplateModal({
                   variant="witch"
                   size="sm"
                   type="submit"
+                  disabled={isSaving}
                 >
                   <Check className="w-4 h-4 mr-1 inline" />
-                  {editingTemplateId ? 'Lưu Thay Đổi Bộ Bài' : `Lưu Template Vào Neon DB (${totalCards} Người)`}
+                  {isSaving ? 'Đang lưu...' : (editingTemplateId ? 'Lưu Thay Đổi Bộ Bài' : `Lưu Template Vào Neon DB (${totalCards} Người)`)}
                 </GothicButton>
               </div>
             </form>
@@ -599,23 +639,25 @@ export default function DeckTemplateModal({
                           <div className="flex items-center gap-3">
                             <button
                               type="button"
+                              disabled={settingDefaultId === tpl.id || tpl.isDefault}
                               onClick={(e) => handleSetDefaultTemplate(tpl.id, e)}
-                              className={`text-xs flex items-center gap-1 transition-colors cursor-pointer ${
+                              className={`text-xs flex items-center gap-1 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${
                                 tpl.isDefault ? 'text-amber-400 font-semibold' : 'text-slate-500 hover:text-amber-300'
                               }`}
                               title={tpl.isDefault ? 'Bộ bài mặc định' : 'Đặt làm bộ bài mặc định'}
                             >
                               <Star className={`w-3.5 h-3.5 ${tpl.isDefault ? 'fill-amber-400 text-amber-400' : ''}`} />
-                              <span>{tpl.isDefault ? 'Mặc định' : 'Đặt mặc định'}</span>
+                              <span>{settingDefaultId === tpl.id ? 'Đang lưu...' : (tpl.isDefault ? 'Mặc định' : 'Đặt mặc định')}</span>
                             </button>
                             <button
                               type="button"
+                              disabled={deletingTemplateId === tpl.id}
                               onClick={(e) => handleDeleteTemplate(tpl.id, e)}
-                              className="text-xs text-slate-500 hover:text-rose-400 flex items-center gap-1 transition-colors cursor-pointer"
+                              className="text-xs text-slate-500 hover:text-rose-400 disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1 transition-colors cursor-pointer"
                               title="Xóa bộ bài khỏi Neon DB"
                             >
                               <Trash2 className="w-3.5 h-3.5" />
-                              Xóa
+                              {deletingTemplateId === tpl.id ? 'Đang xóa...' : 'Xóa'}
                             </button>
                             <button
                               type="button"

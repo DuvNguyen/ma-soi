@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Sun } from 'lucide-react';
+import { Sun, Scale } from 'lucide-react';
 import triggerHaptic from '../utils/haptics';
 import { useGothicDialog } from '../context/GothicDialogContext';
 import { getPlayerRole } from '../utils/roleUtils';
@@ -28,7 +28,8 @@ export default function DayPhaseView({
   onOpenAssignRole,
   pendingHunterShot = null,
   onOpenHunterModal,
-  onSkipHunterShot
+  onSkipHunterShot,
+  scapegoatBannedVoterIds = []
 }) {
   const { showConfirm, showAlert } = useGothicDialog();
   const [timeLeft, setTimeLeft] = useState(180); // 3 minutes discussion
@@ -129,6 +130,30 @@ export default function DayPhaseView({
         showAlert={showAlert}
       />
 
+      {/* Scapegoat Decree Banner */}
+      {scapegoatBannedVoterIds && scapegoatBannedVoterIds.length > 0 && (
+        <div className="p-3 sm:p-3.5 rounded-2xl bg-gradient-to-r from-amber-950/40 via-[#1a0f04]/60 to-slate-900/60 border border-amber-700/60 flex items-center justify-between gap-3 text-xs shadow-md animate-fade-in">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="w-8 h-8 rounded-xl bg-amber-950 border border-amber-600/80 flex items-center justify-center text-amber-300 shrink-0">
+              <Scale className="w-4 h-4" />
+            </div>
+            <div className="min-w-0">
+              <div className="font-bold text-amber-200 uppercase tracking-wide text-[11px] font-cinzel">
+                Di Ngôn Người Thế Thân Có Hiệu Lực
+              </div>
+              <div className="text-slate-300 truncate text-[11px]">
+                Người bị cấm biểu quyết: <span className="font-semibold text-amber-300">
+                  {players.filter(p => scapegoatBannedVoterIds.includes(p.id)).map(p => `#${p.id} ${p.name}`).join(', ')}
+                </span>
+              </div>
+            </div>
+          </div>
+          <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-amber-950 text-amber-300 border border-amber-700/70 shrink-0">
+            Ngày {roundNumber}
+          </span>
+        </div>
+      )}
+
       {/* 6. Voting & Lynching Execution Section */}
       <DayVotingSection
         alivePlayers={alivePlayers}
@@ -144,6 +169,7 @@ export default function DayPhaseView({
         nightState={nightState}
         onLynchPlayer={onLynchPlayer}
         showConfirm={showConfirm}
+        scapegoatBannedVoterIds={scapegoatBannedVoterIds}
       />
 
       {/* 7. Night Transition Footer Button */}

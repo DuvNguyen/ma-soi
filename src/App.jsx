@@ -121,6 +121,7 @@ export default function App() {
 
   // Neon DB Connection Status
   const [neonStatus, setNeonStatus] = useState({ ok: false, checked: false, branch: 'production' });
+  const savedMatchIdRef = useRef(null);
 
   // Game state
   const [deckRoleIds, setDeckRoleIds] = useState(() => savedInitial?.deckRoleIds || DEFAULT_DECK_ROLE_IDS);
@@ -156,6 +157,8 @@ export default function App() {
   const [isVillageCursed, setIsVillageCursed] = useState(() => savedInitial?.isVillageCursed || false);
   const [wolfCanKillDouble, setWolfCanKillDouble] = useState(() => savedInitial?.wolfCanKillDouble || false);
   const [pendingHunterShot, setPendingHunterShot] = useState(() => savedInitial?.pendingHunterShot || null);
+  const [scapegoatBannedVoterIds, setScapegoatBannedVoterIds] = useState(() => savedInitial?.scapegoatBannedVoterIds || []);
+  const [scapegoatBannedRound, setScapegoatBannedRound] = useState(() => savedInitial?.scapegoatBannedRound ?? null);
   const [preLynchSnapshot, setPreLynchSnapshot] = useState(() => savedInitial?.preLynchSnapshot || null);
   const [selectedTemplateId, setSelectedTemplateId] = useState(() => savedInitial?.selectedTemplateId || null);
   const [canWolvesKillTeammates, setCanWolvesKillTeammates] = useState(() => {
@@ -253,6 +256,8 @@ export default function App() {
         isVillageCursed,
         wolfCanKillDouble,
         pendingHunterShot,
+        scapegoatBannedVoterIds,
+        scapegoatBannedRound,
         preLynchSnapshot,
         selectedTemplateId,
         currentNightStepIdx,
@@ -270,7 +275,7 @@ export default function App() {
       // 2. Cloud DB sync (Neon)
       syncGameStateApi(stateToSave);
     }
-  }, [roundNumber, isNight, activeTab, players, deckRoleIds, rolesInGame, nightState, lynchedTodayPlayerId, gameEndResult, isVillageCursed, wolfCanKillDouble, pendingHunterShot, preLynchSnapshot, selectedTemplateId, currentNightStepIdx, gameDiary, canWolvesKillTeammates]);
+  }, [roundNumber, isNight, activeTab, players, deckRoleIds, rolesInGame, nightState, lynchedTodayPlayerId, gameEndResult, isVillageCursed, wolfCanKillDouble, pendingHunterShot, scapegoatBannedVoterIds, scapegoatBannedRound, preLynchSnapshot, selectedTemplateId, currentNightStepIdx, gameDiary, canWolvesKillTeammates]);
 
   // Helper canonical diary chronologist: merges & sorts chapters strictly by round number and phase (Night before Day)
   const appendToDiary = (prevDiary, newEntry) => {
@@ -327,8 +332,11 @@ export default function App() {
     setNightLogs([]);
     setGameDiary([]);
     setGameEndResult(null);
+    savedMatchIdRef.current = null;
     setLynchedTodayPlayerId(null);
     setPendingHunterShot(null);
+    setScapegoatBannedVoterIds([]);
+    setScapegoatBannedRound(null);
     setPreLynchSnapshot(null);
     setIsVillageCursed(false);
     setWolfCanKillDouble(false);
@@ -369,10 +377,13 @@ export default function App() {
     setActiveTab('night');
     setNightLogs([]);
     setGameEndResult(null);
+    savedMatchIdRef.current = null;
     setLynchedTodayPlayerId(null);
     setIsVillageCursed(false);
     setWolfCanKillDouble(false);
     setPendingHunterShot(null);
+    setScapegoatBannedVoterIds([]);
+    setScapegoatBannedRound(null);
     setPreLynchSnapshot(null);
     setCurrentNightStepIdx(0);
     setGameDiary([]);
@@ -424,8 +435,11 @@ export default function App() {
     setNightLogs([]);
     setGameDiary([]);
     setGameEndResult(null);
+    savedMatchIdRef.current = null;
     setLynchedTodayPlayerId(null);
     setPendingHunterShot(null);
+    setScapegoatBannedVoterIds([]);
+    setScapegoatBannedRound(null);
     setPreLynchSnapshot(null);
     setIsVillageCursed(false);
     setWolfCanKillDouble(false);
@@ -465,8 +479,11 @@ export default function App() {
     setNightLogs([]);
     setGameDiary([]);
     setGameEndResult(null);
+    savedMatchIdRef.current = null;
     setLynchedTodayPlayerId(null);
     setPendingHunterShot(null);
+    setScapegoatBannedVoterIds([]);
+    setScapegoatBannedRound(null);
     setPreLynchSnapshot(null);
     setIsVillageCursed(false);
     setWolfCanKillDouble(false);
@@ -505,8 +522,11 @@ export default function App() {
     setNightLogs([]);
     setGameDiary([]);
     setGameEndResult(null);
+    savedMatchIdRef.current = null;
     setLynchedTodayPlayerId(null);
     setPendingHunterShot(null);
+    setScapegoatBannedVoterIds([]);
+    setScapegoatBannedRound(null);
     setPreLynchSnapshot(null);
     setIsVillageCursed(false);
     setWolfCanKillDouble(false);
@@ -614,6 +634,12 @@ export default function App() {
     const result = checkGameEnd(currentPlayers);
     if (result.isEnded) {
       setGameEndResult(result);
+      if (savedMatchIdRef.current) {
+        return result;
+      }
+      const matchId = `match-${Date.now()}`;
+      savedMatchIdRef.current = matchId;
+
       // Auto save match record to Neon Database
       // Quyển nhật ký biên niên sử đầy đủ từng đêm / ngày
       let fullTimeline = [...gameDiary];
@@ -634,13 +660,13 @@ export default function App() {
       const totalRounds = Math.max(roundNumber, totalNights, totalDays, 1);
 
       const matchData = {
-        id: `match-${Date.now()}`,
+        id: matchId,
         roomName: `Ván đấu Ma Sói (${players.length} người)`,
         roundNumber,
         totalRounds,
         totalNights,
         totalDays,
-        winnerTeam: result.winner,
+        winnerTeam: result.teamCode || (result.winner === 'Werewolves' ? 'W' : result.winner === 'Villagers' ? 'V' : result.winner ? '3' : 'NONE'),
         winnerDesc: result.description || result.reason,
         winnerDescription: result.description || result.reason,
         playerCount: players.length,
@@ -676,7 +702,7 @@ export default function App() {
         console.warn('Failed to save match to localStorage:', err);
       }
 
-      // 2. Tự động lưu lên Neon Database
+      // 2. Tự động lưu lên Neon Database với idempotency guard
       saveMatchRecordApi(matchData).catch(err => console.error("Auto save match failed:", err));
     }
     return result;
@@ -825,22 +851,55 @@ export default function App() {
       } else if (type === 'hunter') {
         const shotPlayer = players.find(p => p.id === payload);
         const shotRole = getPlayerRole(shotPlayer);
-        if (shotRole?.id === 'gia-lang') {
-          setIsVillageCursed(true);
-          showAlert({
-            title: '⚡ LỜI NGUYỀN GIÀ LÀNG GIÁNG XUỐNG!',
-            message: 'Thợ Săn đã nổ súng bắn chết Già Làng! Toàn bộ phe Dân mất sạch năng lực đặc biệt đến hết ván đấu.',
-            variant: 'danger'
-          });
-        }
 
         let shotLover = null;
         if (shotPlayer?.loverId) {
           shotLover = players.find(p => p.id === shotPlayer.loverId);
         }
 
+        const hunterLog = `🎯 Thợ Săn đã nổ súng bắn hạ ${shotPlayer?.name || `Người chơi #${payload}`} (#${payload})!`;
+        const loverLog = shotLover && shotLover.isAlive
+          ? `💔 ${shotLover.name} (#${shotLover.id}) chết theo người yêu (${shotPlayer?.name})!`
+          : null;
+
+        // Cập nhật nightLogs để nạn nhân lập tức xuất hiện trong bản tin người chết & nhật ký
+        setNightLogs(prev => {
+          const currentLogs = prev || [];
+          const additions = [hunterLog];
+          if (loverLog) additions.push(loverLog);
+          return [...currentLogs, ...additions];
+        });
+
+        triggerHaptic('shot');
+
+        // Kiểm tra Sói Con bị Thợ Săn bắn chết
+        if (shotRole?.id === 'soi-con' || (shotLover && getPlayerRole(shotLover)?.id === 'soi-con')) {
+          setWolfCanKillDouble(true);
+        }
+
+        if (shotRole?.id === 'gia-lang') {
+          setIsVillageCursed(true);
+          showAlert({
+            title: '⚡ LỜI NGUYỀN GIÀ LÀNG GIÁNG XUỐNG!',
+            message: `Thợ Săn đã nổ súng bắn chết GIÀ LÀNG (${shotPlayer?.name} #${payload})!\n\nToàn bộ phe Dân mất sạch năng lực đặc biệt đến hết ván đấu.${shotLover && shotLover.isAlive ? `\n\nNgoài ra, người yêu là ${shotLover.name} (#${shotLover.id}) cũng tử trận theo vì quá đau buồn!` : ''}`,
+            variant: 'danger',
+            confirmText: 'Đã Rõ 🎯'
+          });
+        } else {
+          showAlert({
+            title: '🎯 PHÁT SÚNG CỦA THỢ SĂN!',
+            message: shotLover && shotLover.isAlive
+              ? `Thợ Săn đã nổ súng tiêu diệt ${shotPlayer?.name} (#${payload})!\n\n💔 Người yêu là ${shotLover.name} (#${shotLover.id}) cũng tử trận theo vì quá đau buồn!`
+              : `Thợ Săn đã nổ súng tiêu diệt thành công ${shotPlayer?.name} (#${payload})!`,
+            variant: 'gold',
+            confirmText: 'Đã Rõ 🎯'
+          });
+        }
+
+        const deadSheriff = (shotPlayer?.isSheriff ? shotPlayer : null) || (shotLover?.isAlive && shotLover?.isSheriff ? shotLover : null);
+
         setPlayers(current => {
-          const updated = current.map(p => {
+          let updated = current.map(p => {
             if (p.id === payload) {
               return {
                 ...p,
@@ -859,13 +918,46 @@ export default function App() {
             }
             return p;
           });
+
+          // Kiểm tra Ảnh Tử kế thừa linh hồn
+          if (shotPlayer) {
+            const shadowRes1 = new WerewolfGame({ players: updated })._checkShadowInheritance(updated, shotPlayer);
+            updated = shadowRes1.updatedPlayers;
+          }
+          if (shotLover && shotLover.isAlive) {
+            const shadowRes2 = new WerewolfGame({ players: updated })._checkShadowInheritance(updated, shotLover);
+            updated = shadowRes2.updatedPlayers;
+          }
+
           evaluateGameEnd(updated);
           return updated;
         });
 
+        if (deadSheriff) {
+          handleOpenSheriffModal(deadSheriff, false);
+        }
+
         setPendingHunterShot(null);
       } else if (type === 'skip_hunter') {
         setPendingHunterShot(null);
+        showAlert({
+          title: 'THỢ SĂN BỎ QUA',
+          message: 'Thợ Săn không sử dụng phát súng cuối cùng.',
+          variant: 'info',
+          confirmText: 'Đã Rõ'
+        });
+      } else if (type === 'scapegoat_decree') {
+        const bannedList = Array.isArray(payload) ? payload : (payload?.bannedVoterIds || []);
+        setScapegoatBannedVoterIds(bannedList);
+        setScapegoatBannedRound(roundNumber + 1);
+        if (bannedList.length > 0) {
+          const names = players.filter(p => bannedList.includes(p.id)).map(p => `#${p.id} ${p.name}`).join(', ');
+          showAlert({
+            title: 'DI NGÔN NGƯỜI THẾ THÂN ⚖️',
+            message: `Người Thế Thân đã thi hành quyền năng di ngôn!\n\nNgười chơi bị cấm biểu quyết trong Ngày ${roundNumber + 1}:\n${names}`,
+            variant: 'gold'
+          });
+        }
       }
       return next;
     });
@@ -1192,7 +1284,7 @@ export default function App() {
     });
 
     const result = game.resolveNight(nightState);
-    const { game: nextGame, deadSheriff, hunterTrigger, elderKilledByWitch, logs, gameEndResult: endResult } = result;
+    const { game: nextGame, deadSheriff, hunterTrigger, elderKilledByWitch, transformedShadows, logs, gameEndResult: endResult } = result;
 
     setPlayers(nextGame.players);
     setNightLogs(logs);
@@ -1204,6 +1296,19 @@ export default function App() {
     setNightState(nextGame.nightState);
     setWolfCanKillDouble(nextGame.wolfCanKillDouble);
     setIsVillageCursed(nextGame.isVillageCursed);
+
+    // Thông báo nếu có Ảnh Tử kế thừa linh hồn trong đêm
+    if (transformedShadows && transformedShadows.length > 0) {
+      transformedShadows.forEach(({ shadow, host, inheritRoleId }) => {
+        const newRole = getRole(inheritRoleId);
+        triggerHaptic('confirm');
+        showAlert({
+          title: '👻 ẢNH TỬ KẾ THỪA LINH HỒN!',
+          message: `Chủ thể (${host.name} #${host.id}) đã qua đời trong đêm!\n\nẢnh Tử (${shadow.name} #${shadow.id}) lập tức hấp thu linh hồn và trở thành: ${newRole?.name || inheritRoleId}!`,
+          variant: 'purple'
+        });
+      });
+    }
 
     // Ghi nhật ký Đêm vừa qua vào quyển nhật ký biên niên sử
     const nightEntry = {
@@ -1240,11 +1345,24 @@ export default function App() {
 
     // Thợ Săn bắn trả
     if (hunterTrigger) {
+      setPendingHunterShot({
+        hunterId: hunterTrigger.id,
+        hunterName: hunterTrigger.name
+      });
       setActionModal({
         isOpen: true,
         actionType: 'hunter',
         role: hunterTrigger.getRole(),
         player: hunterTrigger
+      });
+    }
+
+    if (result.isScapegoatLynch) {
+      setActionModal({
+        isOpen: true,
+        actionType: 'scapegoat_decree',
+        player: target,
+        role: target.getRole()
       });
     }
   };
@@ -1376,6 +1494,15 @@ export default function App() {
         player: hunterTrigger
       });
     }
+
+    if (result.isScapegoatLynch) {
+      setActionModal({
+        isOpen: true,
+        actionType: 'scapegoat_decree',
+        player: target,
+        role: target.getRole()
+      });
+    }
   };
 
   // Kị Sĩ Thách Đấu Quyết Đấu Ban Ngày (Kị Sĩ lật bài 1 lần duy nhất)
@@ -1397,7 +1524,11 @@ export default function App() {
     const result = game.knightDuel(knightId, targetId);
     if (!result.success) return;
 
-    const { game: nextGame, knight, target, isWolf, deadSheriff, transformedShadows, logs, gameEndResult: endResult } = result;
+    const { game: nextGame, knight, target, isWolf, deadSheriff, transformedShadows, hunterTrigger, wolfCanKillDouble: nextWolfDouble, logs, gameEndResult: endResult } = result;
+
+    if (nextWolfDouble) {
+      setWolfCanKillDouble(true);
+    }
 
     if (isWolf) {
       setLynchedTodayPlayerId(targetId);
@@ -1434,6 +1565,18 @@ export default function App() {
     if (deadSheriff) {
       handleOpenSheriffModal(deadSheriff, false);
     }
+    if (hunterTrigger) {
+      setPendingHunterShot({
+        hunterId: hunterTrigger.id,
+        hunterName: hunterTrigger.name
+      });
+      setActionModal({
+        isOpen: true,
+        actionType: 'hunter',
+        role: hunterTrigger.getRole(),
+        player: hunterTrigger
+      });
+    }
     if (endResult) {
       setGameEndResult(endResult);
     }
@@ -1448,6 +1591,8 @@ export default function App() {
       setGameEndResult(preLynchSnapshot.gameEndResult || null);
       setLynchedTodayPlayerId(preLynchSnapshot.lynchedTodayPlayerId || null);
       setPendingHunterShot(null);
+      setScapegoatBannedVoterIds([]);
+      setScapegoatBannedRound(null);
       setPreLynchSnapshot(null);
       setActionModal(prev => ({ ...prev, isOpen: false }));
       return;
@@ -1471,6 +1616,8 @@ export default function App() {
     setLynchedTodayPlayerId(null);
     setGameEndResult(nextGame.gameEndResult);
     setPendingHunterShot(null);
+    setScapegoatBannedVoterIds([]);
+    setScapegoatBannedRound(null);
     setPreLynchSnapshot(null);
     setActionModal(prev => ({ ...prev, isOpen: false }));
   };
@@ -1722,7 +1869,8 @@ export default function App() {
               <button
                 type="button"
                 onClick={() => setIsLibraryOpen(true)}
-                title="Thư viện 48 vai trò Ma Sói"
+                title={`Thư viện ${ROLES.length} vai trò Ma Sói`}
+                aria-label={`Thư viện ${ROLES.length} vai trò Ma Sói`}
                 className="h-6 w-6 sm:h-7 sm:w-auto sm:px-2 rounded-md sm:rounded-lg hover:bg-slate-800 bg-amber-950/25 hover:bg-amber-950/60 text-amber-300 hover:text-amber-100 text-xs font-bold transition-all flex items-center justify-center gap-1 cursor-pointer shrink-0 border border-amber-900/40"
               >
                 <BookOpen className="w-3.5 h-3.5 text-amber-300 shrink-0" />
@@ -1871,12 +2019,14 @@ export default function App() {
                 player: p
               });
             }}
+            scapegoatBannedVoterIds={roundNumber === scapegoatBannedRound ? scapegoatBannedVoterIds : []}
           />
         </div>
 
         <div style={{ display: activeTab === 'table' ? 'block' : 'none' }}>
           <PlayersGridView
             players={players}
+            scapegoatBannedVoterIds={roundNumber === scapegoatBannedRound ? scapegoatBannedVoterIds : []}
             onOpenRosters={() => {
               setSetupModalTab('rosters');
               setIsSetupOpen(true);

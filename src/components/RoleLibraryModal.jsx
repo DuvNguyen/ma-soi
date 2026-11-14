@@ -53,6 +53,7 @@ export default function RoleLibraryModal({ isOpen, onClose }) {
     V: ROLES.filter(r => r.teamCode === 'V').length,
     W: ROLES.filter(r => r.teamCode === 'W').length,
     3: ROLES.filter(r => r.teamCode === '3').length,
+    '?': ROLES.filter(r => r.teamCode === '?').length,
   }), []);
 
   return (
@@ -102,6 +103,7 @@ export default function RoleLibraryModal({ isOpen, onClose }) {
                 type="button"
                 onClick={() => { setDisplayMode('grid'); setMobileView('grid'); }}
                 title="Dạng lưới thẻ bài"
+                aria-label="Chuyển chế độ xem dạng lưới thẻ bài"
                 className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
                   displayMode === 'grid' && mobileView === 'grid' ? 'bg-purple-900/80 text-white' : 'text-slate-400'
                 }`}
@@ -112,6 +114,7 @@ export default function RoleLibraryModal({ isOpen, onClose }) {
                 type="button"
                 onClick={() => { setDisplayMode('list'); setMobileView('grid'); }}
                 title="Dạng danh sách"
+                aria-label="Chuyển chế độ xem dạng danh sách"
                 className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
                   displayMode === 'list' && mobileView === 'grid' ? 'bg-purple-900/80 text-white' : 'text-slate-400'
                 }`}
@@ -124,6 +127,7 @@ export default function RoleLibraryModal({ isOpen, onClose }) {
             <button
               type="button"
               onClick={onClose}
+              aria-label="Đóng thư viện vai trò"
               className="w-9 h-9 rounded-xl bg-slate-900/80 hover:bg-slate-800 border border-slate-800 hover:border-slate-700 text-slate-300 hover:text-white flex items-center justify-center transition-all cursor-pointer active:scale-95"
             >
               <X className="w-5 h-5" />
@@ -150,7 +154,8 @@ export default function RoleLibraryModal({ isOpen, onClose }) {
                 <button
                   type="button"
                   onClick={() => setSearchTerm('')}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white p-1"
+                  aria-label="Xóa nội dung tìm kiếm"
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white p-1 cursor-pointer"
                 >
                   <X className="w-3.5 h-3.5" />
                 </button>
@@ -163,7 +168,8 @@ export default function RoleLibraryModal({ isOpen, onClose }) {
                 { id: 'ALL', label: `Tất Cả (${teamCounts.ALL})` },
                 { id: 'V', label: `Phe Dân (${teamCounts.V})`, color: 'text-blue-300' },
                 { id: 'W', label: `Phe Sói (${teamCounts.W})`, color: 'text-rose-300' },
-                { id: '3', label: `Phe Thứ 3 (${teamCounts['3']})`, color: 'text-amber-300' }
+                { id: '3', label: `Phe Thứ 3 (${teamCounts['3']})`, color: 'text-amber-300' },
+                { id: '?', label: `Tùy Biến (${teamCounts['?']})`, color: 'text-emerald-300' }
               ].map(f => {
                 const isSelected = selectedTeam === f.id;
                 return (
@@ -177,6 +183,8 @@ export default function RoleLibraryModal({ isOpen, onClose }) {
                           ? 'bg-rose-950 text-rose-200 border-rose-600 shadow-[0_0_12px_rgba(225,29,72,0.4)]'
                           : f.id === '3'
                           ? 'bg-amber-950 text-amber-200 border-amber-600 shadow-[0_0_12px_rgba(245,158,11,0.4)]'
+                          : f.id === '?'
+                          ? 'bg-emerald-950 text-emerald-200 border-emerald-600 shadow-[0_0_12px_rgba(16,185,129,0.4)]'
                           : 'bg-purple-950 text-purple-200 border-purple-600 shadow-[0_0_12px_rgba(168,85,247,0.4)]'
                         : 'bg-[#0d0f1b] border-purple-950/80 text-slate-400 hover:text-slate-200 hover:border-purple-800'
                     }`}
@@ -208,6 +216,7 @@ export default function RoleLibraryModal({ isOpen, onClose }) {
                   const isActive = activeRole?.id === r.id;
                   const isWolf = r.teamCode === 'W';
                   const isNeutral = r.teamCode === '3';
+                  const isVariable = r.teamCode === '?';
 
                   return (
                     <button
@@ -220,18 +229,22 @@ export default function RoleLibraryModal({ isOpen, onClose }) {
                             ? 'bg-gradient-to-b from-[#38090f] to-[#1c0407] border-rose-500 shadow-[0_0_18px_rgba(225,29,72,0.6)] ring-1 ring-rose-400'
                             : isNeutral
                             ? 'bg-gradient-to-b from-[#382009] to-[#1c1004] border-amber-500 shadow-[0_0_18px_rgba(245,158,11,0.6)] ring-1 ring-amber-400'
+                            : isVariable
+                            ? 'bg-gradient-to-b from-[#06301d] to-[#03190e] border-emerald-500 shadow-[0_0_18px_rgba(16,185,129,0.6)] ring-1 ring-emerald-400'
                             : 'bg-gradient-to-b from-[#280d47] to-[#140624] border-purple-500 shadow-[0_0_18px_rgba(168,85,247,0.6)] ring-1 ring-purple-400'
                           : isWolf
                           ? 'bg-[#150406] hover:bg-[#23060a] border-rose-900/60 hover:border-rose-600 text-slate-200'
                           : isNeutral
                           ? 'bg-[#170e04] hover:bg-[#241606] border-amber-900/60 hover:border-amber-600 text-slate-200'
+                          : isVariable
+                          ? 'bg-[#04160e] hover:bg-[#072517] border-emerald-900/60 hover:border-emerald-600 text-slate-200'
                           : 'bg-[#0f111d] hover:bg-[#171a2e] border-purple-950/70 hover:border-purple-600 text-slate-300'
                       }`}
                     >
                       {/* Top Badges: Wake order & Team */}
                       <div className="w-full flex items-center justify-between mb-1 px-0.5">
                         <span className={`text-[9px] font-mono font-bold px-1 rounded ${
-                          isWolf ? 'bg-rose-950/80 text-rose-300' : isNeutral ? 'bg-amber-950/80 text-amber-300' : 'bg-purple-950/80 text-purple-300'
+                          isWolf ? 'bg-rose-950/80 text-rose-300' : isNeutral ? 'bg-amber-950/80 text-amber-300' : isVariable ? 'bg-emerald-950/80 text-emerald-300' : 'bg-purple-950/80 text-purple-300'
                         }`}>
                           {r.wakeOrder < 80 ? `#${r.wakeOrder}` : '☀️'}
                         </span>
@@ -240,6 +253,8 @@ export default function RoleLibraryModal({ isOpen, onClose }) {
                           <WolfIcon className="w-2.5 h-2.5 text-rose-400" />
                         ) : isNeutral ? (
                           <span className="text-[9px] text-amber-400 font-black">3</span>
+                        ) : isVariable ? (
+                          <span className="text-[9px] text-emerald-400 font-black" title={r.team}>?</span>
                         ) : (
                           <span className="text-[9px] text-blue-400 font-bold">V</span>
                         )}
@@ -255,13 +270,13 @@ export default function RoleLibraryModal({ isOpen, onClose }) {
                             className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-200"
                           />
                         ) : (
-                          <span className="text-xl flex items-center justify-center">{isWolf ? <WolfIcon className="w-6 h-6" /> : isNeutral ? '🎭' : '👨‍🌾'}</span>
+                          <span className="text-xl flex items-center justify-center">{isWolf ? <WolfIcon className="w-6 h-6" /> : isNeutral ? '🎭' : isVariable ? '🔮' : '👨‍🌾'}</span>
                         )}
                       </div>
 
                       {/* Role Name */}
                       <div className={`w-full text-[11px] font-bold truncate leading-tight ${
-                        isWolf ? 'text-rose-200' : isNeutral ? 'text-amber-200' : 'text-slate-200'
+                        isWolf ? 'text-rose-200' : isNeutral ? 'text-amber-200' : isVariable ? 'text-emerald-200' : 'text-slate-200'
                       }`}>
                         {r.name}
                       </div>
@@ -276,6 +291,7 @@ export default function RoleLibraryModal({ isOpen, onClose }) {
                   const isActive = activeRole?.id === r.id;
                   const isWolf = r.teamCode === 'W';
                   const isNeutral = r.teamCode === '3';
+                  const isVariable = r.teamCode === '?';
 
                   return (
                     <button
@@ -288,11 +304,15 @@ export default function RoleLibraryModal({ isOpen, onClose }) {
                             ? 'bg-gradient-to-r from-rose-950 to-[#280509] border-rose-500 text-white shadow-md'
                             : isNeutral
                             ? 'bg-gradient-to-r from-amber-950 to-[#281705] border-amber-500 text-white shadow-md'
+                            : isVariable
+                            ? 'bg-gradient-to-r from-emerald-950 to-[#042816] border-emerald-500 text-white shadow-md'
                             : 'bg-gradient-to-r from-purple-950 to-[#200638] border-purple-500 text-white shadow-md'
                           : isWolf
                           ? 'bg-[#160406] hover:bg-[#24060a] border-rose-900/60 text-slate-200'
                           : isNeutral
                           ? 'bg-[#180e04] hover:bg-[#261706] border-amber-900/60 text-slate-200'
+                          : isVariable
+                          ? 'bg-[#04180e] hover:bg-[#062617] border-emerald-900/60 text-slate-200'
                           : 'bg-[#0f111d] hover:bg-[#16192c] border-purple-950/60 text-slate-300'
                       }`}
                     >
@@ -302,12 +322,14 @@ export default function RoleLibraryModal({ isOpen, onClose }) {
                             ? 'bg-rose-950 text-rose-300 border-rose-800' 
                             : isNeutral 
                             ? 'bg-amber-950 text-amber-300 border-amber-800'
+                            : isVariable
+                            ? 'bg-emerald-950 text-emerald-300 border-emerald-800'
                             : 'bg-slate-900 text-slate-300 border-purple-950'
                         }`}>
                           {r.wakeOrder < 80 ? r.wakeOrder : '☀️'}
                         </div>
                         <div className="truncate">
-                          <div className={`font-bold text-xs truncate ${isWolf ? 'text-rose-200' : isNeutral ? 'text-amber-200' : 'text-slate-100'}`}>
+                          <div className={`font-bold text-xs truncate ${isWolf ? 'text-rose-200' : isNeutral ? 'text-amber-200' : isVariable ? 'text-emerald-200' : 'text-slate-100'}`}>
                             {r.name}
                           </div>
                           <div className="text-[10px] text-slate-400 truncate">{r.enName}</div>
@@ -319,6 +341,8 @@ export default function RoleLibraryModal({ isOpen, onClose }) {
                           ? 'bg-rose-950 text-rose-300 border-rose-700'
                           : isNeutral
                           ? 'bg-amber-950 text-amber-300 border-amber-700'
+                          : isVariable
+                          ? 'bg-emerald-950 text-emerald-300 border-emerald-700'
                           : 'bg-blue-950 text-blue-300 border-blue-800'
                       }`}>
                         {r.teamCode}
