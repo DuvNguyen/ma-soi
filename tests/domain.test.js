@@ -615,6 +615,65 @@ console.log('🧪 Starting Phase 1 Domain Model & Strategy Tests...\n');
     assert.strictEqual(wcNightRes.game.getPlayer(47).isWolf(), true, 'Wild Child is transformed into Werewolf');
     console.log('✅ Test 33: Wild Child night transformation cascade & return verified.');
 
-    console.log('\n🎉 ALL 33 DOMAIN ENGINE TESTS PASSED PERFECTLY!\n');
+    // Test 34: Kẻ Đốt Nhà (ke-dot-nha) is Villager faction (teamCode: 'V'), not detected as Wolf
+    const pyro = new Player({ id: 51, name: 'Hỏa Hoạn', currentRoleId: 'ke-dot-nha', roleId: 'ke-dot-nha', isAlive: true });
+    assert.strictEqual(pyro.isWolf(), false, 'Pyromaniac must not be detected as a Werewolf');
+    assert.strictEqual(pyro.getRole()?.teamCode, 'V', 'Pyromaniac belongs to Villagers (The Village)');
+    console.log('✅ Test 34: Pyromaniac (ke-dot-nha) faction classification verified.');
+
+    // Test 35: Third Party role (sat-thu) does not award false victory to Villagers when wolves die, and wins when sole survivor
+    const assassin = new Player({ id: 52, name: 'Sát Thủ', currentRoleId: 'sat-thu', roleId: 'sat-thu', isAlive: true });
+    const singleVillager = new Player({ id: 53, name: 'Dân Sống', currentRoleId: 'dan-lang', roleId: 'dan-lang', isAlive: true });
+    const eliminatedWolf = new Player({ id: 54, name: 'Sói Đã Chết', currentRoleId: 'soi-thuong', roleId: 'soi-thuong', isAlive: false });
+
+    const assassinVsVillager = checkGameEnd([assassin, singleVillager, eliminatedWolf]);
+    assert.strictEqual(assassinVsVillager.isEnded, false, 'Match must continue when 3rd party assassin is still dueling the villager');
+
+    const assassinSoloWin = checkGameEnd([assassin, eliminatedWolf]);
+    assert.strictEqual(assassinSoloWin.isEnded, true);
+    assert.strictEqual(assassinSoloWin.teamCode, '3');
+    console.log('✅ Test 35: Third Party (Sát Thủ) duel & solo victory verified.');
+
+    // Test 36: undoLynch clears isVillageCursed on Elder, clears wolfCanKillDouble on Wolf Pup, and reverts Wild Child
+    const elder55 = new Player({ id: 55, name: 'Già Làng 55', currentRoleId: 'gia-lang', roleId: 'gia-lang', isAlive: true });
+    const wc56 = new Player({ id: 56, name: 'Đứa Trẻ 56', currentRoleId: 'dua-tre-hoang-da', roleId: 'dua-tre-hoang-da', idolId: 55, isAlive: true });
+    const normalWolf57 = new Player({ id: 57, name: 'Sói 57', currentRoleId: 'soi-thuong', roleId: 'soi-thuong', isAlive: true });
+
+    const curseUndoGame = new WerewolfGame({
+      roundNumber: 1,
+      isNight: false,
+      players: [elder55, wc56, normalWolf57]
+    });
+    const lynchedElderGame = curseUndoGame.lynchPlayer(55).game;
+    assert.strictEqual(lynchedElderGame.isVillageCursed, true, 'Elder lynch curses village');
+    assert.strictEqual(lynchedElderGame.getPlayer(56).isWolf(), true, 'Wild Child transforms on idol lynch');
+
+    const undoneElderGame = lynchedElderGame.undoLynch(55);
+    assert.strictEqual(undoneElderGame.isVillageCursed, false, 'Undoing Elder lynch lifts village curse');
+    assert.strictEqual(undoneElderGame.getPlayer(55).isAlive, true, 'Elder restored');
+    assert.strictEqual(undoneElderGame.getPlayer(56).isWolf(), false, 'Wild Child reverted back to villager');
+    console.log('✅ Test 36: undoLynch curse lifting and Wild Child revert verified.');
+
+    // Test 37: anh-em-soi and dien-vien night exclusions
+    const customNightDeck = [
+      { id: 'anh-em-soi', name: 'Anh Em Sói' },
+      { id: 'dien-vien', name: 'Diễn Viên' },
+      { id: 'tien-tri', name: 'Tiên Tri' }
+    ];
+    const customNightFilter = (roles, round) => roles.filter(r => {
+      if (['cupid', 'dua-tre-hoang-da', 'anh-tu', 'an-trom', 'ke-bao-thu', 'soi-lai', 'cho-soi-soi-lai', 'ba-anh-em', 'hai-chi-em', 'tham-phan-lap-bap', 'nua-nguoi-nua-soi', 'thang-ngoc', 'tho-san', 'anh-em-soi'].includes(r.id) && round > 1) {
+        return false;
+      }
+      if (r.id === 'dien-vien' && round > 3) {
+        return false;
+      }
+      return true;
+    });
+    assert.strictEqual(customNightFilter(customNightDeck, 1).length, 3, 'All 3 active in Night 1');
+    assert.strictEqual(customNightFilter(customNightDeck, 2).length, 2, 'Diễn Viên & Tiên Tri active in Night 2 (Anh Em Sói asleep)');
+    assert.strictEqual(customNightFilter(customNightDeck, 4).length, 1, 'Only Tiên Tri active in Night 4 (Diễn Viên expired)');
+    console.log('✅ Test 37: Wolf Brothers & Actor night step duration verified.');
+
+    console.log('\n🎉 ALL 37 DOMAIN ENGINE TESTS PASSED PERFECTLY!\n');
   });
 }

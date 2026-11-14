@@ -535,8 +535,12 @@ export class WerewolfGame {
     const target = this.getPlayer(playerId);
     if (!target) return this;
 
+    const targetRole = target.getRole();
+    const wasElder = targetRole?.id === 'gia-lang' || target.originalRoleId === 'gia-lang';
+    const wasWolfPup = targetRole?.id === 'soi-con' || target.originalRoleId === 'soi-con';
+
     const updatedPlayers = this.players.map(p => {
-      // Hồi sinh người bị treo, người yêu chết chùm, và nạn nhân bị Thợ Săn bắn trong chuỗi lynch ngày hôm nay
+      // 1. Hồi sinh người bị treo, người yêu chết chùm, và nạn nhân bị Thợ Săn bắn trong chuỗi lynch ngày hôm nay
       if (
         p.id === playerId || 
         p.loverId === playerId ||
@@ -545,12 +549,46 @@ export class WerewolfGame {
       ) {
         return p.clone({ isAlive: true, deathReason: null, deathPhase: null });
       }
+
+      // 2. Nếu Đứa Trẻ Hoang Dã đã biến thành Sói do Thần Tượng bị treo cổ ngày hôm nay -> Phục hồi lại thành Đứa Trẻ
+      if (
+        p.isAlive &&
+        p.idolId === playerId &&
+        p.isCursedWolf &&
+        p.originalRoleId === 'dua-tre-hoang-da' &&
+        p.curseNight === this.roundNumber
+      ) {
+        return p.clone({
+          currentRoleId: 'dua-tre-hoang-da',
+          roleId: 'dua-tre-hoang-da',
+          originalRoleId: null,
+          isCursedWolf: false,
+          curseNight: null
+        });
+      }
+
+      // 3. Nếu Ảnh Tử đã kế thừa linh hồn người bị treo ngày hôm nay -> Hoàn trả lại Ảnh Tử
+      if (
+        p.isAlive &&
+        p.shadowHostId === playerId &&
+        p.originalRoleId === 'anh-tu'
+      ) {
+        return p.clone({
+          currentRoleId: 'anh-tu',
+          roleId: 'anh-tu',
+          originalRoleId: null,
+          elderLives: undefined
+        });
+      }
+
       return p;
     });
 
     return this.clone({
       players: updatedPlayers,
       lynchedTodayPlayerId: null,
+      isVillageCursed: wasElder ? false : this.isVillageCursed,
+      wolfCanKillDouble: wasWolfPup ? false : this.wolfCanKillDouble,
       gameEndResult: null
     });
   }

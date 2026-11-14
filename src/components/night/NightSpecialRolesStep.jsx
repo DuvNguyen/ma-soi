@@ -217,7 +217,7 @@ export default function NightSpecialRolesStep({
   }
 
   // 4. CON QUẠ (RAVEN)
-  if (currentRole.id === 'con-qua') {
+  if (currentRole.id === 'con-qua' || currentRole.id === 'con-qua-plus') {
     return (
       <div className="space-y-3">
         <div className="flex items-center justify-between">
@@ -604,6 +604,70 @@ export default function NightSpecialRolesStep({
               Chưa gán vai
             </span>
           )}
+        </div>
+      </div>
+    );
+  }
+
+  // 12. CHÓ SÓI / SÓI LAI (WOLF-DOG - ĐÊM 1 TỰ CHỌN PHE)
+  if (currentRole.id === 'cho-soi-soi-lai') {
+    const dogHolders = players.filter(p => (p.currentRoleId || p.roleId) === 'cho-soi-soi-lai' || p.originalRoleId === 'cho-soi-soi-lai');
+    return (
+      <div className="p-4 rounded-2xl bg-[#14121e] border border-amber-500/30 text-amber-100 space-y-3">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 rounded-xl bg-amber-950/60 border border-amber-600/40 text-amber-300 shrink-0">
+              <Sparkles className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="font-bold text-amber-200 text-sm">Chó Sói / Sói Lai Chọn Phe</div>
+              <div className="text-xs text-slate-400 mt-0.5">
+                Vào Đêm 1, người chơi tự chọn theo phe Dân Làng hay gia nhập Phe Sói vĩnh viễn.
+              </div>
+            </div>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            {dogHolders.length > 0 ? (
+              dogHolders.map(d => {
+                const isWolf = isWolfPlayer(d);
+                return (
+                  <div key={d.id} className="flex items-center gap-2 bg-[#0c0d14] p-1.5 px-2.5 rounded-xl border border-slate-800">
+                    <span className="text-xs font-bold text-white">#{d.id} {d.name}:</span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (typeof onAssignRole === 'function') onAssignRole(d.id, 'dan-lang');
+                      }}
+                      className={`text-xs px-2.5 py-1 rounded-lg border font-bold cursor-pointer transition-all ${
+                        !isWolf
+                          ? 'bg-emerald-950 border-emerald-500 text-emerald-200 shadow-sm'
+                          : 'bg-slate-900 border-slate-700 text-slate-400 hover:text-white'
+                      }`}
+                    >
+                      Phe Dân 👨‍🌾
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (typeof onAssignRole === 'function') onAssignRole(d.id, 'soi-thuong');
+                      }}
+                      className={`text-xs px-2.5 py-1 rounded-lg border font-bold cursor-pointer transition-all ${
+                        isWolf
+                          ? 'bg-rose-950 border-rose-500 text-rose-200 shadow-sm'
+                          : 'bg-slate-900 border-slate-700 text-slate-400 hover:text-white'
+                      }`}
+                    >
+                      Phe Sói 🐺
+                    </button>
+                  </div>
+                );
+              })
+            ) : (
+              <span className="text-xs px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-700 text-slate-400">
+                Chưa gán vai
+              </span>
+            )}
+          </div>
         </div>
       </div>
     );

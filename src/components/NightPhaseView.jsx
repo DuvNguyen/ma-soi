@@ -73,7 +73,10 @@ export default function NightPhaseView({
     };
 
     const activeRoles = rolesInGame.filter(r => {
-      if (['cupid', 'dua-tre-hoang-da', 'anh-tu', 'an-trom', 'ke-bao-thu', 'soi-lai', 'cho-soi-soi-lai', 'ba-anh-em', 'hai-chi-em', 'tham-phan-lap-bap', 'nua-nguoi-nua-soi', 'thang-ngoc', 'tho-san'].includes(r.id) && roundNumber > 1) {
+      if (['cupid', 'dua-tre-hoang-da', 'anh-tu', 'an-trom', 'ke-bao-thu', 'soi-lai', 'cho-soi-soi-lai', 'ba-anh-em', 'hai-chi-em', 'tham-phan-lap-bap', 'nua-nguoi-nua-soi', 'thang-ngoc', 'tho-san', 'anh-em-soi'].includes(r.id) && roundNumber > 1) {
+        return false;
+      }
+      if (r.id === 'dien-vien' && roundNumber > 3) {
         return false;
       }
       if (r.id === 'cao' && nightState?.foxLostPower) {
@@ -83,7 +86,7 @@ export default function NightPhaseView({
         'dan-lang', 'dan-thuong', 'gia-lang', 'canh-sat-truong', 
         'nguoi-the-than', 'oan-nhan', 'nguoi-day-to-tan-tuy', 'hiep-si-gia', 'ky-si', 
         'thien-su', 'thien-than', 'bo-lao', 'thang-mo', 'nguoi-thuan-phuc-gau', 'than-gau',
-        'co-be', 'canh-sat-characters', 'ki-si', 'thanh-vien-giao-phai'
+        'co-be', 'canh-sat-characters', 'ki-si', 'thanh-vien-giao-phai', 'hiep-si-kiem-gi'
       ].includes(r.id)) {
         return false;
       }

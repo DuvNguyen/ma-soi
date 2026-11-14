@@ -21,6 +21,7 @@ export function checkGameEnd(players, extraRules = {}) {
   // Count teams
   let aliveWolves = 0;
   let aliveVillagers = 0;
+  let aliveThirdParty = 0;
   let totalWolves = 0;
   let hasCouple = false;
   let couplePlayers = [];
@@ -48,13 +49,11 @@ export function checkGameEnd(players, extraRules = {}) {
       aliveWolves++;
     } else if (role?.teamCode === 'V') {
       aliveVillagers++;
+    } else if (role?.teamCode === '3') {
+      aliveThirdParty++;
     } else {
-      // 3rd party or variable
-      if (role?.id === 'soi-trang') {
-        aliveWolves++; // counts toward wolf count initially
-      } else {
-        aliveVillagers++; // default to non-wolf
-      }
+      // Biến đổi / chưa lộ vai ('?')
+      aliveVillagers++;
     }
   });
 
@@ -100,6 +99,19 @@ export function checkGameEnd(players, extraRules = {}) {
     };
   }
 
+  // 3.1. Special 3rd party: Bất kỳ người chơi Phe Thứ Ba nào là người duy nhất sống sót (Sát Thủ, v.v.)
+  if (alivePlayers.length === 1 && aliveThirdParty === 1) {
+    const solo = alivePlayers[0];
+    const soloRole = getPlayerRole(solo);
+    return {
+      isEnded: true,
+      winner: soloRole?.name || 'Third Party',
+      winnerTitle: `${soloRole?.name || 'Phe Thứ 3'} Đơn Độc Chiến Thắng! 👑`,
+      teamCode: '3',
+      description: `${solo.name} (${soloRole?.name || 'Phe Thứ 3'}) là kẻ duy nhất sống sót vượt qua mọi thế lực trong làng!`
+    };
+  }
+
   // Nếu Sói Trắng còn sống và tất cả Dân Làng đã chết, nhưng vẫn còn Ma Sói thường:
   // Ván đấu PHẢI TIẾP TỤC để Sói Trắng và Sói thường thanh trừng lẫn nhau!
   const hasOtherWolves = alivePlayers.some(p => isWolfPlayer(p) && getPlayerRole(p)?.id !== 'soi-trang');
@@ -108,23 +120,25 @@ export function checkGameEnd(players, extraRules = {}) {
       isEnded: false,
       aliveWolves,
       aliveVillagers,
+      aliveThirdParty,
       totalAlive: alivePlayers.length
     };
   }
 
-  // 4. Werewolves win: Number of wolves >= Number of villagers (or villagers = 0) VÀ không còn Sói Trắng tranh chấp
-  if (!whiteWolf && aliveWolves > 0 && aliveWolves >= aliveVillagers) {
+  // 4. Werewolves win: Số Sói >= Số người đối địch (Dân + Phe 3) VÀ không còn Sói Trắng tranh chấp
+  const nonWolves = aliveVillagers + aliveThirdParty;
+  if (!whiteWolf && aliveWolves > 0 && aliveWolves >= nonWolves) {
     return {
       isEnded: true,
       winner: 'Werewolves',
       winnerTitle: 'Phe Ma Sói Chiến Thắng!',
       teamCode: 'W',
-      description: `Số Ma Sói (${aliveWolves}) đã áp đảo hoặc bằng Dân Làng (${aliveVillagers}).`
+      description: `Số Ma Sói (${aliveWolves}) đã áp đảo hoặc bằng toàn bộ phe đối địch (${nonWolves}).`
     };
   }
 
-  // 5. Villagers win: Có Ma Sói trong ván và toàn bộ Ma Sói đã bị tiêu diệt, và còn ít nhất 1 dân sống
-  if (totalWolves > 0 && aliveWolves === 0 && aliveVillagers > 0) {
+  // 5. Villagers win: Có Ma Sói trong ván, toàn bộ Ma Sói đã bị tiêu diệt, còn ít nhất 1 dân sống VÀ không còn Phe 3 đối địch
+  if (totalWolves > 0 && aliveWolves === 0 && aliveVillagers > 0 && aliveThirdParty === 0) {
     return {
       isEnded: true,
       winner: 'Villagers',
@@ -139,6 +153,7 @@ export function checkGameEnd(players, extraRules = {}) {
     isEnded: false,
     aliveWolves,
     aliveVillagers,
+    aliveThirdParty,
     totalAlive: alivePlayers.length
   };
 }

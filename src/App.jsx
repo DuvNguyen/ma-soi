@@ -47,6 +47,19 @@ export const DEFAULT_NIGHT_STATE = {
   witchHasPoison: true,
   seerCheckedId: null,
   cupidChosenIds: null,
+  wildChildIdolId: null,
+  shadowHostId: null,
+  piperChosenIds: [],
+  foxTargetId: null,
+  foxCheckedThisNight: false,
+  foxSkipped: false,
+  foxLostPower: false,
+  ravenTargetId: null,
+  ravenSkipped: false,
+  silencedPlayerId: null,
+  moonPriestessSkipped: false,
+  whiteWolfVictimId: null,
+  whiteWolfSkipped: false,
   skippedRoles: []
 };
 
@@ -367,7 +380,9 @@ export default function App() {
         poisonedByRustySword: false,
         rustySwordPoisonRound: null,
         hasUsedKnightDuel: false,
-        shadowHostId: null
+        shadowHostId: null,
+        isHypnotized: false,
+        idolId: null
       };
       return p instanceof Player ? p.clone(resetProps) : new Player({ ...p, ...resetProps });
     }));
@@ -931,14 +946,32 @@ export default function App() {
             return p;
           });
 
-          // Kiểm tra Ảnh Tử kế thừa linh hồn
+          // Kiểm tra Ảnh Tử kế thừa linh hồn & Đứa Trẻ Hoang Dã biến đổi khi thần tượng tử trận
+          let transformedWildChildrenFromShot = [];
           if (shotPlayer) {
             const shadowRes1 = new WerewolfGame({ players: updated })._checkShadowInheritance(updated, shotPlayer);
             updated = shadowRes1.updatedPlayers;
+            const wcRes1 = new WerewolfGame({ players: updated, roundNumber })._checkWildChildIdolDeath(updated, shotPlayer);
+            updated = wcRes1.updatedPlayers;
+            transformedWildChildrenFromShot.push(...wcRes1.transformedWildChildren);
           }
           if (shotLover && shotLover.isAlive) {
             const shadowRes2 = new WerewolfGame({ players: updated })._checkShadowInheritance(updated, shotLover);
             updated = shadowRes2.updatedPlayers;
+            const wcRes2 = new WerewolfGame({ players: updated, roundNumber })._checkWildChildIdolDeath(updated, shotLover);
+            updated = wcRes2.updatedPlayers;
+            transformedWildChildrenFromShot.push(...wcRes2.transformedWildChildren);
+          }
+
+          if (transformedWildChildrenFromShot.length > 0) {
+            transformedWildChildrenFromShot.forEach(({ wildChild, idol }) => {
+              triggerHaptic('warning');
+              showAlert({
+                title: '🐺 ĐỨA TRẺ HOANG DÃ HÓA SÓI!',
+                message: `Thần tượng (${idol.name} #${idol.id}) đã bị Thợ Săn bắn chết!\n\nĐứa Trẻ Hoang Dã (${wildChild.name} #${wildChild.id}) nổi cơn thịnh nộ và chính thức biến thành Ma Sói!`,
+                variant: 'blood'
+              });
+            });
           }
 
           evaluateGameEnd(updated);
@@ -1660,6 +1693,8 @@ export default function App() {
     });
     const nextGame = game.undoLynch(playerId);
     setPlayers(nextGame.players);
+    setIsVillageCursed(Boolean(nextGame.isVillageCursed));
+    setWolfCanKillDouble(Boolean(nextGame.wolfCanKillDouble));
     setLynchedTodayPlayerId(null);
     setGameEndResult(nextGame.gameEndResult);
     setPendingHunterShot(null);
@@ -1749,14 +1784,31 @@ export default function App() {
       wolfTargetId: null,
       wolfTargetId2: null,
       wolfSkipped: false,
+      bigBadWolfTargetId: null,
+      bigBadWolfSkipped: false,
       isCursedInfect: false,
       cursedUsed: prev.cursedUsed || false,
+      lastCursedVictimId: null,
       witchSaved: false,
       witchPoisonTargetId: null,
       witchHasHeal: prev.witchHasHeal,
       witchHasPoison: prev.witchHasPoison,
       seerCheckedId: null,
-      cupidChosenIds: prev.cupidChosenIds
+      cupidChosenIds: prev.cupidChosenIds,
+      wildChildIdolId: prev.wildChildIdolId,
+      shadowHostId: prev.shadowHostId,
+      piperChosenIds: [],
+      foxTargetId: null,
+      foxCheckedThisNight: false,
+      foxSkipped: false,
+      foxLostPower: prev.foxLostPower || false,
+      ravenTargetId: null,
+      ravenSkipped: false,
+      silencedPlayerId: null,
+      moonPriestessSkipped: false,
+      whiteWolfVictimId: null,
+      whiteWolfSkipped: false,
+      skippedRoles: []
     }));
   };
 
