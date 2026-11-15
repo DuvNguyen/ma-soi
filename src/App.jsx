@@ -791,6 +791,17 @@ export default function App() {
           const updated = current.map(p => {
             if (p.id === victimId) {
               const origId = p.originalRoleId || p.currentRoleId || p.roleId || null;
+              const history = Array.isArray(p.roleHistory) ? [...p.roleHistory] : [];
+              const origRoleObj = origId ? getPlayerRole({ currentRoleId: origId, roleId: origId }) : null;
+              history.push({
+                phase: `Đêm ${roundNumber}`,
+                timestamp: Date.now(),
+                type: 'CURSED_WOLF_INFECT',
+                title: 'Bị Sói Quỷ Nguyền Rủa 🔮',
+                detail: `Bị Sói Quỷ lây nhiễm lời nguyền bóng tối trong Đêm ${roundNumber}, chuyển hóa thành Ma Sói. Chức năng vai gốc (${origRoleObj?.name || 'ban đầu'}) bị phong ấn vĩnh viễn.`,
+                fromRole: origId,
+                toRole: 'soi-thuong'
+              });
               return {
                 ...p,
                 originalRoleId: origId,
@@ -798,7 +809,8 @@ export default function App() {
                 roleId: 'soi-thuong',
                 role: null,
                 isCursedWolf: true,
-                curseNight: roundNumber
+                curseNight: roundNumber,
+                roleHistory: history
               };
             }
             return p;
@@ -1843,6 +1855,42 @@ export default function App() {
       logs: dayEvents
     };
     setGameDiary(prev => appendToDiary(prev, dayEntry));
+
+    // Kiểm tra Thiên Sứ sống sót qua Ngày 1 -> Mất năng lực thăng thiên và trở thành Dân Làng
+    if (roundNumber === 1) {
+      setPlayers(prev => prev.map(p => {
+        const role = p.currentRoleId || p.roleId;
+        if (p.isAlive && role === 'thien-su') {
+          const history = Array.isArray(p.roleHistory) ? [...p.roleHistory] : [];
+          history.push({
+            phase: 'Hết Ngày 1',
+            timestamp: Date.now(),
+            type: 'ANGEL_DEMOTE',
+            title: 'Thiên Sứ Trở Thành Dân Làng 🕊️',
+            detail: 'Sống sót qua Ngày 1 mà không bị dân làng treo cổ. Năng lực thăng thiên tan biến, chính thức trở thành một Dân Làng bình thường.',
+            fromRole: 'thien-su',
+            toRole: 'dan-lang'
+          });
+          if (p instanceof Player) {
+            return p.clone({
+              originalRoleId: p.originalRoleId || 'thien-su',
+              currentRoleId: 'dan-lang',
+              roleId: 'dan-lang',
+              roleHistory: history
+            });
+          }
+          return {
+            ...p,
+            originalRoleId: p.originalRoleId || 'thien-su',
+            currentRoleId: 'dan-lang',
+            roleId: 'dan-lang',
+            role: null,
+            roleHistory: history
+          };
+        }
+        return p;
+      }));
+    }
 
     setRoundNumber(r => r + 1);
     setIsNight(true);

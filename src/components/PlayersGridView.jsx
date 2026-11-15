@@ -1,10 +1,12 @@
-import React from 'react';
-import { Heart, Skull, Shield, Eye, UserCheck, AlertCircle, Sparkles, Star, Edit3, Users, Scale } from 'lucide-react';
+import React, { useState } from 'react';
+import { Heart, Skull, Shield, Eye, UserCheck, AlertCircle, Sparkles, Star, Edit3, Users, Scale, History } from 'lucide-react';
 import GothicBadge from './ui/GothicBadge';
 import WolfIcon from './ui/WolfIcon';
 import { isWolfPlayer, getPlayerRole, getPlayerOriginalRole } from '../utils/roleUtils';
+import PlayerJourneyModal from './PlayerJourneyModal';
 
 export default function PlayersGridView({ players, onOpenAssignRole, onOpenRosters, scapegoatBannedVoterIds = [], nightState = {} }) {
+  const [journeyPlayer, setJourneyPlayer] = useState(null);
   const aliveCount = players.filter(p => p.isAlive).length;
   const wolfCount = players.filter(p => p.isAlive && isWolfPlayer(p)).length;
   const villagerCount = players.filter(p => p.isAlive && !isWolfPlayer(p) && getPlayerRole(p)?.teamCode === 'V').length;
@@ -136,6 +138,20 @@ export default function PlayersGridView({ players, onOpenAssignRole, onOpenRoste
                   {scapegoatBannedVoterIds?.includes(p.id) && (
                     <Scale className="w-3 h-3 text-rose-400 shrink-0" title="Bị cấm biểu quyết (Di ngôn Người Thế Thân)" />
                   )}
+                  {p.roleHistory && p.roleHistory.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setJourneyPlayer(p);
+                      }}
+                      className="px-1 py-0.2 rounded bg-purple-950 hover:bg-purple-900 border border-purple-500/80 text-purple-200 text-[9px] flex items-center gap-0.5 cursor-pointer shadow-sm ml-0.5 active:scale-95"
+                      title="Xem nhật ký các lần biến đổi vai trò của người chơi này"
+                    >
+                      <History className="w-2.5 h-2.5 text-purple-300" />
+                      <span>{p.roleHistory.length}</span>
+                    </button>
+                  )}
                 </div>
 
                 {/* Player Name */}
@@ -248,6 +264,13 @@ export default function PlayersGridView({ players, onOpenAssignRole, onOpenRoste
           </div>
         </div>
       </div>
+
+      {/* Player Transformation Journey Modal */}
+      <PlayerJourneyModal
+        isOpen={Boolean(journeyPlayer)}
+        onClose={() => setJourneyPlayer(null)}
+        player={journeyPlayer}
+      />
     </div>
   );
 }

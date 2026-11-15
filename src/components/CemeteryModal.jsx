@@ -1,13 +1,15 @@
-import React from 'react';
-import { Skull, Clock, Heart, Shield, X } from 'lucide-react';
+import React, { useState } from 'react';
+import { Skull, Clock, Heart, Shield, X, History } from 'lucide-react';
 import GothicModalContainer from './ui/GothicModalContainer';
 import GothicButton from './ui/GothicButton';
 import WolfHead from './ui/WolfHead';
 import { isWolfPlayer, getPlayerRole } from '../utils/roleUtils';
+import PlayerJourneyModal from './PlayerJourneyModal';
 
 export default function CemeteryModal({ isOpen, onClose, players, roundNumber }) {
   if (!isOpen) return null;
 
+  const [journeyPlayer, setJourneyPlayer] = useState(null);
   const deadPlayers = players.filter(p => !p.isAlive);
   const alivePlayers = players.filter(p => p.isAlive);
 
@@ -84,9 +86,22 @@ export default function CemeteryModal({ isOpen, onClose, players, roundNumber })
                     </div>
                   </div>
 
-                  <span className="text-[10px] uppercase font-bold text-rose-400 bg-rose-950/80 px-2 py-1 rounded-lg border border-rose-900 shrink-0">
-                    Đã chết
-                  </span>
+                  <div className="flex flex-col items-end gap-1.5 shrink-0">
+                    <span className="text-[10px] uppercase font-bold text-rose-400 bg-rose-950/80 px-2 py-0.5 rounded-lg border border-rose-900">
+                      Đã chết
+                    </span>
+                    {p.roleHistory && p.roleHistory.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => setJourneyPlayer(p)}
+                        className="px-2 py-0.5 rounded-lg bg-purple-950/90 hover:bg-purple-900 border border-purple-600 text-purple-200 text-[10px] font-bold transition-all flex items-center gap-1 cursor-pointer active:scale-95 shadow-sm"
+                        title="Xem nhật ký biến đổi vai trò"
+                      >
+                        <History className="w-2.5 h-2.5 text-purple-300" />
+                        <span>Nhật ký ({p.roleHistory.length})</span>
+                      </button>
+                    )}
+                  </div>
                 </div>
               );
             })}
@@ -99,6 +114,13 @@ export default function CemeteryModal({ isOpen, onClose, players, roundNumber })
           </GothicButton>
         </div>
       </div>
+
+      {/* Player Transformation Journey Modal */}
+      <PlayerJourneyModal
+        isOpen={Boolean(journeyPlayer)}
+        onClose={() => setJourneyPlayer(null)}
+        player={journeyPlayer}
+      />
     </GothicModalContainer>
   );
 }

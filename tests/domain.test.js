@@ -825,6 +825,53 @@ console.log('🧪 Starting Phase 1 Domain Model & Strategy Tests...\n');
     assert.strictEqual(matchesSearch('Vĩ', 'nam'), false, 'Non-matching query returns false');
     console.log('✅ Test 44: Vietnamese diacritics-insensitive search verified.');
 
-    console.log('\n🎉 ALL 44 DOMAIN ENGINE TESTS PASSED PERFECTLY!\n');
+    // Test 45: Role transformation journey tracking across transformations
+    // 1. Half-wolf awakening
+    const testHalfWolf = new Player({ id: 80, name: 'Bán Sói 80', currentRoleId: 'nua-nguoi-nua-soi', roleId: 'nua-nguoi-nua-soi', isAlive: true });
+    assert.strictEqual(testHalfWolf.roleHistory.length, 0);
+    const awakened = testHalfWolf.awakenHalfWolf(1);
+    assert.strictEqual(awakened.roleHistory.length, 1);
+    assert.strictEqual(awakened.roleHistory[0].type, 'HALF_WOLF_AWAKEN');
+    assert.strictEqual(awakened.roleHistory[0].fromRole, 'nua-nguoi-nua-soi');
+    assert.strictEqual(awakened.roleHistory[0].toRole, 'soi-thuong');
+
+    // 2. Wild child transformation on idol death
+    const idolP = new Player({ id: 81, name: 'Mẹ Thần Tượng', currentRoleId: 'dan-lang', roleId: 'dan-lang', isAlive: true });
+    const wildP = new Player({ id: 82, name: 'Con Hoang 82', currentRoleId: 'dua-tre-hoang-da', roleId: 'dua-tre-hoang-da', idolId: 81, isAlive: true });
+    const wcGame = new WerewolfGame({ roundNumber: 2, isNight: false, players: [idolP, wildP] });
+    const idolLynch = wcGame.lynchPlayer(81);
+    const transformedWc45 = idolLynch.game.getPlayer(82);
+    assert.strictEqual(transformedWc45.isWolf(), true);
+    assert.strictEqual(transformedWc45.roleHistory.length, 1);
+    assert.strictEqual(transformedWc45.roleHistory[0].type, 'WILD_CHILD_TRANSFORM');
+
+    // 3. Shadow inheritance on host death
+    const hostP = new Player({ id: 83, name: 'Bản Thể', currentRoleId: 'tho-san', roleId: 'tho-san', isAlive: true });
+    const shadowP = new Player({ id: 84, name: 'Ảnh Tử 84', currentRoleId: 'anh-tu', roleId: 'anh-tu', shadowHostId: 83, isAlive: true });
+    const shadowGame = new WerewolfGame({ roundNumber: 1, isNight: false, players: [hostP, shadowP] });
+    const hostLynch = shadowGame.lynchPlayer(83);
+    const inheritedShadow = hostLynch.game.getPlayer(84);
+    assert.strictEqual(inheritedShadow.currentRoleId, 'tho-san');
+    assert.strictEqual(inheritedShadow.roleHistory.length, 1);
+    assert.strictEqual(inheritedShadow.roleHistory[0].type, 'SHADOW_INHERIT');
+
+    // 4. Devoted Servant role inheritance
+    const servantHistoryGame = new WerewolfGame({ roundNumber: 2, isNight: false, players: [servantPlayer, victimWolf] });
+    const lynchWolf2 = servantHistoryGame.lynchPlayer(65);
+    const servantInherited = lynchWolf2.game.inheritServantRole(64, 'soi-thuong');
+    const trackedServant = servantInherited.game.getPlayer(64);
+    assert.strictEqual(trackedServant.roleHistory.length, 1);
+    assert.strictEqual(trackedServant.roleHistory[0].type, 'SERVANT_INHERIT');
+
+    // 5. Cursed Wolf infection
+    const villagerVictim = new Player({ id: 85, name: 'Nạn Nhân 85', currentRoleId: 'bao-ve', roleId: 'bao-ve', isAlive: true });
+    const infectedP = villagerVictim.infectByCursedWolf(2);
+    assert.strictEqual(infectedP.roleHistory.length, 1);
+    assert.strictEqual(infectedP.roleHistory[0].type, 'CURSED_WOLF_INFECT');
+    assert.strictEqual(infectedP.isWolf(), true);
+
+    console.log('✅ Test 45: Role transformation journey tracking across transformations verified.');
+
+    console.log('\n🎉 ALL 45 DOMAIN ENGINE TESTS PASSED PERFECTLY!\n');
   });
 }

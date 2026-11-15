@@ -391,7 +391,7 @@ export class WerewolfGame {
     const isWolf = role.teamCode === 'W' || (WOLF_ROLE_IDS && WOLF_ROLE_IDS.includes(targetRoleId));
     const updatedPlayers = this.players.map(p => {
       if (p.id === servantId) {
-        return p.clone({
+        const updated = p.clone({
           originalRoleId: p.originalRoleId || 'nguoi-day-to-tan-tuy',
           currentRoleId: targetRoleId,
           roleId: targetRoleId,
@@ -399,6 +399,14 @@ export class WerewolfGame {
           curseNight: isWolf ? this.roundNumber : p.curseNight,
           elderLives: targetRoleId === 'gia-lang' ? 2 : p.elderLives
         });
+        return updated.recordHistory ? updated.recordHistory({
+          phase: `Ngày ${this.roundNumber}`,
+          type: 'SERVANT_INHERIT',
+          title: `Người Đầy Tớ Thừa Kế: ${role.name} 🗝️`,
+          detail: `Kích hoạt lòng trung thành sau vụ hành quyết Ngày ${this.roundNumber}. Kế thừa vai trò ${role.name}.`,
+          fromRole: 'nguoi-day-to-tan-tuy',
+          toRole: targetRoleId
+        }) : updated;
       }
       return p;
     });
@@ -429,18 +437,27 @@ export class WerewolfGame {
     const updatedPlayers = playerList.map(p => {
       if (p.isAlive && (p.currentRoleId === 'anh-tu' || p.roleId === 'anh-tu') && p.shadowHostId === deadPlayer.id) {
         const inheritRoleId = deadPlayer.originalRoleId || deadPlayer.currentRoleId || deadPlayer.roleId || 'dan-lang';
+        const roleObj = getRole(inheritRoleId);
         const updated = p.clone({
           originalRoleId: 'anh-tu',
           currentRoleId: inheritRoleId,
           roleId: inheritRoleId,
           elderLives: inheritRoleId === 'gia-lang' ? 2 : p.elderLives
         });
+        const recorded = updated.recordHistory ? updated.recordHistory({
+          phase: this.isNight ? `Đêm ${this.roundNumber}` : `Ngày ${this.roundNumber}`,
+          type: 'SHADOW_INHERIT',
+          title: `Ảnh Tử Kế Thừa: ${roleObj?.name || inheritRoleId} 👻`,
+          detail: `Bản thể liên kết (#${deadPlayer.id} ${deadPlayer.name}) đã tử trận. Ảnh Tử kế thừa vai trò ${roleObj?.name || inheritRoleId}.`,
+          fromRole: 'anh-tu',
+          toRole: inheritRoleId
+        }) : updated;
         transformedShadows.push({
-          shadow: updated,
+          shadow: recorded,
           host: deadPlayer,
           inheritRoleId
         });
-        return updated;
+        return recorded;
       }
       return p;
     });
@@ -463,11 +480,19 @@ export class WerewolfGame {
           isCursedWolf: true,
           curseNight: this.roundNumber
         });
+        const recorded = transformed.recordHistory ? transformed.recordHistory({
+          phase: this.isNight ? `Đêm ${this.roundNumber}` : `Ngày ${this.roundNumber}`,
+          type: 'WILD_CHILD_TRANSFORM',
+          title: 'Con Hoang Hóa Sói 🐺',
+          detail: `Mẹ / Thần tượng (#${deadPlayer.id} ${deadPlayer.name}) đã qua đời. Nỗi đau mất đi người bảo hộ đánh thức bản năng thú dữ, chính thức hóa thành Ma Sói.`,
+          fromRole: 'dua-tre-hoang-da',
+          toRole: 'soi-thuong'
+        }) : transformed;
         transformedWildChildren.push({
-          wildChild: transformed,
+          wildChild: recorded,
           idol: deadPlayer
         });
-        return transformed;
+        return recorded;
       }
       return p;
     });

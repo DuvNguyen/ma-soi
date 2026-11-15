@@ -19,7 +19,8 @@ export const DEFAULT_PLAYER_PROPS = {
   hasUsedKnightDuel: false,
   shadowHostId: null,
   isHypnotized: false,
-  idolId: null
+  idolId: null,
+  roleHistory: []
 };
 
 /**
@@ -48,6 +49,7 @@ export class Player {
     this.shadowHostId = data.shadowHostId ?? null;
     this.isHypnotized = Boolean(data.isHypnotized);
     this.idolId = data.idolId ?? null;
+    this.roleHistory = Array.isArray(data.roleHistory) ? data.roleHistory : [];
   }
 
   /**
@@ -149,16 +151,43 @@ export class Player {
   }
 
   /**
+   * Ghi lại lịch sử biến đổi vai trò hoặc sự kiện trọng đại của người chơi
+   * @param {{ phase: string, type: string, title: string, detail: string, fromRole?: string, toRole?: string }} event
+   */
+  recordHistory({ phase, type, title, detail, fromRole, toRole }) {
+    const entry = {
+      phase: phase || 'Ván đấu',
+      timestamp: Date.now(),
+      type: type || 'TRANSFORMATION',
+      title: title || 'Biến đổi vai trò',
+      detail: detail || '',
+      fromRole: fromRole || this.currentRoleId,
+      toRole: toRole || this.currentRoleId
+    };
+    const nextHistory = Array.isArray(this.roleHistory) ? [...this.roleHistory, entry] : [entry];
+    return this.clone({ roleHistory: nextHistory });
+  }
+
+  /**
    * Thức tỉnh Bán Sói (Nửa Người Nửa Sói) thành Ma Sói
    */
   awakenHalfWolf(roundNumber = 1) {
-    return new Player({
+    const origId = this.originalRoleId || this.currentRoleId || 'nua-nguoi-nua-soi';
+    const player = new Player({
       ...this.toJSON(),
-      originalRoleId: this.originalRoleId || this.currentRoleId || 'nua-nguoi-nua-soi',
+      originalRoleId: origId,
       currentRoleId: 'soi-thuong',
       roleId: 'soi-thuong',
       isCursedWolf: true,
       curseNight: roundNumber
+    });
+    return player.recordHistory({
+      phase: `Đêm ${roundNumber}`,
+      type: 'HALF_WOLF_AWAKEN',
+      title: 'Bán Sói Thức Tỉnh 🐺',
+      detail: `Bị bầy Ma Sói cắn trong Đêm ${roundNumber}. Vết cắn kích hoạt gen Sói ngủ sâu, không chết mà trở thành Ma Sói thực thụ.`,
+      fromRole: origId,
+      toRole: 'soi-thuong'
     });
   }
 
@@ -167,13 +196,22 @@ export class Player {
    */
   infectByCursedWolf(roundNumber = 1) {
     const origId = this.originalRoleId || (this.currentRoleId !== 'soi-thuong' && this.currentRoleId !== 'soi-bi-nguyen' ? this.currentRoleId : null) || null;
-    return new Player({
+    const player = new Player({
       ...this.toJSON(),
       originalRoleId: origId,
       currentRoleId: 'soi-bi-nguyen',
       roleId: 'soi-bi-nguyen',
       isCursedWolf: true,
       curseNight: roundNumber
+    });
+    const origName = origId ? (getRole(origId)?.name || origId) : 'vai trò ban đầu';
+    return player.recordHistory({
+      phase: `Đêm ${roundNumber}`,
+      type: 'CURSED_WOLF_INFECT',
+      title: 'Trúng Lời Nguyền Sói Quỷ 🔮',
+      detail: `Bị Sói Quỷ lây nhiễm lời nguyền bóng tối trong Đêm ${roundNumber}, chuyển hóa thành Ma Sói. Toàn bộ năng lực của ${origName} bị phong ấn vĩnh viễn.`,
+      fromRole: origId,
+      toRole: 'soi-bi-nguyen'
     });
   }
 
@@ -254,7 +292,8 @@ export class Player {
       hasUsedKnightDuel: this.hasUsedKnightDuel,
       shadowHostId: this.shadowHostId,
       isHypnotized: this.isHypnotized,
-      idolId: this.idolId
+      idolId: this.idolId,
+      roleHistory: this.roleHistory || []
     };
   }
 

@@ -273,6 +273,16 @@ export function resolveNightPhase(players, nightActions, roundNumber) {
     // Check Elder (Già Làng - 2 lives against wolves)
     if (targetRole?.id === 'gia-lang' && (target.elderLives || 2) > 1) {
       target.elderLives = (target.elderLives || 2) - 1;
+      target.roleHistory = Array.isArray(target.roleHistory) ? target.roleHistory : [];
+      target.roleHistory.push({
+        phase: `Đêm ${roundNumber}`,
+        timestamp: Date.now(),
+        type: 'ELDER_LOST_LIFE',
+        title: 'Già Làng Mất 1 Mạng 🛡️',
+        detail: `Bị Ma Sói cắn trong Đêm ${roundNumber}. Nhờ có 2 sinh mệnh nên kiên cường sống sót (còn 1 mạng).`,
+        fromRole: 'gia-lang',
+        toRole: 'gia-lang'
+      });
       logs.push(`Già Làng ${target.name} bị Ma Sói cắn nhưng đã kiên cường sống sót nhờ mạng sống thứ nhất (Còn 1 mạng)!`);
     } else if (targetRole?.id === 'nua-nguoi-nua-soi' || target.currentRoleId === 'nua-nguoi-nua-soi' || target.roleId === 'nua-nguoi-nua-soi') {
       // Nửa Người Nửa Sói turns into werewolf - preserve original role
@@ -284,6 +294,16 @@ export function resolveNightPhase(players, nightActions, roundNumber) {
       target.roleId = 'soi-thuong';
       delete target.role;
       delete target.originalRole;
+      target.roleHistory = Array.isArray(target.roleHistory) ? target.roleHistory : [];
+      target.roleHistory.push({
+        phase: `Đêm ${roundNumber}`,
+        timestamp: Date.now(),
+        type: 'HALF_WOLF_AWAKEN',
+        title: 'Bán Sói Thức Tỉnh 🐺',
+        detail: `Bị bầy Ma Sói cắn trong Đêm ${roundNumber}. Vết cắn đánh thức dòng máu Sói ngủ sâu, không tử vong mà chính thức gia nhập bầy Ma Sói.`,
+        fromRole: oldRoleId || 'nua-nguoi-nua-soi',
+        toRole: 'soi-thuong'
+      });
       logs.push(`🐺 BÁN SÓI THỨC TỈNH: ${target.name} (Nửa Người Nửa Sói) bị Ma Sói cắn trong đêm không chết mà đã chính thức thức tỉnh gen Sói, gia nhập đàn Ma Sói của làng!`);
     } else {
       killedPlayerIds.add(target.id);

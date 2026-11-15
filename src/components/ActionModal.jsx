@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import { Shield, Eye, Skull, Sparkles, Heart, Crosshair, AlertTriangle, Check, X, User, Scale, Swords, Search } from 'lucide-react';
+import { Shield, Eye, Skull, Sparkles, Heart, Crosshair, AlertTriangle, Check, X, User, Scale, Swords, Search, History } from 'lucide-react';
 import GothicButton from './ui/GothicButton';
 import GothicBadge from './ui/GothicBadge';
 import WolfIcon from './ui/WolfIcon';
 import { isWolfPlayer, getPlayerRole, matchesSearch, removeVietnameseTones } from '../utils/roleUtils';
 import { ROLES } from '../data/roles';
+import PlayerJourneyModal from './PlayerJourneyModal';
 
 export default function ActionModal({
   isOpen,
@@ -28,6 +29,7 @@ export default function ActionModal({
   const [witchPoisonId, setWitchPoisonId] = useState(nightState?.witchPoisonTargetId || null);
   const [bannedVoterIds, setBannedVoterIds] = useState([]);
   const [hunterSearchQuery, setHunterSearchQuery] = useState('');
+  const [journeyPlayer, setJourneyPlayer] = useState(null);
 
   const wolfVictim = players.find(p => p.id === nightState?.wolfTargetId);
 
@@ -863,6 +865,18 @@ export default function ActionModal({
                 </div>
 
                 <div className="flex items-center gap-1.5 shrink-0">
+                  {targetPlayer?.roleHistory && targetPlayer.roleHistory.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => setJourneyPlayer(targetPlayer)}
+                      title="Xem nhật ký biến đổi vai trò của người chơi này"
+                      className="px-2.5 py-1 rounded-lg bg-purple-950/90 hover:bg-purple-900 border border-purple-600 text-purple-200 text-xs font-bold transition-all flex items-center gap-1 cursor-pointer shrink-0 active:scale-95 shadow-[0_0_10px_rgba(168,85,247,0.4)]"
+                    >
+                      <History className="w-3.5 h-3.5 text-purple-300" />
+                      <span>Nhật ký ({targetPlayer.roleHistory.length})</span>
+                    </button>
+                  )}
+
                   {targetCurrentRoleId === 'ki-si' && targetPlayer?.isAlive && !targetPlayer?.hasUsedKnightDuel && (
                     <button
                       type="button"
@@ -1060,6 +1074,13 @@ export default function ActionModal({
           {renderContent()}
         </div>
       </div>
+
+      {/* Nhật ký biến đổi vai trò */}
+      <PlayerJourneyModal
+        isOpen={Boolean(journeyPlayer)}
+        onClose={() => setJourneyPlayer(null)}
+        player={journeyPlayer}
+      />
     </div>
   );
 }
