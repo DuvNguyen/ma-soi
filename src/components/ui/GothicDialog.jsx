@@ -55,6 +55,12 @@ export default function GothicDialog({
           iconColor: 'text-purple-400',
           titleColor: 'text-purple-200'
         };
+      case 'cyan':
+        return {
+          icon: ShieldAlert,
+          iconColor: 'text-cyan-400',
+          titleColor: 'text-cyan-200'
+        };
       case 'blood':
       default:
         return {
@@ -107,10 +113,14 @@ export default function GothicDialog({
           )}
 
           <GothicButton
-            variant={variant === 'blood' ? 'blood' : variant === 'tragedy' ? 'blood' : 'witch'}
+            variant={variant === 'blood' ? 'blood' : variant === 'tragedy' ? 'blood' : variant === 'cyan' ? 'cyan' : 'witch'}
             size="md"
             onClick={handleConfirm}
-            className="flex-1 sm:flex-initial shadow-[0_0_20px_rgba(225,29,72,0.6)]"
+            className={`flex-1 sm:flex-initial ${
+              variant === 'cyan'
+                ? 'shadow-[0_0_20px_rgba(6,182,212,0.6)]'
+                : 'shadow-[0_0_20px_rgba(225,29,72,0.6)]'
+            }`}
           >
             <Check className="w-4 h-4 mr-1 inline" />
             <span>{confirmText}</span>

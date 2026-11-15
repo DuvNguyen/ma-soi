@@ -1555,7 +1555,31 @@ export default function App() {
       });
     }
 
-    if (endResult) {
+    // Kiểm tra Người Đầy Tớ Tận Tụy kế thừa vai nạn nhân vừa bị treo cổ
+    const livingServant = nextGame.players.find(p =>
+      p.isAlive &&
+      p.id !== playerId &&
+      ((p.currentRoleId || p.roleId) === 'nguoi-day-to-tan-tuy' || p.getRole()?.id === 'nguoi-day-to-tan-tuy')
+    );
+    const victimRole = target.getRole() || getRole(target.currentRoleId || target.roleId);
+
+    if (livingServant && victimRole && victimRole.id !== 'nguoi-day-to-tan-tuy') {
+      showConfirm({
+        title: '🗝️ NGƯỜI ĐẦY TỚ TẬN TỤY',
+        message: `Nạn nhân ${target.name} (#${target.id}) vừa bị xử tử trên giàn treo cổ mang vai trò "${victimRole.name}".\n\nNgười Đầy Tớ Tận Tụy (${livingServant.name} #${livingServant.id}) có muốn lật bài từ bỏ thân phận để KẾ THỪA vai trò "${victimRole.name}" không?`,
+        variant: 'cyan',
+        confirmText: `Kế Thừa "${victimRole.name}" 🗝️`,
+        cancelText: 'Giữ Nguyên Vai Đầy Tớ',
+        onConfirm: () => {
+          handleServantInheritRole(livingServant.id, victimRole.id, target);
+        },
+        onCancel: () => {
+          if (endResult) {
+            setGameEndResult(endResult);
+          }
+        }
+      });
+    } else if (endResult) {
       setGameEndResult(endResult);
       return;
     }
@@ -1581,6 +1605,53 @@ export default function App() {
         role: target.getRole()
       });
     }
+  };
+
+  const handleServantInheritRole = (servantId, newRoleId, victim) => {
+    const game = new WerewolfGame({
+      roundNumber,
+      isNight,
+      players,
+      deckRoleIds,
+      rolesInGameIds: rolesInGame.map(r => r.id),
+      nightState,
+      nightLogs,
+      gameDiary,
+      isVillageCursed,
+      wolfCanKillDouble,
+      gameEndResult
+    });
+
+    const res = game.inheritServantRole(servantId, newRoleId);
+    if (!res.success) return;
+
+    setPlayers(res.game.players);
+    setGameEndResult(res.gameEndResult);
+
+    if (res.newRole && !rolesInGame.some(r => r.id === res.newRole.id)) {
+      setRolesInGame(prev => [...prev, res.newRole]);
+    }
+
+    const servantPlayer = players.find(p => p.id === servantId);
+    const dayServantEntry = {
+      phase: `Ngày ${roundNumber}`,
+      type: 'day',
+      round: roundNumber,
+      logs: [
+        `🗝️ NGƯỜI ĐẦY TỚ KẾ THỪA: ${servantPlayer?.name || `Ghế #${servantId}`} đã lật bài từ bỏ thân phận Người Đầy Tớ Tận Tụy và kế thừa vai "${res.newRole.name}" của ${victim.name} (#${victim.id}) vừa bị xử tử!`
+      ]
+    };
+    setGameDiary(prev => appendToDiary(prev, dayServantEntry));
+    triggerHaptic('confirm');
+
+    setTimeout(() => {
+      showAlert({
+        title: '🗝️ ĐÃ KẾ THỪA VAI MỚI!',
+        message: `${servantPlayer?.name || `Ghế #${servantId}`} đã chính thức trở thành: ${res.newRole.name}!\n\nThẻ Người Đầy Tớ Tận Tụy đã bị loại bỏ khỏi ván đấu. Quản trò vui lòng thu hồi thẻ cũ và trao thẻ mới cho người chơi.`,
+        variant: 'cyan',
+        confirmText: 'Đã Trao Thẻ Mới ✓'
+      });
+    }, 150);
   };
 
   // Kị Sĩ Thách Đấu Quyết Đấu Ban Ngày (Kị Sĩ lật bài 1 lần duy nhất)

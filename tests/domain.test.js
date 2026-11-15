@@ -737,6 +737,40 @@ console.log('🧪 Starting Phase 1 Domain Model & Strategy Tests...\n');
     assert.strictEqual(tarzanNightRes.transformedWildChildren.length, 1, 'Transformed Con Hoang recorded in result');
     console.log('✅ Test 41: Tarzan / Con Hoang aliases & Mẹ death transformation verified.');
 
-    console.log('\n🎉 ALL 41 DOMAIN ENGINE TESTS PASSED PERFECTLY!\n');
+    // Test 42: Devoted Servant (nguoi-day-to-tan-tuy) inheritance on lynch
+    const servantPlayer = new Player({ id: 64, name: 'Đầy Tớ 64', currentRoleId: 'nguoi-day-to-tan-tuy', roleId: 'nguoi-day-to-tan-tuy', isAlive: true });
+    const victimWolf = new Player({ id: 65, name: 'Sói Bị Treo Cổ', currentRoleId: 'soi-thuong', roleId: 'soi-thuong', isAlive: true });
+    const villager66 = new Player({ id: 66, name: 'Dân Làng 66', currentRoleId: 'dan-lang', roleId: 'dan-lang', isAlive: true });
+    const villager67 = new Player({ id: 67, name: 'Dân Làng 67', currentRoleId: 'dan-lang', roleId: 'dan-lang', isAlive: true });
+
+    assert.strictEqual(servantPlayer.isWolf(), false, 'Servant initially not a wolf');
+
+    const servantGame = new WerewolfGame({
+      roundNumber: 2,
+      isNight: false,
+      players: [servantPlayer, victimWolf, villager66, villager67]
+    });
+
+    // Lynch the wolf
+    const lynchWolfRes = servantGame.lynchPlayer(65);
+    assert.strictEqual(lynchWolfRes.success, true);
+    assert.strictEqual(lynchWolfRes.game.getPlayer(65).isAlive, false, 'Victim wolf is dead');
+
+    // Servant inherits victimWolf's role
+    const inheritRes = lynchWolfRes.game.inheritServantRole(64, 'soi-thuong');
+    assert.strictEqual(inheritRes.success, true);
+    const newServant = inheritRes.game.getPlayer(64);
+    assert.strictEqual(newServant.currentRoleId, 'soi-thuong');
+    assert.strictEqual(newServant.originalRoleId, 'nguoi-day-to-tan-tuy');
+    assert.strictEqual(newServant.isWolf(), true, 'Servant transformed into Werewolf');
+    assert.strictEqual(newServant.isCursedWolf, true, 'Servant marked as cursed wolf');
+    assert.strictEqual(inheritRes.gameEndResult, null, 'Game did not end because 1 wolf vs 2 villagers');
+
+    // Servant inheriting Elder gets 2 lives
+    const elderInheritGame = servantGame.inheritServantRole(64, 'gia-lang');
+    assert.strictEqual(elderInheritGame.game.getPlayer(64).elderLives, 2, 'Servant inheriting Elder gets 2 lives');
+    console.log('✅ Test 42: Devoted Servant role inheritance on lynch verified.');
+
+    console.log('\n🎉 ALL 42 DOMAIN ENGINE TESTS PASSED PERFECTLY!\n');
   });
 }

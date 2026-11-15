@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { ChevronLeft, ChevronRight, Heart, Skull, Shield, Eye, Flame, Check } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Heart, Skull, Shield, Eye, Flame, Check, Search } from 'lucide-react';
 import WolfIcon from './ui/WolfIcon';
 import { getPlayerRole } from '../utils/roleUtils';
 import triggerHaptic from '../utils/haptics';
@@ -16,11 +16,18 @@ export default function PlayerSeatPicker({
   actionLabel = 'Chọn'
 }) {
   const [viewMode, setViewMode] = useState('matrix'); // 'matrix' | 'slider'
+  const [searchQuery, setSearchQuery] = useState('');
   const sliderRef = useRef(null);
   const [slidePage, setSlidePage] = useState(0);
 
+  const filteredPlayers = players.filter(p => {
+    if (!searchQuery) return true;
+    const q = searchQuery.toLowerCase().trim();
+    return (p.name && p.name.toLowerCase().includes(q)) || String(p.id).includes(q);
+  });
+
   const pageSize = 6;
-  const totalPages = Math.ceil(players.length / pageSize);
+  const totalPages = Math.max(1, Math.ceil(filteredPlayers.length / pageSize));
 
   const scrollSlider = (direction) => {
     if (direction === 'prev') {
@@ -129,13 +136,27 @@ export default function PlayerSeatPicker({
 
   return (
     <div className="space-y-2.5">
-      {/* Control Switcher Bar: Theatre Matrix vs Slider */}
+      {/* Control Switcher Bar: Theatre Matrix vs Slider + Compact Search Input */}
       <div className="flex items-center justify-between gap-2 text-xs">
-        <span className="text-[11px] text-slate-400 uppercase font-black tracking-wider flex items-center gap-1.5">
-          <span>Ghế Ngồi: {selectedIds.length}/{maxSelect} đã chọn</span>
-        </span>
+        <div className="flex items-center gap-2 min-w-0">
+          <span className="text-[11px] text-slate-400 uppercase font-black tracking-wider flex items-center gap-1.5 shrink-0">
+            <span>Ghế: {selectedIds.length}/{maxSelect}</span>
+          </span>
 
-        <div className="flex items-center gap-1 bg-black/60 p-0.5 rounded-lg border border-slate-800">
+          {/* Compact Search Input */}
+          <div className="relative">
+            <Search className="w-3 h-3 text-slate-400 absolute left-2 top-1/2 -translate-y-1/2 pointer-events-none" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Tìm tên..."
+              className="w-24 sm:w-32 text-xs py-0.5 pl-6 pr-2 rounded-lg bg-slate-900/90 border border-slate-700 text-slate-200 placeholder:text-slate-500 focus:outline-none focus:border-purple-500"
+            />
+          </div>
+        </div>
+
+        <div className="flex items-center gap-1 bg-black/60 p-0.5 rounded-lg border border-slate-800 shrink-0">
           <button
             type="button"
             onClick={() => setViewMode('matrix')}
@@ -164,7 +185,7 @@ export default function PlayerSeatPicker({
       {/* MODE 1: THEATRE SEAT MATRIX (ALL SEATS VISIBLE IN 1 SCREEN) */}
       {viewMode === 'matrix' && (
         <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-7 gap-2 animate-fade-in">
-          {players.map(p => renderSeatItem(p))}
+          {filteredPlayers.map(p => renderSeatItem(p))}
         </div>
       )}
 
@@ -173,7 +194,7 @@ export default function PlayerSeatPicker({
         <div className="space-y-2 animate-fade-in">
           {/* Slider Content */}
           <div className="grid grid-cols-3 gap-2">
-            {players
+            {filteredPlayers
               .slice(slidePage * pageSize, slidePage * pageSize + pageSize)
               .map(p => renderSeatItem(p))}
           </div>

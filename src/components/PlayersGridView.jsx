@@ -87,6 +87,7 @@ export default function PlayersGridView({ players, onOpenAssignRole, onOpenRoste
             const origRole = getPlayerOriginalRole(p);
             const hasRole = Boolean(pRole || p.currentRoleId || p.roleId);
             const isSilenced = nightState?.silencedPlayerId === p.id && !nightState?.moonPriestessSkipped;
+            const isServant = p.isAlive && ((p.currentRoleId || p.roleId) === 'nguoi-day-to-tan-tuy' || pRole?.id === 'nguoi-day-to-tan-tuy');
 
             return (
               <button
@@ -99,6 +100,8 @@ export default function PlayersGridView({ players, onOpenAssignRole, onOpenRoste
                     ? 'bg-[#08080c]/80 border-slate-900 opacity-40 hover:opacity-75'
                     : isWolf
                     ? 'bg-gradient-to-b from-[#280509] via-[#160205] to-[#0c0203] border-rose-600/90 shadow-[0_0_15px_rgba(225,29,72,0.4)] ring-1 ring-rose-500/50 hover:scale-105'
+                    : isServant
+                    ? 'bg-gradient-to-b from-[#081a2e] via-[#05111f] to-[#030912] border-cyan-500/90 shadow-[0_0_15px_rgba(6,182,212,0.4)] ring-1 ring-cyan-400/50 hover:scale-105'
                     : 'bg-[#101322] hover:bg-[#181c33] border-purple-900/70 hover:border-purple-400 shadow-sm hover:scale-105'
                 }`}
               >
@@ -108,6 +111,8 @@ export default function PlayersGridView({ players, onOpenAssignRole, onOpenRoste
                     ? 'bg-slate-800'
                     : isWolf
                     ? 'bg-rose-500 shadow-[0_0_8px_rgba(225,29,72,0.8)]'
+                    : isServant
+                    ? 'bg-cyan-400 shadow-[0_0_6px_rgba(6,182,212,0.6)]'
                     : 'bg-purple-500 shadow-[0_0_6px_rgba(168,85,247,0.5)]'
                 }`}></div>
 
@@ -118,6 +123,8 @@ export default function PlayersGridView({ players, onOpenAssignRole, onOpenRoste
                       ? 'text-slate-600 line-through'
                       : isWolf
                       ? 'text-rose-300'
+                      : isServant
+                      ? 'text-cyan-300'
                       : 'text-purple-300'
                   }`}>
                     #{p.id}
@@ -137,6 +144,8 @@ export default function PlayersGridView({ players, onOpenAssignRole, onOpenRoste
                     ? 'text-slate-600 line-through'
                     : isWolf
                     ? 'text-rose-100 font-black'
+                    : isServant
+                    ? 'text-cyan-100 font-bold'
                     : 'text-slate-100'
                 }`}>
                   {p.name}
@@ -163,10 +172,17 @@ export default function PlayersGridView({ players, onOpenAssignRole, onOpenRoste
                         <span className={`text-[9px] font-bold px-1.5 py-0.2 rounded block truncate ${
                           isWolf
                             ? 'bg-rose-950 text-rose-300 border border-rose-800'
+                            : isServant
+                            ? 'bg-cyan-950 text-cyan-300 border border-cyan-800'
                             : 'bg-purple-950 text-purple-300 border border-purple-800'
                         }`}>
                           {pRole?.name || 'Đã gán vai'}
                         </span>
+                        {isServant && (
+                          <span className="text-[8px] text-cyan-300 font-semibold block truncate" title="Người Hầu: Chờ đổi thẻ sau khi có người bị treo cổ">
+                            🗝️ Chờ kế thừa
+                          </span>
+                        )}
                         {p.isAlive && (p.currentRoleId === 'dua-tre-hoang-da' || p.roleId === 'dua-tre-hoang-da') && p.idolId && (
                           <span className="text-[8px] text-amber-300 font-medium block truncate" title={`Mẹ (Thần tượng): Ghế #${p.idolId}`}>
                             ★ Mẹ: #{p.idolId}
@@ -209,6 +225,10 @@ export default function PlayersGridView({ players, onOpenAssignRole, onOpenRoste
           <div className="flex items-center gap-1.5">
             <span className="w-3 h-3 rounded bg-[#101322] border border-purple-600"></span>
             <span>Ghế Dân Làng</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <span className="w-3 h-3 rounded bg-[#081a2e] border border-cyan-500 shadow-[0_0_6px_rgba(6,182,212,0.4)]"></span>
+            <span>Người Hầu</span>
           </div>
           <div className="flex items-center gap-1.5">
             <span className="w-3 h-3 rounded bg-black/80 border border-slate-800"></span>

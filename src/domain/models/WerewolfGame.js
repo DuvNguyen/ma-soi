@@ -1,5 +1,5 @@
 import { Player } from './Player.js';
-import { getRole, isWolfPlayer } from '../../utils/roleUtils.js';
+import { getRole, isWolfPlayer, WOLF_ROLE_IDS } from '../../utils/roleUtils.js';
 import { checkGameEnd, resolveNightPhase } from '../../utils/gameLogic.js';
 
 export const GAME_SCHEMA_VERSION = 2;
@@ -371,6 +371,50 @@ export class WerewolfGame {
       isScapegoatLynch,
       transformedShadows,
       transformedWildChildren,
+      gameEndResult,
+      game: nextGame
+    };
+  }
+
+  /**
+   * Kế thừa vai trò cho Người Đầy Tớ Tận Tụy khi có người chơi bị treo cổ
+   */
+  inheritServantRole(servantId, targetRoleId) {
+    const servant = this.getPlayer(servantId);
+    if (!servant || !servant.isAlive) {
+      return { success: false, reason: 'Người đầy tớ không tồn tại hoặc đã qua đời' };
+    }
+    const role = getRole(targetRoleId);
+    if (!role) {
+      return { success: false, reason: 'Vai trò kế thừa không hợp lệ' };
+    }
+    const isWolf = role.teamCode === 'W' || (WOLF_ROLE_IDS && WOLF_ROLE_IDS.includes(targetRoleId));
+    const updatedPlayers = this.players.map(p => {
+      if (p.id === servantId) {
+        return p.clone({
+          originalRoleId: p.originalRoleId || 'nguoi-day-to-tan-tuy',
+          currentRoleId: targetRoleId,
+          roleId: targetRoleId,
+          isCursedWolf: isWolf ? true : p.isCursedWolf,
+          curseNight: isWolf ? this.roundNumber : p.curseNight,
+          elderLives: targetRoleId === 'gia-lang' ? 2 : p.elderLives
+        });
+      }
+      return p;
+    });
+
+    const winResult = checkGameEnd(updatedPlayers);
+    const gameEndResult = winResult.isEnded ? winResult : null;
+
+    const nextGame = this.clone({
+      players: updatedPlayers,
+      gameEndResult
+    });
+
+    return {
+      success: true,
+      servant: updatedPlayers.find(p => p.id === servantId),
+      newRole: role,
       gameEndResult,
       game: nextGame
     };

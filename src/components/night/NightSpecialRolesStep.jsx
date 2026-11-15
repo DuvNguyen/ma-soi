@@ -1,5 +1,5 @@
-import React from 'react';
-import { Flame, Ghost, Wand2, Eye, Skull, MoonStar, Crosshair, Users } from 'lucide-react';
+import React, { useState } from 'react';
+import { Flame, Ghost, Wand2, Eye, Skull, MoonStar, Crosshair, Users, Search } from 'lucide-react';
 import PlayerSeatPicker from '../PlayerSeatPicker';
 import WolfIcon from '../ui/WolfIcon';
 import { getPlayerRole } from '../../utils/roleUtils';
@@ -14,6 +14,7 @@ export default function NightSpecialRolesStep({
   onAssignRole,
   isWolfPlayer
 }) {
+  const [roleActionSearch, setRoleActionSearch] = useState('');
   // 1. ĐỨA TRẺ HOANG DÃ (TARZAN / CON HOANG)
   if (currentRole.id === 'dua-tre-hoang-da') {
     const wildChildHolders = players.filter(p => (p.currentRoleId || p.roleId) === 'dua-tre-hoang-da' || p.originalRoleId === 'dua-tre-hoang-da');
@@ -93,23 +94,44 @@ export default function NightSpecialRolesStep({
 
         {/* 2. CHỌN MẸ (THẦN TƯỢNG) */}
         <div className="space-y-2">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between gap-2 flex-wrap">
             <span className="text-xs font-bold text-amber-300 uppercase tracking-wider">
-              {wildChildPlayer ? `2. Chọn Mẹ (Thần Tượng) Của #${wildChildPlayer.id} ${wildChildPlayer.name}:` : '2. Chọn Mẹ (Thần Tượng) Bảo Bọc:'}
+              {wildChildPlayer ? `2. Chọn Mẹ Của #${wildChildPlayer.id}:` : '2. Chọn Mẹ (Thần Tượng):'}
             </span>
-            {wildChildPlayer && typeof onAssignRole === 'function' && (
-              <button
-                type="button"
-                onClick={() => onAssignRole(wildChildPlayer.id, currentRole.id)}
-                className="text-[11px] underline text-slate-400 hover:text-amber-300 cursor-pointer"
-              >
-                Đổi người giữ vai Con Hoang
-              </button>
-            )}
+
+            <div className="flex items-center gap-2">
+              {/* Compact Search Input */}
+              <div className="relative">
+                <Search className="w-3 h-3 text-slate-400 absolute left-2 top-1/2 -translate-y-1/2 pointer-events-none" />
+                <input
+                  type="text"
+                  value={roleActionSearch}
+                  onChange={(e) => setRoleActionSearch(e.target.value)}
+                  placeholder="Tìm tên..."
+                  className="w-24 sm:w-32 text-xs py-0.5 pl-6 pr-2 rounded-lg bg-slate-900/90 border border-slate-700 text-slate-200 placeholder:text-slate-500 focus:outline-none focus:border-amber-500"
+                />
+              </div>
+
+              {wildChildPlayer && typeof onAssignRole === 'function' && (
+                <button
+                  type="button"
+                  onClick={() => onAssignRole(wildChildPlayer.id, currentRole.id)}
+                  className="text-[11px] underline text-slate-400 hover:text-amber-300 cursor-pointer"
+                >
+                  Đổi vai
+                </button>
+              )}
+            </div>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5">
-            {alivePlayers.map(p => {
+            {alivePlayers
+              .filter(p => {
+                if (!roleActionSearch) return true;
+                const q = roleActionSearch.toLowerCase().trim();
+                return (p.name && p.name.toLowerCase().includes(q)) || String(p.id).includes(q);
+              })
+              .map(p => {
               const isSelf = wildChildPlayer ? p.id === wildChildPlayer.id : (p.currentRoleId || p.roleId) === 'dua-tre-hoang-da';
               const isSelected = selectedIdolId === p.id;
               const isWolf = isWolfPlayer(p);
@@ -165,15 +187,35 @@ export default function NightSpecialRolesStep({
   if (currentRole.id === 'anh-tu') {
     return (
       <div className="space-y-3">
-        <div className="flex items-center gap-2">
-          <Ghost className="w-5 h-5 text-purple-400" />
-          <h4 className="font-bold text-sm text-purple-200 font-cinzel">
-            Bản Thể liên kết
-          </h4>
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <Ghost className="w-5 h-5 text-purple-400" />
+            <h4 className="font-bold text-sm text-purple-200 font-cinzel">
+              Bản Thể liên kết
+            </h4>
+          </div>
+
+          {/* Compact Search Input */}
+          <div className="relative">
+            <Search className="w-3 h-3 text-slate-400 absolute left-2 top-1/2 -translate-y-1/2 pointer-events-none" />
+            <input
+              type="text"
+              value={roleActionSearch}
+              onChange={(e) => setRoleActionSearch(e.target.value)}
+              placeholder="Tìm tên..."
+              className="w-24 sm:w-32 text-xs py-0.5 pl-6 pr-2 rounded-lg bg-slate-900/90 border border-slate-700 text-slate-200 placeholder:text-slate-500 focus:outline-none focus:border-purple-500"
+            />
+          </div>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5">
-          {alivePlayers.map(p => {
+          {alivePlayers
+            .filter(p => {
+              if (!roleActionSearch) return true;
+              const q = roleActionSearch.toLowerCase().trim();
+              return (p.name && p.name.toLowerCase().includes(q)) || String(p.id).includes(q);
+            })
+            .map(p => {
             const isSelf = (p.currentRoleId || p.roleId) === 'anh-tu' || getPlayerRole(p)?.id === 'anh-tu';
             const isSelected = nightState.shadowHostId === p.id;
             const isWolf = isWolfPlayer(p);

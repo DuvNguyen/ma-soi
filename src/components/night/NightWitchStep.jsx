@@ -1,5 +1,5 @@
-import React from 'react';
-import { Sparkles, Skull } from 'lucide-react';
+import React, { useState } from 'react';
+import { Sparkles, Skull, Search } from 'lucide-react';
 import GothicButton from '../ui/GothicButton';
 import WolfIcon from '../ui/WolfIcon';
 import { getPlayerRole, isWolfPlayer } from '../../utils/roleUtils';
@@ -12,6 +12,7 @@ export default function NightWitchStep({
   onSaveAction,
   showConfirm
 }) {
+  const [poisonSearchQuery, setPoisonSearchQuery] = useState('');
   const handleSelectPoisonTarget = (targetPlayer) => {
     // Nếu bấm lại vào chính người đang bị chọn độc -> Hủy độc ngay không cần confirm
     if (nightState.witchPoisonTargetId === targetPlayer.id) {
@@ -69,15 +70,27 @@ export default function NightWitchStep({
 
       {/* Poison Action */}
       <div className="space-y-2">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between gap-2 flex-wrap">
           <span className="text-xs font-bold text-purple-300 uppercase tracking-wider">
             Dùng Bình Độc (Giết 1 Người):
           </span>
-          {nightState.witchPoisonTargetId && (
-            <span className="text-[11px] text-rose-400 font-bold animate-pulse">
-              ⚠️ Đã chọn 1 mục tiêu độc
-            </span>
-          )}
+          <div className="flex items-center gap-2">
+            <div className="relative">
+              <Search className="w-3 h-3 text-slate-400 absolute left-2 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <input
+                type="text"
+                value={poisonSearchQuery}
+                onChange={(e) => setPoisonSearchQuery(e.target.value)}
+                placeholder="Tìm tên..."
+                className="w-24 sm:w-32 text-xs py-0.5 pl-6 pr-2 rounded-lg bg-slate-900/90 border border-slate-700 text-slate-200 placeholder:text-slate-500 focus:outline-none focus:border-purple-500"
+              />
+            </div>
+            {nightState.witchPoisonTargetId && (
+              <span className="text-[11px] text-rose-400 font-bold animate-pulse">
+                ⚠️ Đã chọn 1 mục tiêu
+              </span>
+            )}
+          </div>
         </div>
 
         {nightState.witchHasPoison ? (
@@ -116,7 +129,13 @@ export default function NightWitchStep({
                 🚫 Không Dùng Bình Độc
               </button>
 
-              {alivePlayers.map(p => {
+              {alivePlayers
+                .filter(p => {
+                  if (!poisonSearchQuery) return true;
+                  const q = poisonSearchQuery.toLowerCase().trim();
+                  return (p.name && p.name.toLowerCase().includes(q)) || String(p.id).includes(q);
+                })
+                .map(p => {
                 const isWolf = isWolfPlayer(p);
                 const isPoisoned = nightState.witchPoisonTargetId === p.id;
                 return (

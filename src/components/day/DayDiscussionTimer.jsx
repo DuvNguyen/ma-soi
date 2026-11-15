@@ -25,6 +25,9 @@ export default function DayDiscussionTimer({
   // Transformed Wild Child (Con Hoang hóa Sói do Mẹ chết)
   const transformedWildChildren = players.filter(p => p.isAlive && p.isCursedWolf && p.originalRoleId === 'dua-tre-hoang-da');
 
+  // Living Devoted Servant (Người Đầy Tớ Tận Tụy)
+  const livingServants = players.filter(p => p.isAlive && ((p.currentRoleId || p.roleId) === 'nguoi-day-to-tan-tuy' || getPlayerRole(p)?.id === 'nguoi-day-to-tan-tuy'));
+
   if (bearTamer && alivePlayers.length > 2) {
     const sortedAlive = [...alivePlayers].sort((a, b) => a.id - b.id);
     const idx = sortedAlive.findIndex(p => p.id === bearTamer.id);
@@ -88,6 +91,28 @@ export default function DayDiscussionTimer({
           </div>
         );
       })}
+
+      {/* Devoted Servant Banner (Người Đầy Tớ Tận Tụy) */}
+      {livingServants.map(servant => (
+        <div key={servant.id} className="p-3.5 rounded-2xl bg-gradient-to-r from-[#041d2d]/90 via-[#08283d] to-[#041d2d]/90 border border-cyan-500/80 text-cyan-200 shadow-[0_0_20px_rgba(6,182,212,0.3)] flex items-center justify-between gap-3 animate-fade-in">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-cyan-950 border border-cyan-500 flex items-center justify-center text-cyan-300 text-lg shrink-0">
+              🗝️
+            </div>
+            <div>
+              <h4 className="font-bold text-cyan-100 text-sm font-cinzel flex items-center gap-2">
+                <span>Người Đầy Tớ Tận Tụy: #{servant.id} {servant.name}</span>
+                <span className="text-[10px] px-2 py-0.5 rounded bg-cyan-950 border border-cyan-700 text-cyan-300 font-bold">
+                  Sẵn Sàng Kế Thừa 🗝️
+                </span>
+              </h4>
+              <p className="text-xs text-cyan-300/80 mt-0.5">
+                Khi có người chơi bị treo cổ hôm nay, Người Đầy Tớ có quyền lật bài để kế thừa lá bài vai trò của người vừa chết.
+              </p>
+            </div>
+          </div>
+        </div>
+      ))}
 
       {/* Discussion Timer Card */}
       <div className="p-4 rounded-2xl bg-[#10121d]/60 backdrop-blur-md border border-slate-700/60 flex flex-col sm:flex-row items-center justify-between gap-4">

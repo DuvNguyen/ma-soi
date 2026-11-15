@@ -104,6 +104,7 @@ export default function DayVotingSection({
               const isWolf = isWolfPlayer(p);
               const pRole = getPlayerRole(p);
               const origRole = getPlayerOriginalRole(p);
+              const isServant = (p.currentRoleId === 'nguoi-day-to-tan-tuy' || p.roleId === 'nguoi-day-to-tan-tuy' || pRole?.id === 'nguoi-day-to-tan-tuy');
 
               return (
                 <button
@@ -114,6 +115,8 @@ export default function DayVotingSection({
                       ? 'bg-gradient-to-r from-rose-950 via-[#3a080c] to-rose-950 border-rose-500 text-white shadow-[0_0_25px_rgba(225,29,72,0.7)] ring-1 ring-rose-400'
                       : isWolf
                       ? 'bg-gradient-to-r from-[#22070a] to-[#120305] border-rose-600/90 hover:border-rose-400 shadow-[0_0_16px_rgba(225,29,72,0.45)] ring-1 ring-rose-500/50 text-slate-200'
+                      : isServant
+                      ? 'bg-gradient-to-r from-[#06182a] to-[#030e1a] border-cyan-500/90 hover:border-cyan-400 shadow-[0_0_18px_rgba(6,182,212,0.4)] ring-1 ring-cyan-400/60 text-slate-200'
                       : 'bg-[#121422] hover:bg-[#181a2e] border-slate-800 hover:border-purple-600/80 text-slate-300'
                   }`}
                 >
@@ -123,15 +126,22 @@ export default function DayVotingSection({
                         ? 'bg-rose-600 text-white border-rose-400'
                         : isWolf
                         ? 'bg-rose-950 text-rose-300 border-rose-600'
+                        : isServant
+                        ? 'bg-cyan-950 text-cyan-300 border-cyan-600 shadow-[0_0_8px_rgba(6,182,212,0.5)]'
                         : 'bg-slate-900 text-slate-300 border-slate-800'
                     }`}>
                       {p.id}
                     </div>
                     <div>
-                      <div className="font-bold text-sm flex items-center gap-1.5">
-                        <span className={isWolf ? 'text-rose-200 font-black' : isSelected ? 'text-white' : 'text-slate-100'}>
+                      <div className="font-bold text-sm flex items-center gap-1.5 flex-wrap">
+                        <span className={isWolf ? 'text-rose-200 font-black' : isSelected ? 'text-white' : isServant ? 'text-cyan-100 font-bold' : 'text-slate-100'}>
                           {p.name}
                         </span>
+                        {isServant && (
+                          <span className="text-[9px] px-1.5 py-0.2 rounded font-black bg-cyan-950 text-cyan-300 border border-cyan-600 shadow-[0_0_8px_rgba(6,182,212,0.5)] flex items-center gap-0.5">
+                            🗝️ Người Hầu
+                          </span>
+                        )}
                         {p.isSheriff && (
                           <span className="text-[9px] px-1.5 py-0.2 rounded font-black bg-amber-950 text-amber-300 border border-amber-600 shadow-[0_0_8px_rgba(245,158,11,0.5)] flex items-center gap-0.5">
                             <Star className="w-2.5 h-2.5 fill-current" /> Trưởng Làng (x2)

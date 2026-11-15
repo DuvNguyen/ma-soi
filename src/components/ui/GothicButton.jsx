@@ -34,7 +34,10 @@ export default function GothicButton({
     ghost: 'bg-transparent hover:bg-slate-900/60 text-slate-400 hover:text-slate-200 border border-transparent hover:border-slate-800',
 
     // Vàng Thần Thoại (Sacred Gold / Sun)
-    gold: 'bg-gradient-to-b from-[#78350f] via-[#451a03] to-[#270e02] hover:from-[#92400e] text-amber-200 border border-amber-600/70 hover:border-amber-400 shadow-[0_4px_16px_rgba(180,83,9,0.35)] hover:shadow-[0_0_20px_rgba(245,158,11,0.4)]'
+    gold: 'bg-gradient-to-b from-[#78350f] via-[#451a03] to-[#270e02] hover:from-[#92400e] text-amber-200 border border-amber-600/70 hover:border-amber-400 shadow-[0_4px_16px_rgba(180,83,9,0.35)] hover:shadow-[0_0_20px_rgba(245,158,11,0.4)]',
+
+    // Lam Ngọc Đầy Tớ (Devoted Servant Cyan)
+    cyan: 'bg-gradient-to-b from-[#083344] to-[#041c26] hover:from-[#0e4860] hover:to-[#082938] text-cyan-200 border border-cyan-600/70 hover:border-cyan-400 shadow-[0_4px_16px_rgba(6,182,212,0.35)] hover:shadow-[0_0_20px_rgba(6,182,212,0.5)]'
   };
 
   // Wolf glow override
