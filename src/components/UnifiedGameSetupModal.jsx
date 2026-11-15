@@ -1,7 +1,16 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { ROLES, PRESETS } from '../data/roles';
 import { DEFAULT_PLAYER_NAMES } from '../data/defaultPlayers';
-import { fetchTemplates, saveTemplateApi, deleteTemplateApi, setDefaultTemplateApi } from '../services/api';
+import { 
+  fetchTemplates, 
+  saveTemplateApi, 
+  deleteTemplateApi, 
+  setDefaultTemplateApi,
+  fetchRosters,
+  saveRosterApi,
+  deleteRosterApi
+} from '../services/api';
+import { matchesSearch } from '../utils/roleUtils';
 import {
   Layers,
   Users,
@@ -21,7 +30,10 @@ import {
   RotateCcw,
   Sparkles,
   Undo2,
-  Star
+  Star,
+  Bookmark,
+  Clipboard,
+  UserCheck
 } from 'lucide-react';
 import GothicButton from './ui/GothicButton';
 import WolfIcon from './ui/WolfIcon';
@@ -36,18 +48,37 @@ export default function UnifiedGameSetupModal({
   currentDeckRoleIds = [],
   currentTemplateId = null,
   onApplyGameSetup,
-  onApplyTemplate
+  onApplyTemplate,
+  onApplyRoster
 }) {
   const { showConfirm, showAlert } = useGothicDialog();
 
-  // Normalize initial tab: 'deck' (Tab 1: Bộ bài) or 'players' (Tab 2: Người chơi)
+  // Normalize initial tab: 'deck' (Tab 1: Bộ bài), 'players' (Tab 2: Người chơi), or 'rosters' (Tab 3: Nhóm đã lưu)
   const [activeTab, setActiveTab] = useState(() => {
-    return initialTab === 'players' || initialTab === 'rosters' ? 'players' : 'deck';
+    if (initialTab === 'rosters') return 'rosters';
+    if (initialTab === 'players') return 'players';
+    return 'deck';
   });
 
   // DB templates & loading
   const [templates, setTemplates] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  // DB Rosters & loading
+  const [rosters, setRosters] = useState([]);
+  const [rostersLoading, setRostersLoading] = useState(false);
+  const [rosterSearchQuery, setRosterSearchQuery] = useState('');
+  const [isCreatingRoster, setIsCreatingRoster] = useState(false);
+  const [editingRosterId, setEditingRosterId] = useState(null);
+  const [rosterFormName, setRosterFormName] = useState('');
+  const [rosterFormNamesText, setRosterFormNamesText] = useState('');
+  const [isSavingRoster, setIsSavingRoster] = useState(false);
+  const [deletingRosterId, setDeletingRosterId] = useState(null);
+
+  // Quick save current players as a new roster modal
+  const [isSaveCurrentAsRosterOpen, setIsSaveCurrentAsRosterOpen] = useState(false);
+  const [newRosterNameInput, setNewRosterNameInput] = useState('');
+  const [isSavingCurrentRoster, setIsSavingCurrentRoster] = useState(false);
 
   // Selected template & roles (Exclude appointed titles like Cảnh Sát Trưởng)
   const [selectedTemplateId, setSelectedTemplateId] = useState(() => {
@@ -98,11 +129,14 @@ export default function UnifiedGameSetupModal({
   const [settingDefaultId, setSettingDefaultId] = useState(null);
   const [deletingTemplateId, setDeletingTemplateId] = useState(null);
 
-  // Load templates on open
+  // Load templates & rosters on open
   useEffect(() => {
     if (isOpen) {
       loadTemplatesData();
-      setActiveTab(initialTab === 'players' || initialTab === 'rosters' ? 'players' : 'deck');
+      loadRostersData();
+      if (initialTab === 'rosters') setActiveTab('rosters');
+      else if (initialTab === 'players') setActiveTab('players');
+      else if (initialTab === 'deck') setActiveTab('deck');
     }
   }, [isOpen, initialTab]);
 
@@ -138,6 +172,214 @@ export default function UnifiedGameSetupModal({
     } finally {
       setLoading(false);
     }
+  };
+
+  const loadRostersData = async () => {
+    setRostersLoading(true);
+    try {
+      const data = await fetchRosters();
+      setRosters(data || []);
+    } catch (e) {
+      console.error('Error fetching rosters from Neon DB:', e);
+    } finally {
+      setRostersLoading(false);
+    }
+  };
+
+  // Filter rosters by query
+  const filteredRosters = useMemo(() => {
+    if (!rosterSearchQuery.trim()) return rosters;
+    return rosters.filter(r => 
+      matchesSearch(r.name, rosterSearchQuery) ||
+      (r.playerNames && r.playerNames.some(name => matchesSearch(name, rosterSearchQuery)))
+    );
+  }, [rosters, rosterSearchQuery]);
+
+  // Apply a saved roster to setup (playerNames + auto adjust deck if necessary)
+  const handleApplyRosterToSetup = (roster) => {
+    triggerHaptic('success');
+    const names = roster.playerNames || [];
+    if (names.length === 0) return;
+
+    // Update playerNames
+    setPlayerNames([...names]);
+
+    // Automatically adapt deck size if needed
+    if (selectedRoleIds.length !== names.length) {
+      setSelectedRoleIds(prev => {
+        let nextDeck = [...prev];
+        if (nextDeck.length > names.length) {
+          while (nextDeck.length > names.length && nextDeck.includes('dan-lang')) {
+            const idx = nextDeck.lastIndexOf('dan-lang');
+            nextDeck.splice(idx, 1);
+          }
+          if (nextDeck.length > names.length) {
+            nextDeck = nextDeck.slice(0, names.length);
+          }
+        } else if (nextDeck.length < names.length) {
+          while (nextDeck.length < names.length) {
+            nextDeck.push('dan-lang');
+          }
+        }
+        return nextDeck;
+      });
+    }
+
+    setActiveTab('players');
+    showAlert({
+      title: 'ĐÃ CHỌN NHÓM NGƯỜI CHƠI! 👥',
+      message: `Đã nạp danh sách ${names.length} người chơi từ nhóm "${roster.name}". Bộ bài đã được tự động đồng bộ ${names.length} lá.`,
+      variant: 'emerald'
+    });
+  };
+
+  // Quick save current player names as a new roster into Neon DB
+  const handleSaveCurrentAsRoster = async (e) => {
+    e.preventDefault();
+    const trimmed = newRosterNameInput.trim();
+    if (!trimmed) {
+      showAlert({
+        title: 'THIẾU TÊN NHÓM',
+        message: 'Vui lòng nhập tên cho nhóm người chơi trước khi lưu.',
+        variant: 'warning'
+      });
+      return;
+    }
+    const validNames = playerNames.map(s => (s || '').trim()).filter(Boolean);
+    if (validNames.length === 0) {
+      showAlert({
+        title: 'DANH SÁCH TRỐNG',
+        message: 'Danh sách người chơi đang trống, không thể lưu.',
+        variant: 'warning'
+      });
+      return;
+    }
+
+    setIsSavingCurrentRoster(true);
+    try {
+      const rosterData = {
+        id: `roster-${Date.now()}`,
+        name: trimmed,
+        playerNames: validNames
+      };
+      await saveRosterApi(rosterData);
+      await loadRostersData();
+      setIsSaveCurrentAsRosterOpen(false);
+      setNewRosterNameInput('');
+      showAlert({
+        title: 'ĐÃ LƯU NHÓM NGƯỜI CHƠI! ✨',
+        message: `Đã lưu nhóm "${trimmed}" (${validNames.length} người) vào Neon Postgres DB thành công!`,
+        variant: 'emerald'
+      });
+    } catch (err) {
+      showAlert({
+        title: 'LỖI LƯU NHÓM',
+        message: 'Không thể lưu nhóm vào Neon DB: ' + err.message,
+        variant: 'blood'
+      });
+    } finally {
+      setIsSavingCurrentRoster(false);
+    }
+  };
+
+  // Full Roster Form Handlers (Tab 3)
+  const handleOpenCreateRoster = () => {
+    setEditingRosterId(null);
+    setRosterFormName('');
+    setRosterFormNamesText('');
+    setIsCreatingRoster(true);
+  };
+
+  const handleStartEditRoster = (roster, e) => {
+    if (e) e.stopPropagation();
+    setEditingRosterId(roster.id);
+    setRosterFormName(roster.name || '');
+    setRosterFormNamesText((roster.playerNames || []).join('\n'));
+    setIsCreatingRoster(true);
+  };
+
+  const handleSaveRosterForm = async (e) => {
+    e.preventDefault();
+    if (isSavingRoster) return;
+
+    const trimmedName = rosterFormName.trim();
+    if (!trimmedName) {
+      showAlert({
+        title: 'THIẾU TÊN NHÓM',
+        message: 'Vui lòng nhập tên nhóm người chơi.',
+        variant: 'warning'
+      });
+      return;
+    }
+
+    const parsedNames = rosterFormNamesText
+      .split(/[\n,;]+/)
+      .map(s => s.trim())
+      .filter(Boolean);
+
+    if (parsedNames.length === 0) {
+      showAlert({
+        title: 'DANH SÁCH TRỐNG',
+        message: 'Vui lòng nhập ít nhất một tên người chơi.',
+        variant: 'warning'
+      });
+      return;
+    }
+
+    setIsSavingRoster(true);
+    try {
+      const rosterData = {
+        id: editingRosterId || `roster-${Date.now()}`,
+        name: trimmedName,
+        playerNames: parsedNames
+      };
+      await saveRosterApi(rosterData);
+      await loadRostersData();
+      setIsCreatingRoster(false);
+      setEditingRosterId(null);
+      setRosterFormName('');
+      setRosterFormNamesText('');
+      showAlert({
+        title: 'LƯU NHÓM THÀNH CÔNG! ✨',
+        message: `Đã lưu nhóm "${trimmedName}" (${parsedNames.length} người) vào Neon DB!`,
+        variant: 'emerald'
+      });
+    } catch (err) {
+      showAlert({
+        title: 'LỖI LƯU NHÓM',
+        message: 'Không thể lưu nhóm: ' + err.message,
+        variant: 'blood'
+      });
+    } finally {
+      setIsSavingRoster(false);
+    }
+  };
+
+  const handleDeleteRoster = async (id, e) => {
+    if (e) e.stopPropagation();
+    if (deletingRosterId === id) return;
+
+    showConfirm({
+      title: 'XÓA NHÓM NGƯỜI CHƠI?',
+      message: 'Bạn có chắc chắn muốn xóa nhóm này khỏi Neon DB? Thao tác này không thể hoàn tác.',
+      variant: 'blood',
+      confirmText: 'Xóa Vĩnh Viễn 🩸',
+      onConfirm: async () => {
+        setDeletingRosterId(id);
+        try {
+          await deleteRosterApi(id);
+          setRosters(prev => prev.filter(r => r.id !== id));
+        } catch (err) {
+          showAlert({
+            title: 'LỖI XÓA NHÓM',
+            message: 'Không thể xóa nhóm: ' + err.message,
+            variant: 'blood'
+          });
+        } finally {
+          setDeletingRosterId(null);
+        }
+      }
+    });
   };
 
   // Templates directly and exclusively from Database
@@ -672,6 +914,26 @@ export default function UnifiedGameSetupModal({
                 {playerNames.length} slot
               </span>
             </button>
+
+            {/* Tab 3: Folder Ear for Saved Rosters */}
+            <button
+              type="button"
+              onClick={() => {
+                triggerHaptic('light');
+                setActiveTab('rosters');
+              }}
+              className={`px-3.5 sm:px-6 py-2 sm:py-2.5 rounded-t-xl sm:rounded-t-2xl font-bold text-xs sm:text-sm transition-all flex items-center gap-1.5 sm:gap-2 cursor-pointer border-t-2 ${
+                activeTab === 'rosters'
+                  ? 'bg-[#121422] text-rose-300 border-rose-500 border-x border-slate-800 relative z-10 shadow-[0_-4px_12px_rgba(0,0,0,0.6)]'
+                  : 'bg-[#0a0c16]/90 text-slate-400 hover:text-slate-200 border-transparent hover:bg-[#101220]'
+              }`}
+            >
+              <Bookmark className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-rose-400 shrink-0" />
+              <span>3. Nhóm Đã Lưu</span>
+              <span className="text-[10px] sm:text-[11px] px-1.5 py-0.5 rounded-md bg-rose-950/80 border border-rose-800/80 text-rose-300 font-mono">
+                {rosters.length} nhóm
+              </span>
+            </button>
           </div>
 
           {/* Close button X */}
@@ -1145,6 +1407,31 @@ export default function UnifiedGameSetupModal({
 
                   <button
                     type="button"
+                    onClick={() => {
+                      setNewRosterNameInput('');
+                      setIsSaveCurrentAsRosterOpen(true);
+                    }}
+                    title="Lưu danh sách người chơi hiện tại thành Nhóm vào Neon DB"
+                    className="px-3 py-1.5 rounded-xl bg-rose-950/70 hover:bg-rose-900/90 border border-rose-600/70 text-xs font-bold text-rose-200 transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-sm active:scale-95"
+                  >
+                    <Bookmark className="w-3.5 h-3.5 text-rose-300" />
+                    <span>Lưu Nhóm Mới</span>
+                  </button>
+
+                  {rosters.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab('rosters')}
+                      title="Xem danh sách nhóm người chơi đã lưu trong Neon DB"
+                      className="px-2.5 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700 hover:border-rose-500/80 text-xs font-bold text-slate-300 hover:text-rose-200 transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-sm active:scale-95"
+                    >
+                      <Users className="w-3.5 h-3.5 text-rose-400" />
+                      <span>Chọn Nhóm ({rosters.length})</span>
+                    </button>
+                  )}
+
+                  <button
+                    type="button"
                     onClick={handleResetNamesToDefault}
                     title="Đặt lại tên mặc định"
                     className="p-2 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-400 hover:text-slate-200 transition-all cursor-pointer"
@@ -1215,6 +1502,265 @@ export default function UnifiedGameSetupModal({
                 <Plus className="w-4 h-4 text-purple-400" />
                 <span>Thêm Người Chơi Mới (Ghế #{playerNames.length + 1})</span>
               </button>
+            </div>
+          )}
+
+          {/* ------------------------------------------------------------ */}
+          {/* TAB 3: NHÓM ĐÃ LƯU (SAVED PLAYER ROSTERS TRÊN NEON DB)       */}
+          {/* ------------------------------------------------------------ */}
+          {activeTab === 'rosters' && (
+            <div className="space-y-4 animate-fade-in">
+              {isCreatingRoster ? (
+                /* FORM TẠO / SỬA NHÓM */
+                <form onSubmit={handleSaveRosterForm} className="p-4 sm:p-5 rounded-2xl bg-[#0f111d] border border-rose-900/60 space-y-4">
+                  <div className="flex items-center justify-between border-b border-slate-800 pb-2.5">
+                    <h3 className="font-bold text-sm text-rose-200 flex items-center gap-2">
+                      <Bookmark className="w-4 h-4 text-rose-400" />
+                      <span>{editingRosterId ? 'Chỉnh Sửa Nhóm Người Chơi' : 'Tạo Nhóm Người Chơi Mới'}</span>
+                    </h3>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsCreatingRoster(false);
+                        setEditingRosterId(null);
+                      }}
+                      className="text-xs text-slate-400 hover:text-white underline cursor-pointer"
+                    >
+                      Quay lại danh sách
+                    </button>
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-bold uppercase text-slate-400 block mb-1">
+                      Tên Nhóm / Buổi Chơi:
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="VD: Hội Chơi Thứ Bảy, Nhóm UTE, Bạn Cấp 3..."
+                      value={rosterFormName}
+                      onChange={(e) => setRosterFormName(e.target.value)}
+                      className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs sm:text-sm text-slate-200 focus:outline-none focus:border-rose-500"
+                    />
+                  </div>
+
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="text-xs font-bold uppercase text-slate-400 block">
+                        Danh Sách Tên Người Chơi:
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const currentNames = playerNames.map(s => (s || '').trim()).filter(Boolean);
+                          if (currentNames.length > 0) {
+                            setRosterFormNamesText(currentNames.join('\n'));
+                          }
+                        }}
+                        className="text-[11px] text-rose-400 hover:text-rose-300 flex items-center gap-1 underline font-medium cursor-pointer"
+                      >
+                        <Clipboard className="w-3.5 h-3.5" />
+                        Lấy từ danh sách ghế hiện tại ({playerNames.length} người)
+                      </button>
+                    </div>
+                    <textarea
+                      rows={6}
+                      required
+                      placeholder={"Nhập tên người chơi, mỗi tên trên một dòng hoặc cách nhau bằng dấu phẩy:\nVí dụ: Vĩ, Phú, Nam, Sou, Tốt, Như, UTE 1, UTE 2, Linh Nhi, Lồi"}
+                      value={rosterFormNamesText}
+                      onChange={(e) => setRosterFormNamesText(e.target.value)}
+                      className="w-full bg-slate-900 border border-slate-800 rounded-xl p-3 text-xs sm:text-sm text-slate-200 focus:outline-none focus:border-rose-500 leading-relaxed font-mono"
+                    />
+                  </div>
+
+                  {/* Preview Chips */}
+                  {(() => {
+                    const parsed = rosterFormNamesText.split(/[\n,;]+/).map(s => s.trim()).filter(Boolean);
+                    if (parsed.length === 0) return null;
+                    return (
+                      <div>
+                        <div className="flex items-center justify-between mb-1.5">
+                          <span className="text-xs font-bold text-slate-400">
+                            Xem trước ({parsed.length} người):
+                          </span>
+                          {selectedRoleIds.length > 0 && (
+                            parsed.length === selectedRoleIds.length ? (
+                              <span className="text-[11px] font-bold text-emerald-400 bg-emerald-950/80 px-2 py-0.5 rounded border border-emerald-800">
+                                ✓ Khớp đúng {selectedRoleIds.length} lá bài
+                              </span>
+                            ) : (
+                              <span className="text-[11px] font-bold text-amber-400 bg-amber-950/80 px-2 py-0.5 rounded border border-amber-800">
+                                Lệch {Math.abs(parsed.length - selectedRoleIds.length)} người (bộ bài: {selectedRoleIds.length} lá)
+                              </span>
+                            )
+                          )}
+                        </div>
+                        <div className="flex flex-wrap gap-1.5 p-2.5 rounded-xl bg-slate-900/60 border border-slate-800 max-h-24 overflow-y-auto">
+                          {parsed.map((name, idx) => (
+                            <span
+                              key={idx}
+                              className="text-xs px-2.5 py-0.5 rounded-lg bg-rose-950/60 text-rose-200 border border-rose-800/60 font-medium"
+                            >
+                              {idx + 1}. {name}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })()}
+
+                  <div className="pt-2 flex justify-end gap-2 border-t border-slate-800">
+                    <GothicButton
+                      variant="dark"
+                      size="sm"
+                      type="button"
+                      onClick={() => {
+                        setIsCreatingRoster(false);
+                        setEditingRosterId(null);
+                      }}
+                    >
+                      Hủy
+                    </GothicButton>
+                    <GothicButton
+                      variant="witch"
+                      size="sm"
+                      type="submit"
+                      disabled={isSavingRoster}
+                    >
+                      <Check className="w-4 h-4 mr-1 inline" />
+                      <span>{isSavingRoster ? 'Đang lưu...' : (editingRosterId ? 'Cập Nhật Nhóm' : 'Lưu Nhóm Vào Neon DB')}</span>
+                    </GothicButton>
+                  </div>
+                </form>
+              ) : (
+                /* DANH SÁCH NHÓM ĐÃ LƯU */
+                <div className="space-y-4">
+                  {/* Toolbar: Search + Create Button */}
+                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5">
+                    <div className="relative flex-1">
+                      <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                      <input
+                        type="text"
+                        value={rosterSearchQuery}
+                        onChange={(e) => setRosterSearchQuery(e.target.value)}
+                        placeholder="Tìm kiếm nhóm người chơi hoặc tên thành viên..."
+                        className="w-full pl-9 pr-3 py-2 rounded-xl bg-slate-900/90 border border-slate-800 text-xs text-slate-200 focus:outline-none focus:border-rose-500"
+                      />
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={handleOpenCreateRoster}
+                      className="px-3.5 py-2 rounded-xl bg-rose-950 hover:bg-rose-900 border border-rose-600/80 text-xs font-bold text-rose-200 transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-sm active:scale-95 shrink-0"
+                    >
+                      <Plus className="w-4 h-4 text-rose-300" />
+                      <span>Tạo Nhóm Mới</span>
+                    </button>
+                  </div>
+
+                  {/* Rosters Grid */}
+                  {rostersLoading ? (
+                    <div className="py-12 text-center text-slate-500 text-sm">
+                      Đang tải danh sách nhóm từ Neon Postgres...
+                    </div>
+                  ) : filteredRosters.length === 0 ? (
+                    <div className="py-12 text-center text-slate-500 text-sm p-6 rounded-2xl bg-[#0f111d] border border-slate-800">
+                      {rosterSearchQuery.trim() ? (
+                        <>Không tìm thấy nhóm người chơi khớp với từ khóa "{rosterSearchQuery}".</>
+                      ) : (
+                        <>Chưa có nhóm người chơi nào được lưu trong Neon DB.</>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      {filteredRosters.map(r => {
+                        const count = r.playerNames?.length || 0;
+                        const isMatch = selectedRoleIds.length === count;
+
+                        return (
+                          <div
+                            key={r.id}
+                            className={`p-3.5 sm:p-4 rounded-2xl bg-[#141624] border transition-all flex flex-col justify-between shadow-lg ${
+                              isMatch ? 'border-rose-900/70 hover:border-rose-600/60' : 'border-slate-800 hover:border-slate-700'
+                            }`}
+                          >
+                            <div>
+                              <div className="flex items-start justify-between gap-2 mb-2">
+                                <div className="min-w-0 flex-1">
+                                  <h4 className="font-bold text-sm text-slate-100 truncate flex items-center gap-1.5">
+                                    <Bookmark className="w-3.5 h-3.5 text-rose-400 shrink-0" />
+                                    <span>{r.name}</span>
+                                  </h4>
+                                </div>
+                                <span className={`text-xs font-bold px-2 py-0.5 rounded-lg border shrink-0 ${
+                                  isMatch
+                                    ? 'text-emerald-300 bg-emerald-950/80 border-emerald-800/60'
+                                    : 'text-rose-300 bg-rose-950/80 border-rose-800/60'
+                                }`}>
+                                  {count} người
+                                </span>
+                              </div>
+
+                              {/* Names chips preview */}
+                              <div className="flex flex-wrap gap-1 max-h-24 overflow-y-auto pr-1 mb-2">
+                                {(r.playerNames || []).map((name, i) => (
+                                  <span
+                                    key={i}
+                                    className="text-[11px] px-2 py-0.5 rounded-md bg-slate-900 border border-slate-800 text-slate-300 font-medium"
+                                  >
+                                    {name}
+                                  </span>
+                                ))}
+                              </div>
+
+                              {!isMatch && selectedRoleIds.length > 0 && (
+                                <p className="text-[11px] text-amber-400/90 flex items-center gap-1 font-medium">
+                                  <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                                  <span>Bộ bài đang chọn có {selectedRoleIds.length} lá (Lệch {Math.abs(count - selectedRoleIds.length)} người)</span>
+                                </p>
+                              )}
+                            </div>
+
+                            <div className="mt-3 pt-2.5 border-t border-slate-800/80 flex items-center justify-between">
+                              <div className="flex items-center gap-2.5">
+                                <button
+                                  type="button"
+                                  disabled={deletingRosterId === r.id}
+                                  onClick={(e) => handleDeleteRoster(r.id, e)}
+                                  className="text-xs text-slate-500 hover:text-rose-400 disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1 transition-colors cursor-pointer"
+                                  title="Xóa nhóm này khỏi Neon DB"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                  <span>{deletingRosterId === r.id ? 'Đang xóa...' : 'Xóa'}</span>
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={(e) => handleStartEditRoster(r, e)}
+                                  className="text-xs text-purple-400 hover:text-purple-300 flex items-center gap-1 transition-colors cursor-pointer"
+                                  title="Chỉnh sửa danh sách nhóm này"
+                                >
+                                  <Edit3 className="w-3.5 h-3.5" />
+                                  <span>Sửa</span>
+                                </button>
+                              </div>
+
+                              <GothicButton
+                                variant="witch"
+                                size="sm"
+                                onClick={() => handleApplyRosterToSetup(r)}
+                                className="h-7 px-2.5 text-xs font-bold"
+                              >
+                                <span>Dùng Nhóm Này</span>
+                                <ArrowRight className="w-3.5 h-3.5 ml-1 inline" />
+                              </GothicButton>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -1353,6 +1899,91 @@ export default function UnifiedGameSetupModal({
                 </GothicButton>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ============================================================== */}
+      {/* POPUP MODAL: LƯU DANH SÁCH NGƯỜI CHƠI THÀNH NHÓM VÀO NEON DB   */}
+      {/* ============================================================== */}
+      {isSaveCurrentAsRosterOpen && (
+        <div
+          className="fixed inset-0 z-[60] flex items-center justify-center p-3 sm:p-5 bg-black/80 backdrop-blur-md animate-fade-in"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setIsSaveCurrentAsRosterOpen(false);
+          }}
+        >
+          <div
+            className="bg-[#121422] border-2 border-rose-600/80 rounded-2xl sm:rounded-3xl shadow-2xl max-w-md w-full p-4 sm:p-5 space-y-4 relative animate-scale-up"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between border-b border-slate-800 pb-2.5">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-xl bg-rose-950 border border-rose-600/70 flex items-center justify-center text-rose-300">
+                  <Bookmark className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="font-cinzel font-bold text-sm text-slate-100">
+                    LƯU NHÓM NGƯỜI CHƠI
+                  </h3>
+                  <span className="text-[11px] text-slate-400">
+                    Lưu vào Neon Postgres DB ({playerNames.filter(Boolean).length} người)
+                  </span>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsSaveCurrentAsRosterOpen(false)}
+                className="p-1 rounded-lg text-slate-400 hover:text-white"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveCurrentAsRoster} className="space-y-4">
+              <div>
+                <label className="text-xs font-bold uppercase text-slate-400 block mb-1">
+                  Tên Nhóm:
+                </label>
+                <input
+                  type="text"
+                  required
+                  autoFocus
+                  placeholder="VD: Hội Thứ 7, Nhóm UTE, Bạn Cấp 3..."
+                  value={newRosterNameInput}
+                  onChange={(e) => setNewRosterNameInput(e.target.value)}
+                  className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-rose-500"
+                />
+              </div>
+
+              <div className="max-h-28 overflow-y-auto p-2 rounded-xl bg-slate-900/60 border border-slate-800 flex flex-wrap gap-1">
+                {playerNames.filter(Boolean).map((name, i) => (
+                  <span key={i} className="text-[11px] px-2 py-0.5 rounded bg-rose-950/60 text-rose-200 border border-rose-900/60 font-medium">
+                    {i + 1}. {name}
+                  </span>
+                ))}
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2 border-t border-slate-800">
+                <GothicButton
+                  variant="dark"
+                  size="sm"
+                  type="button"
+                  onClick={() => setIsSaveCurrentAsRosterOpen(false)}
+                >
+                  Hủy
+                </GothicButton>
+                <GothicButton
+                  variant="witch"
+                  size="sm"
+                  type="submit"
+                  disabled={isSavingCurrentRoster}
+                >
+                  <Save className="w-3.5 h-3.5 mr-1 inline" />
+                  <span>{isSavingCurrentRoster ? 'Đang lưu...' : 'Lưu Vào Neon DB'}</span>
+                </GothicButton>
+              </div>
+            </form>
           </div>
         </div>
       )}

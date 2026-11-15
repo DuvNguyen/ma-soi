@@ -51,7 +51,7 @@ export async function getTemplates() {
   if (!getSql()) return [];
   await ensureTablesExist();
   const rows = await sql`
-    SELECT id, name, description, player_count, role_ids, is_default, created_at, updated_at 
+    SELECT id, name, description, player_count, role_ids, player_names, is_default, created_at, updated_at 
     FROM deck_templates 
     ORDER BY is_default DESC, created_at DESC
   `;
@@ -61,32 +61,35 @@ export async function getTemplates() {
     desc: r.description,
     playerCount: r.player_count,
     roleIds: typeof r.role_ids === 'string' ? JSON.parse(r.role_ids) : r.role_ids,
+    playerNames: typeof r.player_names === 'string' ? JSON.parse(r.player_names) : (r.player_names || []),
     isDefault: Boolean(r.is_default),
     createdAt: r.created_at,
     updatedAt: r.updated_at
   }));
 }
 
-export async function saveTemplate({ id, name, desc, playerCount, roleIds, isDefault }) {
+export async function saveTemplate({ id, name, desc, playerCount, roleIds, isDefault, playerNames = [] }) {
   if (!getSql()) throw new Error('Database not connected');
   await ensureTablesExist();
   const roleIdsJson = JSON.stringify(roleIds);
+  const playerNamesJson = JSON.stringify(playerNames || []);
   const shouldBeDefault = Boolean(isDefault);
   if (shouldBeDefault) {
     await sql`UPDATE deck_templates SET is_default = FALSE`;
   }
   await sql`
-    INSERT INTO deck_templates (id, name, description, player_count, role_ids, is_default, updated_at)
-    VALUES (${id}, ${name}, ${desc || ''}, ${playerCount}, ${roleIdsJson}::jsonb, ${shouldBeDefault}, NOW())
+    INSERT INTO deck_templates (id, name, description, player_count, role_ids, player_names, is_default, updated_at)
+    VALUES (${id}, ${name}, ${desc || ''}, ${playerCount}, ${roleIdsJson}::jsonb, ${playerNamesJson}::jsonb, ${shouldBeDefault}, NOW())
     ON CONFLICT (id) DO UPDATE SET
       name = EXCLUDED.name,
       description = EXCLUDED.description,
       player_count = EXCLUDED.player_count,
       role_ids = EXCLUDED.role_ids,
+      player_names = CASE WHEN EXCLUDED.player_names IS NOT NULL AND jsonb_array_length(EXCLUDED.player_names) > 0 THEN EXCLUDED.player_names ELSE deck_templates.player_names END,
       is_default = CASE WHEN ${shouldBeDefault} THEN TRUE ELSE deck_templates.is_default END,
       updated_at = NOW()
   `;
-  return { id, name, desc, playerCount, roleIds, isDefault: shouldBeDefault };
+  return { id, name, desc, playerCount, roleIds, playerNames, isDefault: shouldBeDefault };
 }
 
 export async function setDefaultTemplate(id) {
@@ -184,6 +187,9 @@ export async function ensureTablesExist() {
     `;
     await sql`
       ALTER TABLE deck_templates ADD COLUMN IF NOT EXISTS is_default BOOLEAN NOT NULL DEFAULT FALSE;
+    `;
+    await sql`
+      ALTER TABLE deck_templates ADD COLUMN IF NOT EXISTS player_names JSONB NOT NULL DEFAULT '[]';
     `;
     await sql`
       CREATE TABLE IF NOT EXISTS player_rosters (
