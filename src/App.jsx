@@ -2202,6 +2202,9 @@ export default function App() {
                 player: p
               });
             }}
+            rolesInGame={rolesInGame}
+            deckRoleIds={deckRoleIds}
+            onAssignRole={handleAssignRole}
             scapegoatBannedVoterIds={roundNumber === scapegoatBannedRound ? scapegoatBannedVoterIds : []}
           />
         </div>

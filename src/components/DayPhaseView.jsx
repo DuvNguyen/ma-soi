@@ -29,7 +29,10 @@ export default function DayPhaseView({
   pendingHunterShot = null,
   onOpenHunterModal,
   onSkipHunterShot,
-  scapegoatBannedVoterIds = []
+  scapegoatBannedVoterIds = [],
+  rolesInGame = [],
+  deckRoleIds = [],
+  onAssignRole
 }) {
   const { showConfirm, showAlert } = useGothicDialog();
   const [timeLeft, setTimeLeft] = useState(180); // 3 minutes discussion
@@ -129,6 +132,9 @@ export default function DayPhaseView({
         onKnightDuel={onKnightDuel}
         showConfirm={showConfirm}
         showAlert={showAlert}
+        rolesInGame={rolesInGame}
+        deckRoleIds={deckRoleIds}
+        onAssignRole={onAssignRole}
       />
 
       {/* Scapegoat Decree Banner */}

@@ -48,6 +48,7 @@ export default function NightPhaseView({
       'nua-nguoi-nua-soi': 3.1,
       'thang-ngoc': 3.2,
       'tho-san': 3.3,
+      'ki-si': 3.4,
       'dien-vien': 3.5,
       'ba-dong': 3.6,
       'bao-ve': 4,
@@ -73,7 +74,7 @@ export default function NightPhaseView({
     };
 
     const activeRoles = rolesInGame.filter(r => {
-      if (['cupid', 'dua-tre-hoang-da', 'anh-tu', 'an-trom', 'ke-bao-thu', 'soi-lai', 'cho-soi-soi-lai', 'ba-anh-em', 'hai-chi-em', 'tham-phan-lap-bap', 'nua-nguoi-nua-soi', 'thang-ngoc', 'tho-san', 'anh-em-soi'].includes(r.id) && roundNumber > 1) {
+      if (['cupid', 'dua-tre-hoang-da', 'anh-tu', 'an-trom', 'ke-bao-thu', 'soi-lai', 'cho-soi-soi-lai', 'ba-anh-em', 'hai-chi-em', 'tham-phan-lap-bap', 'nua-nguoi-nua-soi', 'thang-ngoc', 'tho-san', 'anh-em-soi', 'ki-si'].includes(r.id) && roundNumber > 1) {
         return false;
       }
       if (r.id === 'dien-vien' && roundNumber > 3) {
@@ -84,9 +85,9 @@ export default function NightPhaseView({
       }
       if ([
         'dan-lang', 'dan-thuong', 'gia-lang', 'canh-sat-truong', 
-        'nguoi-the-than', 'oan-nhan', 'nguoi-day-to-tan-tuy', 'hiep-si-gia', 'ky-si', 
+        'nguoi-the-than', 'oan-nhan', 'nguoi-day-to-tan-tuy', 'hiep-si-gia', 
         'thien-su', 'thien-than', 'bo-lao', 'thang-mo', 'nguoi-thuan-phuc-gau', 'than-gau',
-        'co-be', 'canh-sat-characters', 'ki-si', 'thanh-vien-giao-phai', 'hiep-si-kiem-gi'
+        'co-be', 'canh-sat-characters', 'thanh-vien-giao-phai', 'hiep-si-kiem-gi'
       ].includes(r.id)) {
         return false;
       }
@@ -103,6 +104,13 @@ export default function NightPhaseView({
           ...r,
           shortDesc: 'Thức dậy trong Đêm 1 để Quản trò nhận diện người nắm giữ vai.',
           gmCall: 'Thợ Săn thức dậy nhận diện Quản Trò.'
+        };
+      }
+      if (r.id === 'ki-si' && roundNumber === 1) {
+        return {
+          ...r,
+          shortDesc: 'Thức dậy trong Đêm 1 để Quản trò nhận diện và gán người nắm giữ vai Kị Sĩ.',
+          gmCall: 'Kị Sĩ thức dậy nhận diện Quản Trò.'
         };
       }
       return r;

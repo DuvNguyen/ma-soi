@@ -771,6 +771,40 @@ console.log('🧪 Starting Phase 1 Domain Model & Strategy Tests...\n');
     assert.strictEqual(elderInheritGame.game.getPlayer(64).elderLives, 2, 'Servant inheriting Elder gets 2 lives');
     console.log('✅ Test 42: Devoted Servant role inheritance on lynch verified.');
 
-    console.log('\n🎉 ALL 42 DOMAIN ENGINE TESTS PASSED PERFECTLY!\n');
+    // Test 43: Knight (Kị Sĩ - ki-si) Night 1 wake and duel mechanics
+    const knightP = new Player({ id: 70, name: 'Kị Sĩ 70', currentRoleId: 'ki-si', roleId: 'ki-si', isAlive: true });
+    const targetWolf = new Player({ id: 71, name: 'Sói 71', currentRoleId: 'soi-thuong', roleId: 'soi-thuong', isAlive: true });
+    const innocentVillager = new Player({ id: 72, name: 'Dân Làng 72', currentRoleId: 'dan-lang', roleId: 'dan-lang', isAlive: true });
+    const extraVillager = new Player({ id: 73, name: 'Dân Làng 73', currentRoleId: 'dan-lang', roleId: 'dan-lang', isAlive: true });
+
+    const test43KnightGame = new WerewolfGame({
+      roundNumber: 1,
+      isNight: false,
+      players: [knightP, targetWolf, innocentVillager, extraVillager]
+    });
+
+    // Successful duel against wolf
+    const duelSuccess = test43KnightGame.knightDuel(70, 71);
+    assert.strictEqual(duelSuccess.success, true);
+    assert.strictEqual(duelSuccess.isWolf, true);
+    assert.strictEqual(duelSuccess.game.getPlayer(71).isAlive, false, 'Target wolf must be killed in duel');
+    assert.strictEqual(duelSuccess.game.getPlayer(70).isAlive, true, 'Knight survives successful duel');
+    assert.strictEqual(duelSuccess.game.getPlayer(70).hasUsedKnightDuel, true, 'Knight duel consumed');
+
+    // Failed duel against innocent villager kills knight
+    const duelFailGame = new WerewolfGame({
+      roundNumber: 1,
+      isNight: false,
+      players: [knightP, targetWolf, innocentVillager, extraVillager]
+    });
+    const duelFail = duelFailGame.knightDuel(70, 72);
+    assert.strictEqual(duelFail.success, true);
+    assert.strictEqual(duelFail.isWolf, false);
+    assert.strictEqual(duelFail.game.getPlayer(72).isAlive, true, 'Innocent villager remains alive');
+    assert.strictEqual(duelFail.game.getPlayer(70).isAlive, false, 'Knight dies from mistaken duel');
+    assert.strictEqual(duelFail.game.getPlayer(70).hasUsedKnightDuel, true, 'Knight duel consumed');
+    console.log('✅ Test 43: Knight duel against Wolf & Villager verified.');
+
+    console.log('\n🎉 ALL 43 DOMAIN ENGINE TESTS PASSED PERFECTLY!\n');
   });
 }

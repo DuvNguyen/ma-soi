@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Flame, Ghost, Wand2, Eye, Skull, MoonStar, Crosshair, Users, Search } from 'lucide-react';
+import { Flame, Ghost, Wand2, Eye, Skull, MoonStar, Crosshair, Users, Search, Swords } from 'lucide-react';
 import PlayerSeatPicker from '../PlayerSeatPicker';
 import WolfIcon from '../ui/WolfIcon';
 import { getPlayerRole } from '../../utils/roleUtils';
@@ -708,6 +708,72 @@ export default function NightSpecialRolesStep({
             </span>
           )}
         </div>
+      </div>
+    );
+  }
+
+  // 9.5. KỊ SĨ (KNIGHT - ĐÊM 1 NHẬN DIỆN & GÁN VAI)
+  if (currentRole.id === 'ki-si') {
+    const knightHolders = players.filter(p => (p.currentRoleId || p.roleId) === 'ki-si' || getPlayerRole(p)?.id === 'ki-si');
+    const knightPlayer = knightHolders[0] || null;
+    return (
+      <div className="space-y-4">
+        <div className="p-4 rounded-2xl bg-[#0c1424] border border-blue-500/40 text-blue-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-[0_0_20px_rgba(59,130,246,0.15)]">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 rounded-xl bg-blue-950/80 border border-blue-600/50 text-blue-300 shrink-0 shadow-[0_0_12px_rgba(59,130,246,0.4)]">
+              <Swords className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="font-bold text-blue-200 text-sm font-cinzel">Nhận Diện Kị Sĩ</div>
+              <div className="text-xs text-blue-300/80 mt-0.5">
+                Thức dậy trong Đêm 1 để nhận diện • Ban ngày có thể lật bài quyết đấu 1 lần duy nhất
+              </div>
+            </div>
+          </div>
+          <div className="shrink-0">
+            {knightPlayer ? (
+              <span className="text-xs font-bold px-3 py-1 rounded-xl bg-blue-950/90 border border-blue-500 text-blue-200 shadow-sm">
+                #{knightPlayer.id} {knightPlayer.name}
+              </span>
+            ) : (
+              <span className="text-xs font-semibold px-2.5 py-1 rounded-xl bg-slate-900 border border-slate-700 text-slate-400">
+                Chưa gán vai
+              </span>
+            )}
+          </div>
+        </div>
+
+        {!knightPlayer && typeof onAssignRole === 'function' && (
+          <div className="space-y-2">
+            <span className="text-xs font-bold text-blue-300 uppercase tracking-wider">
+              Chỉ định người giữ vai Kị Sĩ:
+            </span>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+              {alivePlayers.map(p => {
+                const pRole = getPlayerRole(p);
+                const hasOther = Boolean(pRole && pRole.id !== 'ki-si');
+                return (
+                  <button
+                    key={p.id}
+                    type="button"
+                    disabled={hasOther}
+                    onClick={() => onAssignRole(p.id, currentRole)}
+                    className={`p-2 rounded-xl border text-left transition-all ${
+                      hasOther
+                        ? 'opacity-30 cursor-not-allowed bg-black/40 border-slate-900 text-slate-600'
+                        : 'bg-[#101424] hover:bg-blue-950/60 border-slate-800 hover:border-blue-500 text-slate-200 cursor-pointer active:scale-95'
+                    }`}
+                  >
+                    <div className="font-bold text-xs truncate">#{p.id} {p.name}</div>
+                    <div className="text-[10px] text-slate-400 truncate">
+                      {hasOther ? pRole.name : 'Chưa có vai'}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
       </div>
     );
   }

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Shield, Eye, Skull, Sparkles, Heart, Crosshair, AlertTriangle, Check, X, User, Scale } from 'lucide-react';
+import { Shield, Eye, Skull, Sparkles, Heart, Crosshair, AlertTriangle, Check, X, User, Scale, Swords } from 'lucide-react';
 import GothicButton from './ui/GothicButton';
 import GothicBadge from './ui/GothicBadge';
 import WolfIcon from './ui/WolfIcon';
@@ -806,22 +806,40 @@ export default function ActionModal({
                   </div>
                 </div>
 
-                {targetCurrentRoleId && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      onAssignRole(targetPlayer.id, null);
-                      if (targetCurrentRoleId !== 'hai-chi-em' && targetCurrentRoleId !== 'ba-anh-em') {
+                <div className="flex items-center gap-1.5 shrink-0">
+                  {targetCurrentRoleId === 'ki-si' && targetPlayer?.isAlive && !targetPlayer?.hasUsedKnightDuel && (
+                    <button
+                      type="button"
+                      onClick={() => {
                         onClose();
-                      }
-                    }}
-                    title="Gỡ vai trò này"
-                    className="px-2.5 py-1 rounded-lg bg-rose-950/70 hover:bg-rose-900 border border-rose-700/80 text-rose-300 text-xs font-bold transition-all flex items-center gap-1 cursor-pointer shrink-0 active:scale-95"
-                  >
-                    <X className="w-3.5 h-3.5" />
-                    <span>Gỡ vai</span>
-                  </button>
-                )}
+                        const el = document.getElementById('day-knight-duel-section');
+                        if (el) el.scrollIntoView({ behavior: 'smooth' });
+                      }}
+                      title="Lật bài quyết đấu"
+                      className="px-2.5 py-1 rounded-lg bg-blue-950/80 hover:bg-blue-900 border border-blue-600 text-blue-200 text-xs font-bold transition-all flex items-center gap-1 cursor-pointer shrink-0 active:scale-95 shadow-[0_0_10px_rgba(59,130,246,0.4)]"
+                    >
+                      <Swords className="w-3.5 h-3.5" />
+                      <span>Quyết Đấu ⚔️</span>
+                    </button>
+                  )}
+
+                  {targetCurrentRoleId && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        onAssignRole(targetPlayer.id, null);
+                        if (targetCurrentRoleId !== 'hai-chi-em' && targetCurrentRoleId !== 'ba-anh-em') {
+                          onClose();
+                        }
+                      }}
+                      title="Gỡ vai trò này"
+                      className="px-2.5 py-1 rounded-lg bg-rose-950/70 hover:bg-rose-900 border border-rose-700/80 text-rose-300 text-xs font-bold transition-all flex items-center gap-1 cursor-pointer shrink-0 active:scale-95"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                      <span>Gỡ vai</span>
+                    </button>
+                  )}
+                </div>
               </div>
 
               {/* Status Hint */}
