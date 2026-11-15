@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
-import { Shield, Eye, Skull, Sparkles, Heart, Crosshair, AlertTriangle, Check, X, User, Scale, Swords } from 'lucide-react';
+import { Shield, Eye, Skull, Sparkles, Heart, Crosshair, AlertTriangle, Check, X, User, Scale, Swords, Search } from 'lucide-react';
 import GothicButton from './ui/GothicButton';
 import GothicBadge from './ui/GothicBadge';
 import WolfIcon from './ui/WolfIcon';
-import { isWolfPlayer, getPlayerRole } from '../utils/roleUtils';
+import { isWolfPlayer, getPlayerRole, matchesSearch, removeVietnameseTones } from '../utils/roleUtils';
 import { ROLES } from '../data/roles';
 
 export default function ActionModal({
@@ -27,6 +27,7 @@ export default function ActionModal({
   const [witchSaved, setWitchSaved] = useState(nightState?.witchSaved || false);
   const [witchPoisonId, setWitchPoisonId] = useState(nightState?.witchPoisonTargetId || null);
   const [bannedVoterIds, setBannedVoterIds] = useState([]);
+  const [hunterSearchQuery, setHunterSearchQuery] = useState('');
 
   const wolfVictim = players.find(p => p.id === nightState?.wolfTargetId);
 
@@ -492,17 +493,65 @@ export default function ActionModal({
 
       // ================= THỢ SĂN BẮN =================
       case 'hunter': {
+        const hunterPlayer = player || players.find(p => p.currentRoleId === 'tho-san' || p.roleId === 'tho-san' || p.originalRoleId === 'tho-san');
+        const validTargets = alivePlayers.filter(p => !hunterPlayer || p.id !== hunterPlayer.id);
+        const filteredTargets = validTargets.filter(p => {
+          if (!hunterSearchQuery) return true;
+          const q = removeVietnameseTones(hunterSearchQuery);
+          return matchesSearch(p.name, q) || String(p.id).includes(q);
+        });
+
         return (
           <div className="space-y-4">
-            <div className="flex items-center gap-3 p-3.5 bg-gradient-to-r from-amber-950 via-[#2a1306] to-black border border-amber-700 rounded-2xl shadow-[0_0_20px_rgba(245,158,11,0.3)]">
-              <Crosshair className="w-6 h-6 text-amber-400 shrink-0" />
-              <div>
-                <h4 className="font-bold text-amber-200 text-sm font-cinzel">PHÁT SÚNG THỢ SĂN</h4>
+            {/* Header Card với thông tin người nổ súng */}
+            <div className="flex items-center justify-between gap-3 p-3.5 bg-gradient-to-r from-amber-950 via-[#2a1306] to-black border border-amber-700/80 rounded-2xl shadow-[0_0_20px_rgba(245,158,11,0.35)]">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-10 h-10 rounded-xl bg-amber-950/90 border border-amber-600/60 flex items-center justify-center text-amber-400 shrink-0 shadow-[0_0_12px_rgba(245,158,11,0.4)]">
+                  <Crosshair className="w-5 h-5" />
+                </div>
+                <div className="min-w-0">
+                  <div className="text-[10px] uppercase font-black tracking-widest text-amber-400/80">
+                    Phát Súng Hấp Hối
+                  </div>
+                  <h4 className="font-bold text-amber-100 text-sm sm:text-base font-cinzel truncate">
+                    PHÁT SÚNG THỢ SĂN
+                  </h4>
+                </div>
+              </div>
+
+              {hunterPlayer && (
+                <div className="shrink-0 text-right">
+                  <span className="text-[10px] text-amber-400/80 uppercase font-bold block mb-0.5">
+                    Thợ Săn nổ súng
+                  </span>
+                  <span className="text-xs sm:text-sm font-bold text-amber-200 px-2.5 py-1 rounded-xl bg-black/60 border border-amber-600/70 inline-flex items-center gap-1.5 shadow-sm">
+                    <span className="font-mono text-amber-400">#{hunterPlayer.id}</span>
+                    <span className="truncate max-w-[120px]">{hunterPlayer.name}</span>
+                  </span>
+                </div>
+              )}
+            </div>
+
+            {/* Sub-header & Compact Search Bar */}
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-xs text-amber-200/80">
+                Chọn 1 người chơi để Thợ Săn bắn hạ:
+              </span>
+              <div className="relative shrink-0">
+                <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                <input
+                  type="text"
+                  value={hunterSearchQuery}
+                  onChange={e => setHunterSearchQuery(e.target.value)}
+                  placeholder="Tìm tên / #ghế..."
+                  className="w-24 sm:w-32 text-xs py-0.5 pl-7 pr-2 rounded-lg bg-black/60 border border-slate-700/80 text-slate-200 placeholder-slate-500 focus:outline-none focus:border-amber-500"
+                />
               </div>
             </div>
 
-            <div className="space-y-2 max-h-[50vh] overflow-y-auto pr-1">
-              {alivePlayers.map(p => {
+            {/* Target List */}
+            <div className="space-y-2 max-h-[48vh] overflow-y-auto pr-1">
+              {filteredTargets.map(p => {
                 const isWolf = isWolfPlayer(p);
                 return (
                   <button
@@ -511,27 +560,34 @@ export default function ActionModal({
                       onSaveAction('hunter', p.id);
                       onClose();
                     }}
-                    className={`w-full flex items-center justify-between p-3 rounded-2xl border text-left transition-all ${
+                    className={`w-full flex items-center justify-between p-3 rounded-2xl border text-left transition-all cursor-pointer active:scale-[0.99] ${
                       isWolf
                         ? 'bg-[#18080a] border-rose-700/90 hover:border-rose-500 shadow-[0_0_14px_rgba(225,29,72,0.4)] text-slate-200'
                         : 'bg-[#111320] hover:bg-[#181a2e] border-slate-800 hover:border-amber-600 text-slate-300'
                     }`}
                   >
-                    <div>
-                      <div className="font-bold text-sm flex items-center gap-2">
-                        <span>{p.name}</span>
-                        {isWolf && (
-                          <span className="text-[10px] px-2 py-0.5 rounded-md font-bold uppercase bg-rose-950 text-rose-300 border border-rose-600 shadow-[0_0_8px_rgba(225,29,72,0.5)] flex items-center gap-1">
-                            <WolfIcon className="w-2.5 h-2.5 shrink-0" /> Phe Sói
-                          </span>
-                        )}
+                    <div className="flex items-center gap-2.5">
+                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center font-mono font-bold text-xs border ${
+                        isWolf ? 'bg-rose-950/80 text-rose-300 border-rose-700' : 'bg-slate-900 text-slate-300 border-slate-800'
+                      }`}>
+                        #{p.id}
                       </div>
-                      <div className="text-xs text-slate-400 mt-0.5">
-                        Vai: <span className="font-medium text-slate-300">{getPlayerRole(p)?.name || 'Chưa lộ vai'}</span>
+                      <div>
+                        <div className="font-bold text-sm flex items-center gap-2">
+                          <span className={isWolf ? 'text-rose-100 font-black' : 'text-slate-100'}>{p.name}</span>
+                          {isWolf && (
+                            <span className="text-[10px] px-2 py-0.5 rounded-md font-bold uppercase bg-rose-950 text-rose-300 border border-rose-600 shadow-[0_0_8px_rgba(225,29,72,0.5)] flex items-center gap-1">
+                              <WolfIcon className="w-2.5 h-2.5 shrink-0" /> Phe Sói
+                            </span>
+                          )}
+                        </div>
+                        <div className="text-xs text-slate-400 mt-0.5">
+                          Vai: <span className="font-medium text-slate-300">{getPlayerRole(p)?.name || 'Chưa lộ vai'}</span>
+                        </div>
                       </div>
                     </div>
 
-                    <span className="text-xs text-amber-300 font-bold px-3 py-1.5 rounded-xl bg-amber-950/80 border border-amber-800 hover:bg-amber-600 hover:text-white transition-colors">
+                    <span className="text-xs text-amber-300 font-bold px-3 py-1.5 rounded-xl bg-amber-950/80 border border-amber-800 hover:bg-amber-600 hover:text-white transition-colors shrink-0">
                       Nổ súng tiêu diệt 🎯
                     </span>
                   </button>
