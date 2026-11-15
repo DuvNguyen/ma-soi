@@ -22,6 +22,9 @@ export default function DayDiscussionTimer({
   const bearTamer = players.find(p => p.isAlive && ((p.currentRoleId || p.roleId) === 'nguoi-thuan-phuc-gau' || getPlayerRole(p)?.id === 'nguoi-thuan-phuc-gau' || (p.currentRoleId || p.roleId) === 'than-gau'));
   let bearData = null;
 
+  // Transformed Wild Child (Con Hoang hóa Sói do Mẹ chết)
+  const transformedWildChildren = players.filter(p => p.isAlive && p.isCursedWolf && p.originalRoleId === 'dua-tre-hoang-da');
+
   if (bearTamer && alivePlayers.length > 2) {
     const sortedAlive = [...alivePlayers].sort((a, b) => a.id - b.id);
     const idx = sortedAlive.findIndex(p => p.id === bearTamer.id);
@@ -57,6 +60,34 @@ export default function DayDiscussionTimer({
           </span>
         </div>
       )}
+
+      {/* Transformed Wild Child (Con Hoang hóa Sói) Notification Banner */}
+      {transformedWildChildren.map(wc => {
+        const idol = players.find(p => p.id === wc.idolId || p.id === nightState?.wildChildIdolId);
+        return (
+          <div key={wc.id} className="p-3.5 rounded-2xl bg-gradient-to-r from-rose-950/90 via-[#230914] to-rose-950/90 border border-rose-600/80 text-rose-200 shadow-[0_0_20px_rgba(225,29,72,0.35)] flex items-center justify-between gap-3 animate-fade-in">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-rose-900 border border-rose-500 flex items-center justify-center text-rose-300 text-lg shrink-0">
+                🐺
+              </div>
+              <div>
+                <h4 className="font-bold text-rose-100 text-sm font-cinzel flex items-center gap-2">
+                  <span>Con Hoang Hóa Sói: #{wc.id} {wc.name}</span>
+                  <span className="text-[10px] px-2 py-0.5 rounded bg-rose-950 border border-rose-700 text-rose-300 font-bold">
+                    Phe Sói 🐺
+                  </span>
+                </h4>
+                <p className="text-xs text-rose-300/80 mt-0.5">
+                  {idol ? `Mẹ / Thần tượng (${idol.name} #${idol.id}) đã qua đời ➔ Con Hoang đã thức tỉnh bản năng Ma Sói.` : 'Thần tượng đã qua đời ➔ Con Hoang đã thức tỉnh bản năng Ma Sói.'}
+                </p>
+              </div>
+            </div>
+            <div className="text-[11px] font-bold text-amber-300 bg-black/40 border border-amber-600/50 px-2.5 py-1 rounded-xl shrink-0 hidden sm:block">
+              Quản trò bí mật chạm vai
+            </div>
+          </div>
+        );
+      })}
 
       {/* Discussion Timer Card */}
       <div className="p-4 rounded-2xl bg-[#10121d]/60 backdrop-blur-md border border-slate-700/60 flex flex-col sm:flex-row items-center justify-between gap-4">

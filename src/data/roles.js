@@ -719,19 +719,20 @@ export const ROLES = [
   },
   {
     "id": "dua-tre-hoang-da",
-    "name": "Đứa Trẻ Hoang Dã",
-    "enName": "Wild Child",
+    "name": "Đứa Trẻ Hoang Dã (Tarzan / Con Hoang)",
+    "enName": "Wild Child (Tarzan)",
+    "aliases": ["Tarzan", "Con Hoang", "Wild Child", "Đứa Trẻ", "Hoang Dã"],
     "expansion": "Ma Sói Characters",
     "team": "Biến Đổi (Phe Dân -> Phe Sói)",
     "teamCode": "?",
     "wakeOrder": 1.5,
     "wakeTime": "Đêm 1 chọn thần tượng",
-    "shortDesc": "Đêm đầu tiên chọn 1 người chơi làm Thần Tượng. Nếu Thần Tượng chết trong ván chơi, Đứa Trẻ lập tức hóa thành Ma Sói.",
-    "fullDesc": "Đứa Trẻ Hoang Dã ban đầu thuộc phe Dân Làng. Trong đêm đầu tiên, em thức dậy và chọn 1 người chơi làm 'Thần Tượng / Người giám hộ' của mình. Nếu trong quá trình chơi, người Thần Tượng này bị chết (vì bất kỳ lý do gì), Đứa Trẻ Hoang Dã sẽ phẫn nộ biến thành Ma Sói và từ đêm tiếp theo sẽ thức dậy cùng bầy Sói.",
-    "gmCall": "Đêm 1: 'Đứa Trẻ Hoang Dã thức dậy. Hãy chọn Thần Tượng của bạn.' -> Quản trò ghi nhớ. Khi Thần tượng chết: Quản trò bí mật chạm vai Đứa Trẻ báo hiệu đã hóa Sói.",
+    "shortDesc": "Đêm 1 thức dậy nhận diện Quản Trò và chọn 1 người làm Mẹ (Thần Tượng). Khi Mẹ chết, Đứa Trẻ nổi giận hóa thành Ma Sói.",
+    "fullDesc": "Đứa Trẻ Hoang Dã (Tarzan / Con Hoang) ban đầu thuộc phe Dân Làng. Trong đêm đầu tiên, em thức dậy nhận diện Quản Trò và chọn 1 người chơi làm 'Mẹ / Thần Tượng' của mình. Nếu trong quá trình chơi người Mẹ này bị chết (vì bất kỳ lý do gì), Đứa Trẻ Hoang Dã sẽ phẫn nộ biến thành Ma Sói và từ đêm tiếp theo sẽ thức dậy cùng bầy Sói săn mồi.",
+    "gmCall": "Quản trò hô: 'Đứa Trẻ Hoang Dã (Tarzan) thức dậy. Hãy nhận diện Quản Trò và chỉ định người bạn chọn làm Mẹ (Thần Tượng).' -> Quản trò ghi nhớ. Khi Mẹ chết: Quản trò bí mật chạm vai Đứa Trẻ báo hiệu đã hóa Sói.",
     "notes": [
-      "Chừng nào Thần Tượng còn sống, Đứa Trẻ vẫn là Dân Làng.",
-      "Khi Thần Tượng chết, Đứa Trẻ chính thức trở thành Ma Sói và cùng phe Sói săn mồi."
+      "Chừng nào Thần Tượng (Mẹ) còn sống, Đứa Trẻ vẫn thuộc phe Dân Làng.",
+      "Khi Thần Tượng (Mẹ) chết vì bất kỳ lý do gì, Đứa Trẻ chính thức trở thành Ma Sói và cùng phe Sói săn mồi từ đêm tiếp theo."
     ],
     "image": "/cards/Nhan_vat_Ma_soi___Dua_tre_hoang_da.PNG",
     "colors": {

@@ -21,6 +21,7 @@ export default function RoleLibraryModal({ isOpen, onClose }) {
       const matchesSearch = !q || 
         r.name.toLowerCase().includes(q) ||
         r.enName.toLowerCase().includes(q) ||
+        (r.aliases && r.aliases.some(a => a.toLowerCase().includes(q))) ||
         (r.shortDesc && r.shortDesc.toLowerCase().includes(q)) ||
         (r.fullDesc && r.fullDesc.toLowerCase().includes(q));
       const matchesTeam = selectedTeam === 'ALL' || r.teamCode === selectedTeam;

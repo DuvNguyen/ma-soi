@@ -430,11 +430,13 @@ export function resolveNightPhase(players, nightActions, roundNumber) {
     });
   }
 
-  // 5. Check Wild Child (Đứa Trẻ Hoang Dã) idol death
+  // 5. Check Wild Child (Đứa Trẻ Hoang Dã / Tarzan) idol death
   let transformedWildChildren = [];
+  const globalWildChildIdolId = nightActions?.wildChildIdolId;
   updatedPlayers.forEach(p => {
-    if (p.isAlive && getPlayerRole(p)?.id === 'dua-tre-hoang-da' && p.idolId) {
-      const idol = updatedPlayers.find(x => x.id === p.idolId);
+    const idolId = p.idolId || globalWildChildIdolId;
+    if (p.isAlive && (p.currentRoleId === 'dua-tre-hoang-da' || p.roleId === 'dua-tre-hoang-da' || getPlayerRole(p)?.id === 'dua-tre-hoang-da') && idolId) {
+      const idol = updatedPlayers.find(x => x.id === idolId);
       if (idol && !idol.isAlive) {
         const oldRoleId = p.currentRoleId || p.roleId;
         p.originalRoleId = p.originalRoleId || oldRoleId;
@@ -448,7 +450,7 @@ export function resolveNightPhase(players, nightActions, roundNumber) {
           wildChild: p,
           idol
         });
-        logs.push(`Thần tượng (${idol.name}) của Đứa Trẻ Hoang Dã (${p.name}) đã chết! Đứa Trẻ nổi giận biến thành Ma Sói!`);
+        logs.push(`🐺 TARZAN HÓA SÓI: Thần tượng / Mẹ (${idol.name} #${idol.id}) của Con Hoang (${p.name} #${p.id}) đã qua đời trong đêm! Con Hoang nổi cơn thịnh nộ và chính thức biến thành Ma Sói!`);
       }
     }
   });

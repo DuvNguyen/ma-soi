@@ -410,7 +410,8 @@ export class WerewolfGame {
     if (!deadPlayer) return { updatedPlayers: playerList, transformedWildChildren: [] };
     const transformedWildChildren = [];
     const updatedPlayers = playerList.map(p => {
-      if (p.isAlive && (p.currentRoleId === 'dua-tre-hoang-da' || p.roleId === 'dua-tre-hoang-da' || p.getRole()?.id === 'dua-tre-hoang-da') && p.idolId === deadPlayer.id) {
+      const idolId = p.idolId || this.nightState?.wildChildIdolId;
+      if (p.isAlive && (p.currentRoleId === 'dua-tre-hoang-da' || p.roleId === 'dua-tre-hoang-da' || p.getRole()?.id === 'dua-tre-hoang-da') && idolId === deadPlayer.id) {
         const transformed = p.clone({
           originalRoleId: p.originalRoleId || p.currentRoleId || 'dua-tre-hoang-da',
           currentRoleId: 'soi-thuong',

@@ -1,6 +1,7 @@
 import assert from 'node:assert';
 import fs from 'node:fs';
 import path from 'node:path';
+import { ROLES } from '../src/data/roles.js';
 import { Player } from '../src/domain/models/Player.js';
 import { getRoleStrategy } from '../src/domain/strategies/RoleStrategies.js';
 import { getRoleCapacity } from '../src/utils/deckUtils.js';
@@ -708,6 +709,34 @@ console.log('🧪 Starting Phase 1 Domain Model & Strategy Tests...\n');
     assert.ok(hypRes.game.getPlayer(58).deathReason.includes('Thầy Thôi Miên'), 'Death reason mentions scapegoat redirect');
     console.log('✅ Test 40: Hypnotist scapegoat redirection verified.');
 
-    console.log('\n🎉 ALL 40 DOMAIN ENGINE TESTS PASSED PERFECTLY!\n');
+    // Test 41: Tarzan / Con Hoang aliases and night transformation with wildChildIdolId
+    const tarzanRole = ROLES.find(r => r.id === 'dua-tre-hoang-da');
+    assert.ok(tarzanRole.name.includes('Tarzan'), 'Role name contains Tarzan');
+    assert.ok(tarzanRole.aliases.includes('Tarzan'), 'Aliases contains Tarzan');
+    assert.ok(tarzanRole.aliases.includes('Con Hoang'), 'Aliases contains Con Hoang');
+
+    // Con Hoang player without idolId directly on object, but wildChildIdolId passed in nightActions
+    const conHoang = new Player({ id: 61, name: 'Tarzan 61', currentRoleId: 'dua-tre-hoang-da', roleId: 'dua-tre-hoang-da', isAlive: true });
+    const mePlayer = new Player({ id: 62, name: 'Mẹ 62', currentRoleId: 'dan-lang', roleId: 'dan-lang', isAlive: true });
+    const killerWolf = new Player({ id: 63, name: 'Sói 63', currentRoleId: 'soi-thuong', roleId: 'soi-thuong', isAlive: true });
+
+    const tarzanGame = new WerewolfGame({
+      roundNumber: 1,
+      isNight: true,
+      players: [conHoang, mePlayer, killerWolf],
+      nightState: { wildChildIdolId: 62 }
+    });
+
+    const tarzanNightRes = tarzanGame.resolveNight({
+      wolfTargetId: 62, // Wolves kill Mẹ!
+      wildChildIdolId: 62
+    });
+
+    assert.strictEqual(tarzanNightRes.game.getPlayer(62).isAlive, false, 'Mẹ must die');
+    assert.strictEqual(tarzanNightRes.game.getPlayer(61).isWolf(), true, 'Con Hoang transforms into Werewolf');
+    assert.strictEqual(tarzanNightRes.transformedWildChildren.length, 1, 'Transformed Con Hoang recorded in result');
+    console.log('✅ Test 41: Tarzan / Con Hoang aliases & Mẹ death transformation verified.');
+
+    console.log('\n🎉 ALL 41 DOMAIN ENGINE TESTS PASSED PERFECTLY!\n');
   });
 }

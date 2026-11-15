@@ -11,65 +11,151 @@ export default function NightSpecialRolesStep({
   nightState,
   canWolvesKillTeammates,
   onSaveAction,
+  onAssignRole,
   isWolfPlayer
 }) {
-  // 1. ĐỨA TRẺ HOANG DÃ (WILD CHILD)
+  // 1. ĐỨA TRẺ HOANG DÃ (TARZAN / CON HOANG)
   if (currentRole.id === 'dua-tre-hoang-da') {
+    const wildChildHolders = players.filter(p => (p.currentRoleId || p.roleId) === 'dua-tre-hoang-da' || p.originalRoleId === 'dua-tre-hoang-da');
+    const wildChildPlayer = wildChildHolders[0] || null;
+    const selectedIdolId = nightState.wildChildIdolId || wildChildPlayer?.idolId;
+    const selectedIdolPlayer = players.find(p => p.id === selectedIdolId);
+
     return (
-      <div className="space-y-3">
-        <div className="flex items-center gap-2">
-          <Flame className="w-5 h-5 text-amber-400" />
-          <h4 className="font-bold text-sm text-amber-200 font-cinzel">
-            Thần Tượng liên kết
-          </h4>
+      <div className="space-y-4">
+        {/* SUMMARY CARD */}
+        <div className="p-3.5 rounded-2xl bg-[#14121e] border border-amber-900/60 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 rounded-xl bg-amber-950/60 border border-amber-600/40 text-amber-300 shrink-0">
+              <Flame className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="font-bold text-amber-200 text-sm font-cinzel">
+                Liên Kết Con Hoang & Mẹ (Thần Tượng)
+              </div>
+              <div className="text-xs text-slate-400 mt-0.5">
+                Khi Mẹ chết vì bất kỳ lý do gì, Con Hoang lập tức phẫn nộ hóa thành Ma Sói.
+              </div>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 shrink-0">
+            {wildChildPlayer ? (
+              <span className="text-xs font-bold px-2.5 py-1 rounded-xl bg-amber-950/80 border border-amber-600 text-amber-200">
+                Con Hoang: #{wildChildPlayer.id} {wildChildPlayer.name}
+              </span>
+            ) : (
+              <span className="text-xs font-semibold px-2.5 py-1 rounded-xl bg-slate-900 border border-slate-700 text-slate-400">
+                Chưa gán Con Hoang
+              </span>
+            )}
+            <span className="text-slate-500 font-bold">➔</span>
+            {selectedIdolPlayer ? (
+              <span className="text-xs font-bold px-2.5 py-1 rounded-xl bg-rose-950/80 border border-rose-600 text-rose-200">
+                Mẹ: #{selectedIdolPlayer.id} {selectedIdolPlayer.name}
+              </span>
+            ) : (
+              <span className="text-xs font-semibold px-2.5 py-1 rounded-xl bg-slate-900 border border-slate-700 text-slate-400">
+                Chưa chọn Mẹ
+              </span>
+            )}
+          </div>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5">
-          {alivePlayers.map(p => {
-            const isSelf = (p.currentRoleId || p.roleId) === 'dua-tre-hoang-da';
-            const isSelected = nightState.wildChildIdolId === p.id;
-            const isWolf = isWolfPlayer(p);
-
-            return (
-              <button
-                key={p.id}
-                disabled={isSelf}
-                onClick={() => onSaveAction('wildChild', p.id)}
-                className={`p-3 rounded-2xl border text-left transition-all duration-200 flex items-center justify-between cursor-pointer ${
-                  isSelf
-                    ? 'opacity-30 cursor-not-allowed bg-black/40 border-slate-900 text-slate-600'
-                    : isSelected
-                    ? 'bg-amber-950/90 border-amber-400 text-amber-100 shadow-[0_0_20px_rgba(245,158,11,0.4)] ring-1 ring-amber-400'
-                    : isWolf
-                    ? 'bg-gradient-to-r from-[#22070a] to-[#120305] border-rose-600/90 hover:border-rose-400 text-slate-200'
-                    : 'bg-[#121422] hover:bg-[#1a1c30] border-slate-800 text-slate-300'
-                }`}
-              >
-                <div className="flex items-center gap-2.5 truncate">
-                  <div className={`w-7 h-7 rounded-lg flex items-center justify-center font-bold text-xs border ${
-                    isWolf ? 'bg-rose-950 text-rose-300 border-rose-600' : 'bg-slate-900 text-slate-300 border-slate-800'
-                  }`}>
-                    {p.id}
-                  </div>
+        {/* 1. ASSIGN CON HOANG (TARZAN) IF NOT YET ASSIGNED */}
+        {!wildChildPlayer && typeof onAssignRole === 'function' && (
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-amber-300 uppercase tracking-wider">
+                1. Chọn Người Giữ Vai Con Hoang (Tarzan):
+              </span>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+              {alivePlayers.map(p => (
+                <button
+                  key={p.id}
+                  type="button"
+                  onClick={() => onAssignRole(p.id, currentRole.id)}
+                  className="p-2.5 rounded-xl border border-slate-800 bg-[#121422] hover:bg-[#1a1c30] hover:border-amber-500/50 text-slate-200 text-left flex items-center justify-between transition-all cursor-pointer"
+                >
                   <div className="truncate">
-                    <div className="font-bold text-sm truncate flex items-center gap-1.5">
-                      <span>{p.name}</span>
-                      {isWolf && <WolfIcon className="w-2.5 h-2.5 inline text-rose-400" />}
+                    <span className="font-bold text-xs">#{p.id} {p.name}</span>
+                    <span className="text-[10px] text-slate-400 block truncate">
+                      {getPlayerRole(p)?.name || 'Chưa gán'}
+                    </span>
+                  </div>
+                  <span className="text-[10px] text-amber-400 font-bold shrink-0">Chọn vai</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* 2. CHỌN MẸ (THẦN TƯỢNG) */}
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold text-amber-300 uppercase tracking-wider">
+              {wildChildPlayer ? `2. Chọn Mẹ (Thần Tượng) Của #${wildChildPlayer.id} ${wildChildPlayer.name}:` : '2. Chọn Mẹ (Thần Tượng) Bảo Bọc:'}
+            </span>
+            {wildChildPlayer && typeof onAssignRole === 'function' && (
+              <button
+                type="button"
+                onClick={() => onAssignRole(wildChildPlayer.id, currentRole.id)}
+                className="text-[11px] underline text-slate-400 hover:text-amber-300 cursor-pointer"
+              >
+                Đổi người giữ vai Con Hoang
+              </button>
+            )}
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5">
+            {alivePlayers.map(p => {
+              const isSelf = wildChildPlayer ? p.id === wildChildPlayer.id : (p.currentRoleId || p.roleId) === 'dua-tre-hoang-da';
+              const isSelected = selectedIdolId === p.id;
+              const isWolf = isWolfPlayer(p);
+
+              return (
+                <button
+                  key={p.id}
+                  disabled={isSelf}
+                  type="button"
+                  onClick={() => onSaveAction('wildChild', p.id)}
+                  className={`p-3 rounded-2xl border text-left transition-all duration-200 flex items-center justify-between cursor-pointer ${
+                    isSelf
+                      ? 'opacity-35 cursor-not-allowed bg-black/40 border-slate-900 text-slate-600'
+                      : isSelected
+                      ? 'bg-amber-950/90 border-amber-400 text-amber-100 shadow-[0_0_20px_rgba(245,158,11,0.4)] ring-1 ring-amber-400'
+                      : isWolf
+                      ? 'bg-gradient-to-r from-[#22070a] to-[#120305] border-rose-600/90 hover:border-rose-400 text-slate-200'
+                      : 'bg-[#121422] hover:bg-[#1a1c30] border-slate-800 text-slate-300'
+                  }`}
+                >
+                  <div className="flex items-center gap-2.5 truncate">
+                    <div className={`w-7 h-7 rounded-lg flex items-center justify-center font-bold text-xs border ${
+                      isWolf ? 'bg-rose-950 text-rose-300 border-rose-600' : 'bg-slate-900 text-slate-300 border-slate-800'
+                    }`}>
+                      {p.id}
                     </div>
-                    <div className="text-xs text-slate-400">
-                      Vai: {getPlayerRole(p)?.name || '❓ Chưa lộ vai'}
+                    <div className="truncate">
+                      <div className="font-bold text-sm truncate flex items-center gap-1.5">
+                        <span>{p.name}</span>
+                        {isWolf && <WolfIcon className="w-2.5 h-2.5 inline text-rose-400" />}
+                      </div>
+                      <div className="text-xs text-slate-400">
+                        Vai: {getPlayerRole(p)?.name || '❓ Chưa lộ vai'}
+                      </div>
                     </div>
                   </div>
-                </div>
 
-                {isSelf ? (
-                  <span className="text-[10px] text-slate-500">Bản thân</span>
-                ) : isSelected ? (
-                  <span className="text-xs font-bold text-amber-300">★ Idol</span>
-                ) : null}
-              </button>
-            );
-          })}
+                  {isSelf ? (
+                    <span className="text-[10px] text-amber-500/80 font-bold">Con Hoang</span>
+                  ) : isSelected ? (
+                    <span className="text-xs font-bold text-amber-300">★ Mẹ</span>
+                  ) : null}
+                </button>
+              );
+            })}
+          </div>
         </div>
       </div>
     );

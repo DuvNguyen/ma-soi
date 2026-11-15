@@ -844,8 +844,8 @@ export default function App() {
       } else if (type === 'wildChild') {
         next.wildChildIdolId = payload;
         setPlayers(current => current.map(p => {
-          if ((p.currentRoleId || p.roleId) === 'dua-tre-hoang-da' || getPlayerRole(p)?.id === 'dua-tre-hoang-da') {
-            return { ...p, idolId: payload };
+          if ((p.currentRoleId || p.roleId) === 'dua-tre-hoang-da' || getPlayerRole(p)?.id === 'dua-tre-hoang-da' || p.originalRoleId === 'dua-tre-hoang-da') {
+            return p instanceof Player ? p.clone({ idolId: payload }) : { ...p, idolId: payload };
           }
           return p;
         }));
@@ -1112,12 +1112,16 @@ export default function App() {
       if (capacity === 1) {
         return prev.map(p => {
           if (p.id === playerId) {
-            return p instanceof Player ? p.assignRole(role.id) : {
+            const extraProps = {
+              elderLives: role.id === 'gia-lang' ? 2 : p.elderLives,
+              idolId: role.id === 'dua-tre-hoang-da' ? (p.idolId || nightState.wildChildIdolId) : p.idolId
+            };
+            return p instanceof Player ? p.assignRole(role.id).clone(extraProps) : {
               ...p,
               currentRoleId: role.id,
               roleId: role.id,
               role: null,
-              elderLives: role.id === 'gia-lang' ? 2 : p.elderLives
+              ...extraProps
             };
           }
           const pCurrentId = p.currentRoleId || p.roleId;
@@ -1366,8 +1370,8 @@ export default function App() {
       transformedWildChildren.forEach(({ wildChild, idol }) => {
         triggerHaptic('warning');
         showAlert({
-          title: '🐺 ĐỨA TRẺ HOANG DÃ HÓA SÓI!',
-          message: `Thần tượng (${idol.name} #${idol.id}) đã qua đời trong đêm!\n\nĐứa Trẻ Hoang Dã (${wildChild.name} #${wildChild.id}) nổi cơn thịnh nộ và chính thức biến thành Ma Sói!`,
+          title: '🐺 CON HOANG (TARZAN) HÓA SÓI!',
+          message: `Mẹ / Thần tượng (${idol.name} #${idol.id}) đã qua đời trong đêm!\n\nCon Hoang (${wildChild.name} #${wildChild.id}) nổi cơn thịnh nộ và chính thức biến thành Ma Sói! Hãy bí mật chạm vai người chơi để báo hiệu.`,
           variant: 'blood'
         });
       });
@@ -1544,8 +1548,8 @@ export default function App() {
       result.transformedWildChildren.forEach(({ wildChild, idol }) => {
         triggerHaptic('alarm');
         showAlert({
-          title: '🐺 ĐỨA TRẺ HOANG DÃ HÓA SÓI!',
-          message: `Thần tượng của Đứa Trẻ Hoang Dã (${idol.name} #${idol.id}) đã qua đời!\n\nĐứa Trẻ Hoang Dã (${wildChild.name} #${wildChild.id}) nổi giận và chính thức biến thành Ma Sói!`,
+          title: '🐺 CON HOANG (TARZAN) HÓA SÓI!',
+          message: `Mẹ / Thần tượng (${idol.name} #${idol.id}) đã qua đời!\n\nCon Hoang (${wildChild.name} #${wildChild.id}) nổi giận và chính thức biến thành Ma Sói! Hãy bí mật chạm vai người chơi để báo hiệu.`,
           variant: 'blood'
         });
       });
@@ -1639,8 +1643,8 @@ export default function App() {
       transformedWildChildren.forEach(({ wildChild, idol }) => {
         triggerHaptic('alarm');
         showAlert({
-          title: '🐺 ĐỨA TRẺ HOANG DÃ HÓA SÓI!',
-          message: `Thần tượng (${idol.name} #${idol.id}) đã qua đời trong trận thách đấu!\n\nĐứa Trẻ Hoang Dã (${wildChild.name} #${wildChild.id}) nổi giận và chính thức biến thành Ma Sói!`,
+          title: '🐺 CON HOANG (TARZAN) HÓA SÓI!',
+          message: `Mẹ / Thần tượng (${idol.name} #${idol.id}) đã qua đời trong trận thách đấu!\n\nCon Hoang (${wildChild.name} #${wildChild.id}) nổi giận và chính thức biến thành Ma Sói! Hãy bí mật chạm vai người chơi để báo hiệu.`,
           variant: 'blood'
         });
       });

@@ -168,8 +168,13 @@ export default function PlayersGridView({ players, onOpenAssignRole, onOpenRoste
                           {pRole?.name || 'Đã gán vai'}
                         </span>
                         {p.isAlive && (p.currentRoleId === 'dua-tre-hoang-da' || p.roleId === 'dua-tre-hoang-da') && p.idolId && (
-                          <span className="text-[8px] text-amber-300 font-medium block truncate" title={`Thần tượng: Ghế #${p.idolId}`}>
-                            ★ Idol: #{p.idolId}
+                          <span className="text-[8px] text-amber-300 font-medium block truncate" title={`Mẹ (Thần tượng): Ghế #${p.idolId}`}>
+                            ★ Mẹ: #{p.idolId}
+                          </span>
+                        )}
+                        {p.isAlive && p.isCursedWolf && p.originalRoleId === 'dua-tre-hoang-da' && (
+                          <span className="text-[8px] text-rose-300 font-bold block truncate" title={`Con Hoang đã hóa Sói (Mẹ #${p.idolId} đã chết)`}>
+                            🐺 Con Hoang Hóa Sói
                           </span>
                         )}
                         {p.isAlive && (p.currentRoleId === 'anh-tu' || p.roleId === 'anh-tu') && p.shadowHostId && (

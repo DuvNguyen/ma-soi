@@ -23,6 +23,7 @@ export default function NightRoleAction({
   selectedSeerTarget,
   setSelectedSeerTarget,
   onSaveAction,
+  onAssignRole,
   isWolfPlayer,
   showConfirm
 }) {
@@ -103,6 +104,7 @@ export default function NightRoleAction({
       nightState={nightState}
       canWolvesKillTeammates={canWolvesKillTeammates}
       onSaveAction={onSaveAction}
+      onAssignRole={onAssignRole}
       isWolfPlayer={isWolfPlayer}
     />
   );
