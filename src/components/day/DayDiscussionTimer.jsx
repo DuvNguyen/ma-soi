@@ -18,6 +18,14 @@ export default function DayDiscussionTimer({
     ? players.find(p => p.id === nightState.silencedPlayerId)
     : null;
 
+  const apothecarySleepPlayer = nightState?.apothecarySleepTargetId && !nightState?.apothecarySkipped
+    ? players.find(p => p.id === nightState.apothecarySleepTargetId)
+    : players.find(p => p.isAsleepByApothecary);
+
+  const soothsayerPlayer = nightState?.soothsayerTargetId && !nightState?.soothsayerSkipped
+    ? players.find(p => p.id === nightState.soothsayerTargetId)
+    : null;
+
   // Bear Tamer logic
   const bearTamer = players.find(p => p.isAlive && ((p.currentRoleId || p.roleId) === 'nguoi-thuan-phuc-gau' || getPlayerRole(p)?.id === 'nguoi-thuan-phuc-gau' || (p.currentRoleId || p.roleId) === 'than-gau'));
   let bearData = null;
@@ -60,6 +68,50 @@ export default function DayDiscussionTimer({
           </div>
           <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-purple-950 text-purple-300 border border-purple-700 shrink-0">
             Nguyệt Nữ
+          </span>
+        </div>
+      )}
+
+      {/* Apothecary Sleep Banner (Dược Sĩ - Thuốc Mê) */}
+      {apothecarySleepPlayer && apothecarySleepPlayer.isAlive && (
+        <div className="p-3.5 rounded-2xl bg-gradient-to-r from-teal-950/80 via-[#0c1e24] to-teal-950/80 border border-teal-600/80 text-teal-200 shadow-[0_0_20px_rgba(20,184,166,0.3)] flex items-center justify-between gap-3 animate-fade-in">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-teal-900 border border-teal-500 flex items-center justify-center text-teal-300 text-lg shrink-0">
+              💤
+            </div>
+            <div>
+              <h4 className="font-bold text-teal-100 text-sm font-cinzel">
+                Thuốc Mê: #{apothecarySleepPlayer.id} {apothecarySleepPlayer.name}
+              </h4>
+              <p className="text-xs text-teal-300/80 mt-0.5">
+                Bị Dược Sĩ gây mê. Người chơi này bị cấm phát biểu và cấm biểu quyết trong ngày hôm nay!
+              </p>
+            </div>
+          </div>
+          <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-teal-950 text-teal-300 border border-teal-700 shrink-0">
+            Dược Sĩ
+          </span>
+        </div>
+      )}
+
+      {/* Soothsayer Spiritual Inquiry Banner (Bà Đồng) */}
+      {soothsayerPlayer && soothsayerPlayer.isAlive && (
+        <div className="p-3.5 rounded-2xl bg-gradient-to-r from-blue-950/80 via-[#0b172a] to-blue-950/80 border border-blue-600/80 text-blue-200 shadow-[0_0_20px_rgba(59,130,246,0.3)] flex items-center justify-between gap-3 animate-fade-in">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-blue-900 border border-blue-500 flex items-center justify-center text-blue-300 text-lg shrink-0">
+              🔮
+            </div>
+            <div>
+              <h4 className="font-bold text-blue-100 text-sm font-cinzel">
+                Linh Cảm Bà Đồng: #{soothsayerPlayer.id} {soothsayerPlayer.name}
+              </h4>
+              <p className="text-xs text-blue-300/80 mt-0.5">
+                {nightState?.soothsayerQuestion ? `Câu hỏi: "${nightState.soothsayerQuestion}" — Phải trả lời trước làng hôm nay.` : 'Bà Đồng chỉ định trả lời câu hỏi tâm linh trước làng.'}
+              </p>
+            </div>
+          </div>
+          <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-blue-950 text-blue-300 border border-blue-700 shrink-0">
+            Bà Đồng
           </span>
         </div>
       )}

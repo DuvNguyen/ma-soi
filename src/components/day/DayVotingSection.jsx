@@ -1,9 +1,9 @@
-import React from 'react';
-import { Flame, Check, RotateCcw, Sparkles, Gavel, UserX, Star, Scale } from 'lucide-react';
+import React, { useState } from 'react';
+import { Flame, Check, RotateCcw, Sparkles, Gavel, UserX, Star, Scale, Search } from 'lucide-react';
 import GothicButton from '../ui/GothicButton';
 import GothicBadge from '../ui/GothicBadge';
 import WolfIcon from '../ui/WolfIcon';
-import { isWolfPlayer, getPlayerRole, getPlayerOriginalRole } from '../../utils/roleUtils';
+import { isWolfPlayer, getPlayerRole, getPlayerOriginalRole, matchesSearch, removeVietnameseTones } from '../../utils/roleUtils';
 
 export default function DayVotingSection({
   alivePlayers,
@@ -21,24 +21,57 @@ export default function DayVotingSection({
   showConfirm,
   scapegoatBannedVoterIds = []
 }) {
+  const [searchQuery, setSearchQuery] = useState('');
   const scapegoat = alivePlayers.find(p => (p.currentRoleId || p.roleId) === 'nguoi-the-than' || getPlayerRole(p)?.id === 'nguoi-the-than');
+
+  const filteredAlive = alivePlayers.filter(p => {
+    if (!searchQuery) return true;
+    const q = removeVietnameseTones(searchQuery);
+    return matchesSearch(p.name, q) || String(p.id).includes(q);
+  });
 
   return (
     <div className="p-5 rounded-2xl bg-[#0f111c]/60 backdrop-blur-md border border-purple-900/60 shadow-[0_4px_25px_rgba(0,0,0,0.6)] space-y-4">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-        <div>
+        <div className="flex items-center justify-between w-full sm:w-auto gap-3">
           <h3 className="font-bold text-base text-slate-100 flex items-center gap-2 font-cinzel">
             <Flame className="w-5 h-5 text-orange-400" />
             BIỂU QUYẾT TREO CỔ
           </h3>
+          {!hasLynchedToday && (
+            <div className="relative sm:hidden">
+              <Search className="w-3 h-3 text-slate-400 absolute left-2 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                placeholder="Tìm tên..."
+                className="w-24 text-xs py-0.5 pl-6 pr-2 rounded-lg bg-slate-900/90 border border-slate-700 text-slate-200 placeholder:text-slate-500 focus:outline-none focus:border-orange-500"
+              />
+            </div>
+          )}
         </div>
 
-        {hasLynchedToday && (
-          <GothicBadge variant="wolf">
-            <Check className="w-3.5 h-3.5" />
-            Đã xong biểu quyết sáng nay
-          </GothicBadge>
-        )}
+        <div className="flex items-center gap-2">
+          {!hasLynchedToday && (
+            <div className="relative hidden sm:block">
+              <Search className="w-3 h-3 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                placeholder="Tìm tên hoặc số ghế..."
+                className="w-36 text-xs py-1 pl-7 pr-2 rounded-xl bg-slate-900/90 border border-slate-700 text-slate-200 placeholder:text-slate-500 focus:outline-none focus:border-orange-500 shadow-sm"
+              />
+            </div>
+          )}
+          {hasLynchedToday && (
+            <GothicBadge variant="wolf">
+              <Check className="w-3.5 h-3.5" />
+              Đã xong biểu quyết sáng nay
+            </GothicBadge>
+          )}
+        </div>
       </div>
 
       {/* LOCKED BANNER WHEN 1 PERSON IS ALREADY LYNCHED */}
@@ -99,7 +132,7 @@ export default function DayVotingSection({
         /* VOTING GRID - ALLOW SELECTING ONLY 1 PERSON - WITH WEREWOLF RED BORDERS */
         <>
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5">
-            {alivePlayers.map(p => {
+            {filteredAlive.map(p => {
               const isSelected = selectedLynchId === p.id;
               const isWolf = isWolfPlayer(p);
               const pRole = getPlayerRole(p);
@@ -165,6 +198,11 @@ export default function DayVotingSection({
                         {nightState?.silencedPlayerId === p.id && !nightState?.moonPriestessSkipped && (
                           <span className="text-[9px] px-1.5 py-0.2 rounded font-black bg-slate-900 text-slate-300 border border-slate-700 shadow-sm flex items-center gap-0.5" title="Bị Nguyệt Nữ cấm phát biểu">
                             🔇 Câm lặng
+                          </span>
+                        )}
+                        {(p.isAsleepByApothecary || (nightState?.apothecarySleepTargetId === p.id && !nightState?.apothecarySkipped)) && (
+                          <span className="text-[9px] px-1.5 py-0.2 rounded font-black bg-teal-950 text-teal-300 border border-teal-600 shadow-[0_0_8px_rgba(20,184,166,0.5)] flex items-center gap-0.5" title="Bị Dược Sĩ gây mê: Cấm nói & cấm biểu quyết">
+                            💤 Mê man (Cấm vote)
                           </span>
                         )}
                         {p.isHypnotized && (

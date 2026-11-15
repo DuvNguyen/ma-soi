@@ -20,6 +20,9 @@ export const DEFAULT_PLAYER_PROPS = {
   shadowHostId: null,
   isHypnotized: false,
   idolId: null,
+  isAsleepByApothecary: false,
+  avengerFaction: null,
+  cultGroup: null,
   roleHistory: []
 };
 
@@ -49,6 +52,9 @@ export class Player {
     this.shadowHostId = data.shadowHostId ?? null;
     this.isHypnotized = Boolean(data.isHypnotized);
     this.idolId = data.idolId ?? null;
+    this.isAsleepByApothecary = Boolean(data.isAsleepByApothecary);
+    this.avengerFaction = data.avengerFaction ?? null;
+    this.cultGroup = data.cultGroup ?? null;
     this.roleHistory = Array.isArray(data.roleHistory) ? data.roleHistory : [];
   }
 
@@ -293,6 +299,9 @@ export class Player {
       shadowHostId: this.shadowHostId,
       isHypnotized: this.isHypnotized,
       idolId: this.idolId,
+      isAsleepByApothecary: this.isAsleepByApothecary,
+      avengerFaction: this.avengerFaction,
+      cultGroup: this.cultGroup,
       roleHistory: this.roleHistory || []
     };
   }

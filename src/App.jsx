@@ -63,6 +63,30 @@ export const DEFAULT_NIGHT_STATE = {
   hypnotistTargetId: null,
   lastNightHypnotistId: null,
   hypnotistSkipped: false,
+  assassinTargetId: null,
+  assassinSkipped: false,
+  pyroTargetId: null,
+  pyroSkipped: false,
+  thiefChosenRoleId: null,
+  thiefSkipped: false,
+  actorChosenRoleId: null,
+  actorSkipped: false,
+  apothecarySleepTargetId: null,
+  apothecaryHasSleep: true,
+  apothecaryCurePoison: false,
+  apothecaryHasAntidote: true,
+  apothecarySkipped: false,
+  puppeteerTargetId: null,
+  puppeteerUsed: false,
+  puppeteerSkipped: false,
+  soothsayerTargetId: null,
+  soothsayerQuestion: null,
+  soothsayerCount: 0,
+  soothsayerSkipped: false,
+  spiritualistSuspectId: null,
+  spiritualistSkipped: false,
+  avengerChosenFaction: null,
+  cultGroupMap: {},
   skippedRoles: []
 };
 
@@ -893,6 +917,125 @@ export default function App() {
       } else if (type === 'hypnotist') {
         next.hypnotistTargetId = payload;
         next.hypnotistSkipped = !!extra.hypnotistSkipped;
+      } else if (type === 'assassin') {
+        next.assassinTargetId = payload;
+        next.assassinSkipped = !!extra.assassinSkipped;
+      } else if (type === 'pyro') {
+        next.pyroTargetId = payload;
+        next.pyroSkipped = !!extra.pyroSkipped;
+      } else if (type === 'thief_swap') {
+        const targetRoleId = payload;
+        const targetRoleObj = ROLES.find(r => r.id === targetRoleId) || { id: targetRoleId, name: targetRoleId };
+        next.thiefChosenRoleId = targetRoleId;
+        setPlayers(current => current.map(p => {
+          if ((p.currentRoleId || p.roleId) === 'an-trom' || p.originalRoleId === 'an-trom') {
+            const history = Array.isArray(p.roleHistory) ? [...p.roleHistory] : [];
+            history.push({
+              phase: `Đêm ${roundNumber}`,
+              timestamp: Date.now(),
+              type: 'THIEF_SWAP',
+              title: `Ăn Trộm Nhận Vai: ${targetRoleObj.name} 🎭`,
+              detail: `Ăn Trộm lật bài thừa ngoài cuộc và quyết định tráo đổi sang vai trò ${targetRoleObj.name}.`,
+              fromRole: 'an-trom',
+              toRole: targetRoleId
+            });
+            const isWolf = targetRoleObj.teamCode === 'W' || (WOLF_ROLE_IDS && WOLF_ROLE_IDS.includes(targetRoleId));
+            if (p instanceof Player) {
+              return p.clone({
+                originalRoleId: p.originalRoleId || 'an-trom',
+                currentRoleId: targetRoleId,
+                roleId: targetRoleId,
+                isCursedWolf: isWolf ? true : p.isCursedWolf,
+                curseNight: isWolf ? roundNumber : p.curseNight,
+                elderLives: targetRoleId === 'gia-lang' ? 2 : p.elderLives,
+                roleHistory: history
+              });
+            }
+            return {
+              ...p,
+              originalRoleId: p.originalRoleId || 'an-trom',
+              currentRoleId: targetRoleId,
+              roleId: targetRoleId,
+              role: null,
+              isCursedWolf: isWolf ? true : p.isCursedWolf,
+              curseNight: isWolf ? roundNumber : p.curseNight,
+              elderLives: targetRoleId === 'gia-lang' ? 2 : p.elderLives,
+              roleHistory: history
+            };
+          }
+          return p;
+        }));
+      } else if (type === 'actor_swap') {
+        const targetRoleId = payload;
+        const targetRoleObj = ROLES.find(r => r.id === targetRoleId) || { id: targetRoleId, name: targetRoleId };
+        next.actorChosenRoleId = targetRoleId;
+        setPlayers(current => current.map(p => {
+          if ((p.currentRoleId || p.roleId) === 'dien-vien' || p.originalRoleId === 'dien-vien') {
+            const history = Array.isArray(p.roleHistory) ? [...p.roleHistory] : [];
+            history.push({
+              phase: `Đêm ${roundNumber}`,
+              timestamp: Date.now(),
+              type: 'ACTOR_SWAP',
+              title: `Diễn Viên Đổi Vai: ${targetRoleObj.name} 🎬`,
+              detail: `Diễn Viên lựa chọn hóa thân thành ${targetRoleObj.name} trong 3 đêm đầu.`,
+              fromRole: 'dien-vien',
+              toRole: targetRoleId
+            });
+            const isWolf = targetRoleObj.teamCode === 'W' || (WOLF_ROLE_IDS && WOLF_ROLE_IDS.includes(targetRoleId));
+            if (p instanceof Player) {
+              return p.clone({
+                originalRoleId: p.originalRoleId || 'dien-vien',
+                currentRoleId: targetRoleId,
+                roleId: targetRoleId,
+                isCursedWolf: isWolf ? true : p.isCursedWolf,
+                curseNight: isWolf ? roundNumber : p.curseNight,
+                elderLives: targetRoleId === 'gia-lang' ? 2 : p.elderLives,
+                roleHistory: history
+              });
+            }
+            return {
+              ...p,
+              originalRoleId: p.originalRoleId || 'dien-vien',
+              currentRoleId: targetRoleId,
+              roleId: targetRoleId,
+              role: null,
+              isCursedWolf: isWolf ? true : p.isCursedWolf,
+              curseNight: isWolf ? roundNumber : p.curseNight,
+              elderLives: targetRoleId === 'gia-lang' ? 2 : p.elderLives,
+              roleHistory: history
+            };
+          }
+          return p;
+        }));
+      } else if (type === 'apothecary') {
+        next.apothecarySleepTargetId = extra.sleepTargetId || null;
+        next.apothecaryCurePoison = !!extra.curePoison;
+        next.apothecarySkipped = !!extra.apothecarySkipped;
+      } else if (type === 'puppeteer') {
+        next.puppeteerTargetId = payload;
+        next.puppeteerUsed = true;
+        next.puppeteerSkipped = !!extra.puppeteerSkipped;
+      } else if (type === 'soothsayer') {
+        next.soothsayerTargetId = payload;
+        next.soothsayerQuestion = extra.question || null;
+        next.soothsayerCount = (prev.soothsayerCount || 0) + 1;
+        next.soothsayerSkipped = !!extra.soothsayerSkipped;
+      } else if (type === 'spiritualist') {
+        next.spiritualistSuspectId = payload;
+        next.spiritualistSkipped = !!extra.spiritualistSkipped;
+      } else if (type === 'avenger_allegiance') {
+        next.avengerChosenFaction = payload;
+        setPlayers(current => current.map(p => {
+          if ((p.currentRoleId || p.roleId) === 'ke-bao-thu' || p.originalRoleId === 'ke-bao-thu') {
+            return p instanceof Player ? p.clone({ avengerFaction: payload }) : { ...p, avengerFaction: payload };
+          }
+          return p;
+        }));
+      } else if (type === 'cult_setup') {
+        next.cultGroupMap = payload;
+        setPlayers(current => current.map(p => {
+          return p instanceof Player ? p.clone({ cultGroup: payload[p.id] || null }) : { ...p, cultGroup: payload[p.id] || null };
+        }));
       } else if (type === 'hunter') {
         const shotPlayer = players.find(p => p.id === payload);
         const shotRole = getPlayerRole(shotPlayer);
@@ -1026,8 +1169,8 @@ export default function App() {
     });
   };
 
-  const handleAssignRole = (playerId, role) => {
-    if (!role) {
+  const handleAssignRole = (playerId, roleInput) => {
+    if (!roleInput) {
       setPlayers(prev => prev.map(p => {
         if (p.id === playerId) {
           return p instanceof Player ? p.unassignRole() : { ...p, currentRoleId: null, roleId: null, role: null, elderLives: undefined };
@@ -1036,6 +1179,10 @@ export default function App() {
       }));
       return;
     }
+
+    const role = typeof roleInput === 'string'
+      ? (ROLES.find(r => r.id === roleInput) || { id: roleInput, name: roleInput, teamCode: 'V' })
+      : roleInput;
 
     const game = new WerewolfGame({
       roundNumber,
@@ -1241,8 +1388,11 @@ export default function App() {
     });
   };
 
-  const handleAssignRoleToMultiple = (playerIds, role) => {
-    if (!role) return;
+  const handleAssignRoleToMultiple = (playerIds, roleInput) => {
+    if (!roleInput) return;
+    const role = typeof roleInput === 'string'
+      ? (ROLES.find(r => r.id === roleInput) || { id: roleInput, name: roleInput, teamCode: 'V' })
+      : roleInput;
     const isWolf = WOLF_ROLE_IDS.includes(role.id);
     
     // For werewolves, maximum capacity is strictly configured by the deck
@@ -1940,6 +2090,30 @@ export default function App() {
       hypnotistTargetId: null,
       lastNightHypnotistId: prev.hypnotistTargetId,
       hypnotistSkipped: false,
+      assassinTargetId: null,
+      assassinSkipped: false,
+      pyroTargetId: null,
+      pyroSkipped: false,
+      thiefChosenRoleId: prev.thiefChosenRoleId,
+      thiefSkipped: false,
+      actorChosenRoleId: prev.actorChosenRoleId,
+      actorSkipped: false,
+      apothecarySleepTargetId: null,
+      apothecaryCurePoison: false,
+      apothecaryHasSleep: prev.apothecaryHasSleep,
+      apothecaryHasAntidote: prev.apothecaryHasAntidote,
+      apothecarySkipped: false,
+      puppeteerTargetId: null,
+      puppeteerUsed: prev.puppeteerUsed || false,
+      puppeteerSkipped: false,
+      soothsayerTargetId: null,
+      soothsayerQuestion: null,
+      soothsayerCount: prev.soothsayerCount || 0,
+      soothsayerSkipped: false,
+      spiritualistSuspectId: null,
+      spiritualistSkipped: false,
+      avengerChosenFaction: prev.avengerChosenFaction,
+      cultGroupMap: prev.cultGroupMap || {},
       skippedRoles: []
     }));
   };

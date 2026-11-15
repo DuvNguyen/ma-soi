@@ -12,6 +12,8 @@ export default function NightRoleAction({
   players,
   alivePlayers,
   nightState,
+  deckRoleIds = [],
+  roundNumber = 1,
   wolfCanKillDouble,
   canWolvesKillTeammates,
   canCursedWolfInfect,
@@ -102,6 +104,8 @@ export default function NightRoleAction({
       players={players}
       alivePlayers={alivePlayers}
       nightState={nightState}
+      deckRoleIds={deckRoleIds}
+      roundNumber={roundNumber}
       canWolvesKillTeammates={canWolvesKillTeammates}
       onSaveAction={onSaveAction}
       onAssignRole={onAssignRole}

@@ -1,14 +1,17 @@
 import React, { useState } from 'react';
-import { Flame, Ghost, Wand2, Eye, Skull, MoonStar, Crosshair, Users, Search, Swords } from 'lucide-react';
+import { Flame, Ghost, Wand2, Eye, Skull, MoonStar, Crosshair, Users, Search, Swords, Theater, RefreshCw, Sparkles, Shield, Zap } from 'lucide-react';
 import PlayerSeatPicker from '../PlayerSeatPicker';
 import WolfIcon from '../ui/WolfIcon';
 import { getPlayerRole, matchesSearch, removeVietnameseTones } from '../../utils/roleUtils';
+import { ROLES } from '../../data/roles';
 
 export default function NightSpecialRolesStep({
   currentRole,
   players,
   alivePlayers,
   nightState,
+  deckRoleIds = [],
+  roundNumber = 1,
   canWolvesKillTeammates,
   onSaveAction,
   onAssignRole,
@@ -281,13 +284,31 @@ export default function NightSpecialRolesStep({
               Mê hoặc Người Thổi Sáo ({piperChosen.length}/2)
             </h4>
           </div>
-          <span className="text-xs px-2.5 py-1 rounded-lg bg-indigo-950/80 border border-indigo-700/80 text-indigo-300 font-bold">
-            Tiến độ: {hypnotizedCount}/{targetVictimsCount} người bị mê hoặc
-          </span>
+          <div className="flex items-center gap-2">
+            <div className="relative">
+              <Search className="w-3 h-3 text-slate-400 absolute left-2 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <input
+                type="text"
+                value={roleActionSearch}
+                onChange={(e) => setRoleActionSearch(e.target.value)}
+                placeholder="Tìm tên..."
+                className="w-24 sm:w-32 text-xs py-0.5 pl-6 pr-2 rounded-lg bg-slate-900/90 border border-slate-700 text-slate-200 placeholder:text-slate-500 focus:outline-none focus:border-indigo-500"
+              />
+            </div>
+            <span className="text-xs px-2.5 py-1 rounded-lg bg-indigo-950/80 border border-indigo-700/80 text-indigo-300 font-bold shrink-0">
+              Tiến độ: {hypnotizedCount}/{targetVictimsCount}
+            </span>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5">
-          {alivePlayers.map(p => {
+          {alivePlayers
+            .filter(p => {
+              if (!roleActionSearch) return true;
+              const q = removeVietnameseTones(roleActionSearch);
+              return matchesSearch(p.name, q) || String(p.id).includes(q);
+            })
+            .map(p => {
             const isSelf = p.id === piperPlayer?.id;
             const isSelected = piperChosen.includes(p.id);
             const isAlreadyHypnotized = Boolean(p.isHypnotized);
@@ -348,28 +369,47 @@ export default function NightSpecialRolesStep({
   if (currentRole.id === 'con-qua' || currentRole.id === 'con-qua-plus') {
     return (
       <div className="space-y-3">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2">
             <Ghost className="w-5 h-5 text-slate-300" />
             <h4 className="font-bold text-sm text-slate-200 font-cinzel">
               Dấu ấn Quạ
             </h4>
           </div>
-          <button
-            type="button"
-            onClick={() => onSaveAction('raven', null, { ravenSkipped: true })}
-            className={`text-xs px-3 py-1 rounded-xl border transition-all font-bold cursor-pointer ${
-              nightState.ravenSkipped
-                ? 'bg-amber-950 border-amber-500 text-amber-200 shadow-md'
-                : 'bg-slate-900 hover:bg-slate-800 border-slate-700 text-slate-300'
-            }`}
-          >
-            🚫 Đêm Nay Bỏ Qua
-          </button>
+
+          <div className="flex items-center gap-2">
+            <div className="relative">
+              <Search className="w-3 h-3 text-slate-400 absolute left-2 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <input
+                type="text"
+                value={roleActionSearch}
+                onChange={(e) => setRoleActionSearch(e.target.value)}
+                placeholder="Tìm tên..."
+                className="w-24 sm:w-32 text-xs py-0.5 pl-6 pr-2 rounded-lg bg-slate-900/90 border border-slate-700 text-slate-200 placeholder:text-slate-500 focus:outline-none focus:border-slate-400"
+              />
+            </div>
+            <button
+              type="button"
+              onClick={() => onSaveAction('raven', null, { ravenSkipped: true })}
+              className={`text-xs px-3 py-1 rounded-xl border transition-all font-bold cursor-pointer shrink-0 ${
+                nightState.ravenSkipped
+                  ? 'bg-amber-950 border-amber-500 text-amber-200 shadow-md'
+                  : 'bg-slate-900 hover:bg-slate-800 border-slate-700 text-slate-300'
+              }`}
+            >
+              🚫 Bỏ Qua
+            </button>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5">
-          {alivePlayers.map(p => {
+          {alivePlayers
+            .filter(p => {
+              if (!roleActionSearch) return true;
+              const q = removeVietnameseTones(roleActionSearch);
+              return matchesSearch(p.name, q) || String(p.id).includes(q);
+            })
+            .map(p => {
             const isSelected = nightState.ravenTargetId === p.id && !nightState.ravenSkipped;
             return (
               <button
@@ -542,27 +582,45 @@ export default function NightSpecialRolesStep({
 
   // 7. SÓI TRẮNG (WHITE WEREWOLF)
   if (currentRole.id === 'soi-trang') {
-    const otherWolves = alivePlayers.filter(p => isWolfPlayer(p) && (p.currentRoleId || p.roleId) !== 'soi-trang');
+    const otherWolves = alivePlayers
+      .filter(p => isWolfPlayer(p) && (p.currentRoleId || p.roleId) !== 'soi-trang')
+      .filter(p => {
+        if (!roleActionSearch) return true;
+        const q = removeVietnameseTones(roleActionSearch);
+        return matchesSearch(p.name, q) || String(p.id).includes(q);
+      });
     return (
       <div className="space-y-4">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2">
             <Skull className="w-5 h-5 text-slate-100" />
             <h4 className="font-bold text-sm text-slate-100 font-cinzel">
               Lượt cắn Sói Trắng
             </h4>
           </div>
-          <button
-            type="button"
-            onClick={() => onSaveAction('whiteWolf', null, { whiteWolfSkipped: true })}
-            className={`text-xs px-3 py-1 rounded-xl border transition-all font-bold cursor-pointer ${
-              nightState.whiteWolfSkipped
-                ? 'bg-purple-950 border-purple-500 text-purple-200 shadow-md'
-                : 'bg-slate-900 hover:bg-slate-800 border-slate-700 text-slate-300'
-            }`}
-          >
-            🚫 Đêm Nay Không Cắn Ai
-          </button>
+          <div className="flex items-center gap-2">
+            <div className="relative">
+              <Search className="w-3 h-3 text-slate-400 absolute left-2 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <input
+                type="text"
+                value={roleActionSearch}
+                onChange={(e) => setRoleActionSearch(e.target.value)}
+                placeholder="Tìm tên..."
+                className="w-24 sm:w-32 text-xs py-0.5 pl-6 pr-2 rounded-lg bg-slate-900/90 border border-slate-700 text-slate-200 placeholder:text-slate-500 focus:outline-none focus:border-purple-500"
+              />
+            </div>
+            <button
+              type="button"
+              onClick={() => onSaveAction('whiteWolf', null, { whiteWolfSkipped: true })}
+              className={`text-xs px-3 py-1 rounded-xl border transition-all font-bold cursor-pointer shrink-0 ${
+                nightState.whiteWolfSkipped
+                  ? 'bg-purple-950 border-purple-500 text-purple-200 shadow-md'
+                  : 'bg-slate-900 hover:bg-slate-800 border-slate-700 text-slate-300'
+              }`}
+            >
+              🚫 Không Cắn
+            </button>
+          </div>
         </div>
 
         {otherWolves.length === 0 ? (
@@ -683,31 +741,59 @@ export default function NightSpecialRolesStep({
 
   // 9. THỢ SĂN (HUNTER - ĐÊM 1 NHẬN DIỆN)
   if (currentRole.id === 'tho-san') {
-    const hunterPlayer = players.find(p => (p.currentRoleId || p.roleId) === 'tho-san');
+    const hunterPlayer = players.find(p => (p.currentRoleId || p.roleId) === 'tho-san' || getPlayerRole(p)?.id === 'tho-san');
     return (
-      <div className="p-4 rounded-2xl bg-[#14121e] border border-amber-500/30 text-amber-100 flex items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <div className="p-2.5 rounded-xl bg-amber-950/60 border border-amber-600/40 text-amber-300 shrink-0">
-            <Crosshair className="w-5 h-5" />
-          </div>
-          <div>
-            <div className="font-bold text-amber-200 text-sm">Nhận Diện Thợ Săn</div>
-            <div className="text-xs text-slate-400 mt-0.5">
-              Thức dậy nhận diện Đêm 1 • Tự động kích hoạt phát súng khi tử trận
+      <div className="space-y-4">
+        <div className="p-4 rounded-2xl bg-[#14121e] border border-amber-500/30 text-amber-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-[0_0_20px_rgba(245,158,11,0.15)]">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 rounded-xl bg-amber-950/80 border border-amber-600/50 text-amber-300 shrink-0 shadow-[0_0_12px_rgba(245,158,11,0.4)]">
+              <Crosshair className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="font-bold text-amber-200 text-sm font-cinzel">Nhận Diện Thợ Săn</div>
+              <div className="text-xs text-slate-400 mt-0.5">
+                Thức dậy nhận diện Đêm 1 • Tự động kích hoạt phát súng khi tử trận
+              </div>
             </div>
           </div>
+          <div className="shrink-0">
+            {hunterPlayer ? (
+              <span className="text-xs font-bold px-3 py-1 rounded-xl bg-emerald-950/90 border border-emerald-500 text-emerald-200 shadow-sm">
+                #{hunterPlayer.id} {hunterPlayer.name}
+              </span>
+            ) : (
+              <span className="text-xs font-semibold px-2.5 py-1 rounded-xl bg-slate-900 border border-slate-700 text-slate-400">
+                Chưa gán vai
+              </span>
+            )}
+          </div>
         </div>
-        <div>
-          {hunterPlayer ? (
-            <span className="text-xs font-semibold px-2.5 py-1 rounded-lg bg-emerald-950/80 border border-emerald-600 text-emerald-300">
-              #{hunterPlayer.id} {hunterPlayer.name}
+
+        {!hunterPlayer && typeof onAssignRole === 'function' && (
+          <div className="space-y-2">
+            <span className="text-xs font-bold text-amber-300 uppercase tracking-wider">
+              Chỉ định người giữ vai Thợ Săn:
             </span>
-          ) : (
-            <span className="text-xs px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-700 text-slate-400">
-              Chưa gán
-            </span>
-          )}
-        </div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+              {alivePlayers.map(p => (
+                <button
+                  key={p.id}
+                  type="button"
+                  onClick={() => onAssignRole(p.id, currentRole)}
+                  className="p-2.5 rounded-xl border border-slate-800 bg-[#121422] hover:bg-[#1a1c30] hover:border-amber-500/50 text-slate-200 text-left flex items-center justify-between transition-all cursor-pointer"
+                >
+                  <div className="truncate">
+                    <span className="font-bold text-xs">#{p.id} {p.name}</span>
+                    <span className="text-[10px] text-slate-400 block truncate">
+                      {getPlayerRole(p)?.name || 'Chưa gán'}
+                    </span>
+                  </div>
+                  <span className="text-[10px] text-amber-400 font-bold shrink-0">Chọn vai</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     );
   }
@@ -903,6 +989,799 @@ export default function NightSpecialRolesStep({
               </span>
             )}
           </div>
+        </div>
+      </div>
+    );
+  }
+
+  // 15. SÁT THỦ (THÍCH KHÁCH)
+  if (currentRole.id === 'sat-thu') {
+    const holders = players.filter(p => (p.currentRoleId || p.roleId) === 'sat-thu' || getPlayerRole(p)?.id === 'sat-thu');
+    const targetId = nightState.assassinTargetId;
+    const targetPlayer = players.find(p => p.id === targetId);
+    const isSkipped = nightState.assassinSkipped;
+    const holderIds = holders.map(h => h.id);
+
+    return (
+      <div className="space-y-4">
+        <div className="p-3.5 rounded-2xl bg-[#14121e] border border-purple-900/60 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 rounded-xl bg-purple-950/60 border border-purple-600/40 text-purple-300 shrink-0">
+              <Crosshair className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="font-bold text-purple-200 text-sm font-cinzel">Sát Thủ (Thích Khách)</div>
+              <div className="text-xs text-slate-400 mt-0.5">Mục tiêu ám sát bí mật trong đêm</div>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            {targetPlayer ? (
+              <span className="text-xs font-bold px-2.5 py-1 rounded-xl bg-purple-950/80 border border-purple-500 text-purple-200">
+                Ám sát: #{targetPlayer.id} {targetPlayer.name}
+              </span>
+            ) : isSkipped ? (
+              <span className="text-xs font-semibold px-2.5 py-1 rounded-xl bg-slate-900 border border-slate-700 text-slate-400">
+                Bỏ qua đêm nay
+              </span>
+            ) : (
+              <span className="text-xs font-semibold px-2.5 py-1 rounded-xl bg-slate-900 border border-slate-700 text-slate-400">
+                Chưa chọn
+              </span>
+            )}
+          </div>
+        </div>
+
+        <PlayerSeatPicker
+          players={alivePlayers}
+          selectedIds={targetId ? [targetId] : []}
+          disabledIds={holderIds}
+          onSelect={(id) => {
+            if (targetId === id) {
+              onSaveAction('assassin', null, { assassinSkipped: false });
+            } else {
+              onSaveAction('assassin', id, { assassinSkipped: false });
+            }
+          }}
+          variant="wolf"
+          actionLabel="Ám sát"
+        />
+
+        <div className="flex justify-end">
+          <button
+            type="button"
+            onClick={() => onSaveAction('assassin', null, { assassinSkipped: true })}
+            className={`px-3 py-1.5 rounded-xl border text-xs font-bold transition-all cursor-pointer ${
+              isSkipped
+                ? 'bg-purple-950 border-purple-500 text-purple-200'
+                : 'bg-[#121422] border-slate-800 text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            🚫 Không Ám Sát Đêm Nay
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // 16. KẺ ĐỐT NHÀ (HỎA HOẠN)
+  if (currentRole.id === 'ke-dot-nha') {
+    const holders = players.filter(p => (p.currentRoleId || p.roleId) === 'ke-dot-nha' || getPlayerRole(p)?.id === 'ke-dot-nha');
+    const targetId = nightState.pyroTargetId;
+    const targetPlayer = players.find(p => p.id === targetId);
+    const isSkipped = nightState.pyroSkipped;
+    const holderIds = holders.map(h => h.id);
+
+    return (
+      <div className="space-y-4">
+        <div className="p-3.5 rounded-2xl bg-[#14121e] border border-amber-900/60 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 rounded-xl bg-amber-950/60 border border-amber-600/40 text-amber-300 shrink-0">
+              <Flame className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="font-bold text-amber-200 text-sm font-cinzel">Kẻ Đốt Nhà (Hỏa Hoạn)</div>
+              <div className="text-xs text-slate-400 mt-0.5">Tẩm dầu phóng hỏa nhà người chơi</div>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            {targetPlayer ? (
+              <span className="text-xs font-bold px-2.5 py-1 rounded-xl bg-amber-950/80 border border-amber-500 text-amber-200">
+                Phóng hỏa: #{targetPlayer.id} {targetPlayer.name}
+              </span>
+            ) : isSkipped ? (
+              <span className="text-xs font-semibold px-2.5 py-1 rounded-xl bg-slate-900 border border-slate-700 text-slate-400">
+                Bỏ qua đêm nay
+              </span>
+            ) : (
+              <span className="text-xs font-semibold px-2.5 py-1 rounded-xl bg-slate-900 border border-slate-700 text-slate-400">
+                Chưa chọn nhà
+              </span>
+            )}
+          </div>
+        </div>
+
+        <PlayerSeatPicker
+          players={alivePlayers}
+          selectedIds={targetId ? [targetId] : []}
+          disabledIds={holderIds}
+          onSelect={(id) => {
+            if (targetId === id) {
+              onSaveAction('pyro', null, { pyroSkipped: false });
+            } else {
+              onSaveAction('pyro', id, { pyroSkipped: false });
+            }
+          }}
+          variant="protect"
+          actionLabel="Tẩm dầu"
+        />
+
+        <div className="flex justify-end">
+          <button
+            type="button"
+            onClick={() => onSaveAction('pyro', null, { pyroSkipped: true })}
+            className={`px-3 py-1.5 rounded-xl border text-xs font-bold transition-all cursor-pointer ${
+              isSkipped
+                ? 'bg-amber-950 border-amber-500 text-amber-200'
+                : 'bg-[#121422] border-slate-800 text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            🚫 Không Phóng Hỏa Đêm Nay
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // 17. ĂN TRỘM
+  if (currentRole.id === 'an-trom') {
+    const thiefHolders = players.filter(p => (p.currentRoleId || p.roleId) === 'an-trom' || p.originalRoleId === 'an-trom');
+    const thiefPlayer = thiefHolders[0] || null;
+    const chosenRoleId = nightState.thiefChosenRoleId;
+    const chosenRole = chosenRoleId ? ROLES.find(r => r.id === chosenRoleId) : null;
+
+    const assignedRoleIds = players.map(p => p.currentRoleId || p.roleId).filter(Boolean);
+    const unassignedDeckRoles = deckRoleIds.filter(rid => !assignedRoleIds.includes(rid));
+    const candidateRoleIds = unassignedDeckRoles.length >= 2 
+      ? unassignedDeckRoles.slice(0, 2) 
+      : (deckRoleIds.length >= 2 ? deckRoleIds.slice(0, 2) : ['soi-thuong', 'dan-lang']);
+    
+    const candidateRoles = candidateRoleIds.map(rid => ROLES.find(r => r.id === rid) || { id: rid, name: rid, teamCode: 'V' });
+    const hasWolfCard = candidateRoles.some(r => r.teamCode === 'W' || r.id.startsWith('soi-'));
+
+    return (
+      <div className="space-y-4">
+        <div className="p-3.5 rounded-2xl bg-[#14121e] border border-slate-700/60 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 rounded-xl bg-slate-900 border border-slate-600 text-slate-300 shrink-0">
+              <RefreshCw className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="font-bold text-slate-200 text-sm font-cinzel">Ăn Trộm — Xem Bài Thừa & Đổi Vai</div>
+              <div className="text-xs text-slate-400 mt-0.5">
+                {hasWolfCard ? 'Có lá Ma Sói — Bắt buộc phải chọn Ma Sói' : 'Chọn 1 lá bài thừa hoặc giữ nguyên Dân Làng'}
+              </div>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            {chosenRole ? (
+              <span className="text-xs font-bold px-2.5 py-1 rounded-xl bg-indigo-950/80 border border-indigo-500 text-indigo-200">
+                Đã nhận: {chosenRole.name}
+              </span>
+            ) : (
+              <span className="text-xs font-semibold px-2.5 py-1 rounded-xl bg-slate-900 border border-slate-700 text-slate-400">
+                Chưa đổi
+              </span>
+            )}
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {candidateRoles.map((role) => {
+            const isSelected = chosenRoleId === role.id;
+            const isWolf = role.teamCode === 'W' || role.id.startsWith('soi-');
+            return (
+              <button
+                key={role.id}
+                type="button"
+                onClick={() => {
+                  onSaveAction('thief_swap', role.id);
+                  if (thiefPlayer && typeof onAssignRole === 'function') {
+                    onAssignRole(thiefPlayer.id, role.id);
+                  }
+                }}
+                className={`p-3.5 rounded-2xl border text-left flex items-center justify-between transition-all cursor-pointer ${
+                  isSelected
+                    ? 'bg-indigo-950/60 border-indigo-500 ring-1 ring-indigo-400 shadow-[0_0_15px_rgba(99,102,241,0.3)]'
+                    : 'bg-[#121422] border-slate-800 hover:border-slate-600'
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <div className={`p-2 rounded-xl border ${isWolf ? 'bg-rose-950/50 border-rose-600 text-rose-300' : 'bg-slate-900 border-slate-700 text-slate-300'}`}>
+                    {isWolf ? <WolfIcon className="w-5 h-5 text-rose-400" /> : <Users className="w-5 h-5" />}
+                  </div>
+                  <div>
+                    <div className="font-bold text-sm text-slate-200">{role.name}</div>
+                    <div className="text-xs text-slate-400">{role.team || (isWolf ? 'Phe Ma Sói' : 'Phe Dân Làng')}</div>
+                  </div>
+                </div>
+                <span className={`text-xs font-bold px-2 py-1 rounded-lg ${isSelected ? 'bg-indigo-600 text-white' : 'bg-slate-800 text-slate-300'}`}>
+                  {isSelected ? 'Đang giữ vai' : 'Chọn vai'}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+
+        {!hasWolfCard && (
+          <div className="flex justify-end">
+            <button
+              type="button"
+              onClick={() => {
+                onSaveAction('thief_swap', 'dan-lang');
+                if (thiefPlayer && typeof onAssignRole === 'function') {
+                  onAssignRole(thiefPlayer.id, 'dan-lang');
+                }
+              }}
+              className="px-3 py-1.5 rounded-xl border border-slate-800 bg-[#121422] text-xs font-bold text-slate-400 hover:text-slate-200 cursor-pointer"
+            >
+              Giữ Nguyên Dân Thường
+            </button>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // 18. DIỄN VIÊN
+  if (currentRole.id === 'dien-vien') {
+    const actorHolders = players.filter(p => (p.currentRoleId || p.roleId) === 'dien-vien' || p.originalRoleId === 'dien-vien');
+    const actorPlayer = actorHolders[0] || null;
+    const chosenRoleId = nightState.actorChosenRoleId;
+    const chosenRole = chosenRoleId ? ROLES.find(r => r.id === chosenRoleId) : null;
+
+    const assignedRoleIds = players.map(p => p.currentRoleId || p.roleId).filter(Boolean);
+    const unassignedDeckRoles = deckRoleIds.filter(rid => !assignedRoleIds.includes(rid));
+    const candidateRoleIds = unassignedDeckRoles.length >= 3 
+      ? unassignedDeckRoles.slice(0, 3) 
+      : (deckRoleIds.length >= 3 ? deckRoleIds.slice(0, 3) : ['bao-ve', 'phu-thuy', 'tho-san']);
+    const candidateRoles = candidateRoleIds.map(rid => ROLES.find(r => r.id === rid) || { id: rid, name: rid, teamCode: 'V' });
+
+    return (
+      <div className="space-y-4">
+        <div className="p-3.5 rounded-2xl bg-[#14121e] border border-amber-700/60 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 rounded-xl bg-amber-950/60 border border-amber-600/40 text-amber-300 shrink-0">
+              <Theater className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="font-bold text-amber-200 text-sm font-cinzel">Diễn Viên (3 Đêm Đầu) — Đêm {roundNumber}</div>
+              <div className="text-xs text-slate-400 mt-0.5">Chọn 1 vai diễn để hóa thân hoặc giữ nguyên</div>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            {chosenRole ? (
+              <span className="text-xs font-bold px-2.5 py-1 rounded-xl bg-amber-950/80 border border-amber-500 text-amber-200">
+                Đang diễn: {chosenRole.name}
+              </span>
+            ) : (
+              <span className="text-xs font-semibold px-2.5 py-1 rounded-xl bg-slate-900 border border-slate-700 text-slate-400">
+                {roundNumber <= 3 ? 'Chưa chọn vai' : 'Thành Dân Thường'}
+              </span>
+            )}
+          </div>
+        </div>
+
+        {roundNumber <= 3 ? (
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            {candidateRoles.map((role) => {
+              const isSelected = chosenRoleId === role.id;
+              return (
+                <button
+                  key={role.id}
+                  type="button"
+                  onClick={() => {
+                    onSaveAction('actor_swap', role.id);
+                    if (actorPlayer && typeof onAssignRole === 'function') {
+                      onAssignRole(actorPlayer.id, role.id);
+                    }
+                  }}
+                  className={`p-3 rounded-2xl border text-left flex flex-col justify-between gap-2 transition-all cursor-pointer ${
+                    isSelected
+                      ? 'bg-amber-950/50 border-amber-500 ring-1 ring-amber-400'
+                      : 'bg-[#121422] border-slate-800 hover:border-slate-600'
+                  }`}
+                >
+                  <div>
+                    <div className="font-bold text-sm text-slate-200">{role.name}</div>
+                    <div className="text-xs text-slate-400 mt-0.5">{role.team || 'Phe Dân Làng'}</div>
+                  </div>
+                  <span className={`text-[11px] font-bold self-end px-2 py-0.5 rounded-lg ${isSelected ? 'bg-amber-600 text-white' : 'bg-slate-800 text-slate-400'}`}>
+                    {isSelected ? 'Đang nhận' : 'Hóa thân'}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="p-3 rounded-xl bg-slate-900/60 border border-slate-800 text-xs text-slate-400 text-center">
+            Đã qua 3 đêm đầu. Diễn Viên tiếp tục chơi như một Dân Làng bình thường.
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // 19. DƯỢC SĨ
+  if (currentRole.id === 'duoc-si') {
+    const holders = players.filter(p => (p.currentRoleId || p.roleId) === 'duoc-si' || getPlayerRole(p)?.id === 'duoc-si');
+    const sleepTargetId = nightState.apothecarySleepTargetId;
+    const curePoison = !!nightState.apothecaryCurePoison;
+    const sleepTargetPlayer = players.find(p => p.id === sleepTargetId);
+    const isSkipped = nightState.apothecarySkipped;
+
+    return (
+      <div className="space-y-4">
+        <div className="p-3.5 rounded-2xl bg-[#14121e] border border-teal-900/60 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 rounded-xl bg-teal-950/60 border border-teal-600/40 text-teal-300 shrink-0">
+              <Sparkles className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="font-bold text-teal-200 text-sm font-cinzel">Dược Sĩ — 2 Bình Thuốc</div>
+              <div className="text-xs text-slate-400 mt-0.5">Thuốc mê câm lặng/cấm vote & Giải độc Phù Thủy</div>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 flex-wrap">
+            {sleepTargetPlayer && (
+              <span className="text-xs font-bold px-2.5 py-1 rounded-xl bg-teal-950/80 border border-teal-500 text-teal-200">
+                Thuốc mê: #{sleepTargetPlayer.id} {sleepTargetPlayer.name}
+              </span>
+            )}
+            {curePoison && (
+              <span className="text-xs font-bold px-2.5 py-1 rounded-xl bg-emerald-950/80 border border-emerald-500 text-emerald-200">
+                Hồi Phục: Đã kích hoạt
+              </span>
+            )}
+          </div>
+        </div>
+
+        {/* Bình Hồi Phục */}
+        <div className="p-3 rounded-2xl bg-[#121422] border border-slate-800 flex items-center justify-between">
+          <div>
+            <div className="font-bold text-sm text-slate-200">Bình Hồi Phục (Cứu Độc Phù Thủy)</div>
+            <div className="text-xs text-slate-400">Hóa giải bình thuốc độc của Phù Thủy trong đêm nay</div>
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              onSaveAction('apothecary', null, {
+                sleepTargetId,
+                curePoison: !curePoison,
+                apothecarySkipped: false
+              });
+            }}
+            className={`px-3 py-1.5 rounded-xl border text-xs font-bold transition-all cursor-pointer ${
+              curePoison
+                ? 'bg-emerald-600 border-emerald-400 text-white shadow-[0_0_12px_rgba(16,185,129,0.4)]'
+                : 'bg-slate-900 border-slate-700 text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            {curePoison ? '✓ Đang Dùng Cứu' : 'Dùng Bình'}
+          </button>
+        </div>
+
+        {/* Bình Thuốc Mê */}
+        <div className="space-y-2">
+          <div className="text-xs font-bold text-teal-300 uppercase tracking-wider">
+            Bình Thuốc Mê (Cấm Nói & Cấm Biểu Quyết Ngày Mai):
+          </div>
+          <PlayerSeatPicker
+            players={alivePlayers}
+            selectedIds={sleepTargetId ? [sleepTargetId] : []}
+            onSelect={(id) => {
+              const nextSleepId = sleepTargetId === id ? null : id;
+              onSaveAction('apothecary', null, {
+                sleepTargetId: nextSleepId,
+                curePoison,
+                apothecarySkipped: false
+              });
+            }}
+            variant="seer"
+            actionLabel="Gây mê"
+          />
+        </div>
+
+        <div className="flex justify-end">
+          <button
+            type="button"
+            onClick={() => onSaveAction('apothecary', null, { sleepTargetId: null, curePoison: false, apothecarySkipped: true })}
+            className={`px-3 py-1.5 rounded-xl border text-xs font-bold transition-all cursor-pointer ${
+              isSkipped
+                ? 'bg-teal-950 border-teal-500 text-teal-200'
+                : 'bg-[#121422] border-slate-800 text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            🚫 Không Dùng Thuốc Đêm Nay
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // 20. NGƯỜI MÚA RỐI
+  if (currentRole.id === 'nguoi-mua-roi') {
+    const holders = players.filter(p => (p.currentRoleId || p.roleId) === 'nguoi-mua-roi' || getPlayerRole(p)?.id === 'nguoi-mua-roi');
+    const targetId = nightState.puppeteerTargetId;
+    const targetPlayer = players.find(p => p.id === targetId);
+    const isSkipped = nightState.puppeteerSkipped;
+
+    return (
+      <div className="space-y-4">
+        <div className="p-3.5 rounded-2xl bg-[#14121e] border border-indigo-900/60 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 rounded-xl bg-indigo-950/60 border border-indigo-600/40 text-indigo-300 shrink-0">
+              <Zap className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="font-bold text-indigo-200 text-sm font-cinzel">Người Múa Rối (Thao Túng Đàn Sói)</div>
+              <div className="text-xs text-slate-400 mt-0.5">Ép bầy Sói đổi mục tiêu cắn (1 lần / ván)</div>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            {targetPlayer ? (
+              <span className="text-xs font-bold px-2.5 py-1 rounded-xl bg-indigo-950/80 border border-indigo-500 text-indigo-200">
+                Rối điều khiển: #{targetPlayer.id} {targetPlayer.name}
+              </span>
+            ) : isSkipped ? (
+              <span className="text-xs font-semibold px-2.5 py-1 rounded-xl bg-slate-900 border border-slate-700 text-slate-400">
+                Bỏ qua đêm nay
+              </span>
+            ) : (
+              <span className="text-xs font-semibold px-2.5 py-1 rounded-xl bg-slate-900 border border-slate-700 text-slate-400">
+                Chưa kích hoạt
+              </span>
+            )}
+          </div>
+        </div>
+
+        <PlayerSeatPicker
+          players={alivePlayers}
+          selectedIds={targetId ? [targetId] : []}
+          onSelect={(id) => {
+            if (targetId === id) {
+              onSaveAction('puppeteer', null, { puppeteerSkipped: false });
+            } else {
+              onSaveAction('puppeteer', id, { puppeteerSkipped: false });
+            }
+          }}
+          variant="wolf"
+          actionLabel="Thao túng"
+        />
+
+        <div className="flex justify-end">
+          <button
+            type="button"
+            onClick={() => onSaveAction('puppeteer', null, { puppeteerSkipped: true })}
+            className={`px-3 py-1.5 rounded-xl border text-xs font-bold transition-all cursor-pointer ${
+              isSkipped
+                ? 'bg-indigo-950 border-indigo-500 text-indigo-200'
+                : 'bg-[#121422] border-slate-800 text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            🚫 Không Can Thiệp Đêm Nay
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // 21. BÀ ĐỒNG
+  if (currentRole.id === 'ba-dong') {
+    const targetId = nightState.soothsayerTargetId;
+    const targetPlayer = players.find(p => p.id === targetId);
+    const selectedQuestion = nightState.soothsayerQuestion || 'Có ít nhất 1 Ma Sói ngồi cạnh người này không?';
+    const soothsayerCount = nightState.soothsayerCount || 0;
+    const isSkipped = nightState.soothsayerSkipped;
+
+    const QUESTIONS = [
+      'Có ít nhất 1 Ma Sói ngồi cạnh người này không?',
+      'Người này thuộc phe Dân Làng hay phe Đối Nghịch?',
+      'Đêm nay có ai bị phù phép hoặc trúng độc không?',
+      'Người này có từng biến đổi vai trò chưa?'
+    ];
+
+    return (
+      <div className="space-y-4">
+        <div className="p-3.5 rounded-2xl bg-[#14121e] border border-blue-900/60 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 rounded-xl bg-blue-950/60 border border-blue-600/40 text-blue-300 shrink-0">
+              <Eye className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="font-bold text-blue-200 text-sm font-cinzel">Bà Đồng — Linh Cảm Tâm Linh ({soothsayerCount}/5 lần)</div>
+              <div className="text-xs text-slate-400 mt-0.5">Đặt câu hỏi tâm linh cho 1 người chơi trả lời sáng mai</div>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            {targetPlayer ? (
+              <span className="text-xs font-bold px-2.5 py-1 rounded-xl bg-blue-950/80 border border-blue-500 text-blue-200">
+                Chỉ định: #{targetPlayer.id} {targetPlayer.name}
+              </span>
+            ) : isSkipped ? (
+              <span className="text-xs font-semibold px-2.5 py-1 rounded-xl bg-slate-900 border border-slate-700 text-slate-400">
+                Bỏ qua đêm nay
+              </span>
+            ) : (
+              <span className="text-xs font-semibold px-2.5 py-1 rounded-xl bg-slate-900 border border-slate-700 text-slate-400">
+                Chưa chọn
+              </span>
+            )}
+          </div>
+        </div>
+
+        <div className="space-y-1.5">
+          <div className="text-xs font-bold text-blue-300 uppercase tracking-wider">Chọn Câu Hỏi Tâm Linh:</div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            {QUESTIONS.map((q) => (
+              <button
+                key={q}
+                type="button"
+                onClick={() => onSaveAction('soothsayer', targetId, { question: q, soothsayerSkipped: false })}
+                className={`p-2.5 rounded-xl border text-xs text-left transition-all cursor-pointer ${
+                  selectedQuestion === q
+                    ? 'bg-blue-950/70 border-blue-500 text-blue-200 font-bold'
+                    : 'bg-[#121422] border-slate-800 text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                {q}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <PlayerSeatPicker
+          players={alivePlayers}
+          selectedIds={targetId ? [targetId] : []}
+          onSelect={(id) => {
+            const nextTarget = targetId === id ? null : id;
+            onSaveAction('soothsayer', nextTarget, { question: selectedQuestion, soothsayerSkipped: false });
+          }}
+          variant="seer"
+          actionLabel="Chỉ định"
+        />
+
+        <div className="flex justify-end">
+          <button
+            type="button"
+            onClick={() => onSaveAction('soothsayer', null, { question: selectedQuestion, soothsayerSkipped: true })}
+            className={`px-3 py-1.5 rounded-xl border text-xs font-bold transition-all cursor-pointer ${
+              isSkipped
+                ? 'bg-blue-950 border-blue-500 text-blue-200'
+                : 'bg-[#121422] border-slate-800 text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            🚫 Bỏ Qua Đêm Nay
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // 22. NGƯỜI GỌI HỒN
+  if (currentRole.id === 'nguoi-goi-hon') {
+    const suspectId = nightState.spiritualistSuspectId;
+    const suspectPlayer = players.find(p => p.id === suspectId);
+    const deadPlayers = players.filter(p => !p.isAlive);
+    const lastDead = deadPlayers[deadPlayers.length - 1];
+    const isSkipped = nightState.spiritualistSkipped;
+
+    return (
+      <div className="space-y-4">
+        <div className="p-3.5 rounded-2xl bg-[#14121e] border border-cyan-900/60 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 rounded-xl bg-cyan-950/60 border border-cyan-600/40 text-cyan-300 shrink-0">
+              <Ghost className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="font-bold text-cyan-200 text-sm font-cinzel">Người Gọi Hồn (Chỉ Điểm Hồn Ma)</div>
+              <div className="text-xs text-slate-400 mt-0.5">
+                {lastDead ? `Hồn ma gần nhất: #${lastDead.id} ${lastDead.name}` : 'Chưa có người chết'}
+              </div>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            {suspectPlayer ? (
+              <span className="text-xs font-bold px-2.5 py-1 rounded-xl bg-cyan-950/80 border border-cyan-500 text-cyan-200">
+                Hồn ma nghi ngờ: #{suspectPlayer.id} {suspectPlayer.name}
+              </span>
+            ) : isSkipped ? (
+              <span className="text-xs font-semibold px-2.5 py-1 rounded-xl bg-slate-900 border border-slate-700 text-slate-400">
+                Bỏ qua đêm nay
+              </span>
+            ) : (
+              <span className="text-xs font-semibold px-2.5 py-1 rounded-xl bg-slate-900 border border-slate-700 text-slate-400">
+                Chưa ghi nhận
+              </span>
+            )}
+          </div>
+        </div>
+
+        <PlayerSeatPicker
+          players={alivePlayers}
+          selectedIds={suspectId ? [suspectId] : []}
+          onSelect={(id) => {
+            const nextId = suspectId === id ? null : id;
+            onSaveAction('spiritualist', nextId, { spiritualistSkipped: false });
+          }}
+          variant="seer"
+          actionLabel="Nghi ngờ"
+        />
+
+        <div className="flex justify-end">
+          <button
+            type="button"
+            onClick={() => onSaveAction('spiritualist', null, { spiritualistSkipped: true })}
+            className={`px-3 py-1.5 rounded-xl border text-xs font-bold transition-all cursor-pointer ${
+              isSkipped
+                ? 'bg-cyan-950 border-cyan-500 text-cyan-200'
+                : 'bg-[#121422] border-slate-800 text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            🚫 Bỏ Qua Đêm Nay
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // 23. KẺ BÁO THÙ
+  if (currentRole.id === 'ke-bao-thu') {
+    const chosenFaction = nightState.avengerChosenFaction;
+
+    return (
+      <div className="space-y-4">
+        <div className="p-3.5 rounded-2xl bg-[#14121e] border border-rose-900/60 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 rounded-xl bg-rose-950/60 border border-rose-600/40 text-rose-300 shrink-0">
+              <Swords className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="font-bold text-rose-200 text-sm font-cinzel">Kẻ Báo Thù — Chọn Phe Tôn Thờ</div>
+              <div className="text-xs text-slate-400 mt-0.5">Bí mật chọn theo phe Dân Làng hoặc Ma Sói</div>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            {chosenFaction === 'V' ? (
+              <span className="text-xs font-bold px-2.5 py-1 rounded-xl bg-sky-950/80 border border-sky-500 text-sky-200">
+                🛡️ Phe Dân Làng
+              </span>
+            ) : chosenFaction === 'W' ? (
+              <span className="text-xs font-bold px-2.5 py-1 rounded-xl bg-rose-950/80 border border-rose-500 text-rose-200">
+                🐺 Phe Ma Sói
+              </span>
+            ) : (
+              <span className="text-xs font-semibold px-2.5 py-1 rounded-xl bg-slate-900 border border-slate-700 text-slate-400">
+                Chưa chọn phe
+              </span>
+            )}
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <button
+            type="button"
+            onClick={() => onSaveAction('avenger_allegiance', 'V')}
+            className={`p-4 rounded-2xl border text-left transition-all cursor-pointer ${
+              chosenFaction === 'V'
+                ? 'bg-sky-950/60 border-sky-500 ring-1 ring-sky-400 shadow-[0_0_15px_rgba(56,189,248,0.3)]'
+                : 'bg-[#121422] border-slate-800 hover:border-slate-700'
+            }`}
+          >
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 rounded-xl bg-sky-950/80 border border-sky-600/40 text-sky-300">
+                <Shield className="w-5 h-5" />
+              </div>
+              <div>
+                <div className="font-bold text-sm text-sky-200">Phe Dân Làng</div>
+                <div className="text-xs text-slate-400 mt-0.5">Khi chết, kích hoạt báo thù nếu bị phe Sói giết</div>
+              </div>
+            </div>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => onSaveAction('avenger_allegiance', 'W')}
+            className={`p-4 rounded-2xl border text-left transition-all cursor-pointer ${
+              chosenFaction === 'W'
+                ? 'bg-rose-950/60 border-rose-500 ring-1 ring-rose-400 shadow-[0_0_15px_rgba(244,63,94,0.3)]'
+                : 'bg-[#121422] border-slate-800 hover:border-slate-700'
+            }`}
+          >
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 rounded-xl bg-rose-950/80 border border-rose-600/40 text-rose-300">
+                <WolfIcon className="w-5 h-5 text-rose-400" />
+              </div>
+              <div>
+                <div className="font-bold text-sm text-rose-200">Phe Ma Sói</div>
+                <div className="text-xs text-slate-400 mt-0.5">Khi chết, kích hoạt báo thù nếu bị phe Dân giết</div>
+              </div>
+            </div>
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // 24. THÀNH VIÊN GIÁO PHÁI
+  if (currentRole.id === 'thanh-vien-giao-phai') {
+    const cultMap = nightState.cultGroupMap || {};
+    const groupACount = alivePlayers.filter(p => (cultMap[p.id] || p.cultGroup) === 'A').length;
+    const groupBCount = alivePlayers.filter(p => (cultMap[p.id] || p.cultGroup) === 'B').length;
+
+    return (
+      <div className="space-y-4">
+        <div className="p-3.5 rounded-2xl bg-[#14121e] border border-purple-900/60 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 rounded-xl bg-purple-950/60 border border-purple-600/40 text-purple-300 shrink-0">
+              <Users className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="font-bold text-purple-200 text-sm font-cinzel">Thành Viên Giáo Phái — Phân Chia Nhóm</div>
+              <div className="text-xs text-slate-400 mt-0.5">Thắng khi toàn bộ phe đối địch bị tiêu diệt</div>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <span className="text-xs font-bold px-2.5 py-1 rounded-xl bg-purple-950/80 border border-purple-500 text-purple-200">
+              Phái A: {groupACount} sống
+            </span>
+            <span className="text-xs font-bold px-2.5 py-1 rounded-xl bg-amber-950/80 border border-amber-500 text-amber-200">
+              Phái B: {groupBCount} sống
+            </span>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+          {alivePlayers.map(p => {
+            const currentGroup = cultMap[p.id] || p.cultGroup || null;
+            return (
+              <div key={p.id} className="p-2.5 rounded-xl border border-slate-800 bg-[#121422] flex flex-col justify-between gap-2">
+                <div className="truncate">
+                  <span className="font-bold text-xs text-slate-200">#{p.id} {p.name}</span>
+                  <span className="text-[10px] text-slate-400 block truncate">{getPlayerRole(p)?.name || 'Chưa gán'}</span>
+                </div>
+                <div className="grid grid-cols-2 gap-1">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const nextMap = { ...cultMap, [p.id]: currentGroup === 'A' ? null : 'A' };
+                      onSaveAction('cult_setup', nextMap);
+                    }}
+                    className={`py-1 rounded-lg text-[10px] font-bold transition-all cursor-pointer ${
+                      currentGroup === 'A'
+                        ? 'bg-purple-600 text-white'
+                        : 'bg-slate-900 text-slate-400 hover:text-slate-200'
+                    }`}
+                  >
+                    Phái A
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const nextMap = { ...cultMap, [p.id]: currentGroup === 'B' ? null : 'B' };
+                      onSaveAction('cult_setup', nextMap);
+                    }}
+                    className={`py-1 rounded-lg text-[10px] font-bold transition-all cursor-pointer ${
+                      currentGroup === 'B'
+                        ? 'bg-amber-600 text-white'
+                        : 'bg-slate-900 text-slate-400 hover:text-slate-200'
+                    }`}
+                  >
+                    Phái B
+                  </button>
+                </div>
+              </div>
+            );
+          })}
         </div>
       </div>
     );

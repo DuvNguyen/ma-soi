@@ -112,6 +112,22 @@ export function checkGameEnd(players, extraRules = {}) {
     };
   }
 
+  // 3.2. Special 3rd party: Cult Leader (Thành Viên Giáo Phái)
+  const cultLeader = alivePlayers.find(p => getPlayerRole(p)?.id === 'thanh-vien-giao-phai');
+  if (cultLeader && cultLeader.isAlive && cultLeader.cultGroup) {
+    const opposingGroupAlive = alivePlayers.filter(p => p.cultGroup && p.cultGroup !== cultLeader.cultGroup);
+    const nonCultAlive = alivePlayers.filter(p => !p.cultGroup && p.id !== cultLeader.id);
+    if (opposingGroupAlive.length === 0 && nonCultAlive.length === 0) {
+      return {
+        isEnded: true,
+        winner: 'Cult Leader',
+        winnerTitle: 'Thành Viên Giáo Phái Chiến Thắng! 🔮',
+        teamCode: '3',
+        description: `Toàn bộ thành viên thuộc phái đối lập đã bị tiêu diệt sạch. Giáo phái của ${cultLeader.name} đã hoàn toàn thống trị ngôi làng!`
+      };
+    }
+  }
+
   // Nếu Sói Trắng còn sống và tất cả Dân Làng đã chết, nhưng vẫn còn Ma Sói thường:
   // Ván đấu PHẢI TIẾP TỤC để Sói Trắng và Sói thường thanh trừng lẫn nhau!
   const hasOtherWolves = alivePlayers.some(p => isWolfPlayer(p) && getPlayerRole(p)?.id !== 'soi-trang');
@@ -332,13 +348,17 @@ export function resolveNightPhase(players, nightActions, roundNumber) {
     }
   };
 
-  // 1. Process Primary Werewolf Kill
-  if (wolfTargetId) {
-    processWolfBite(wolfTargetId, false);
+  // 1. Process Primary Werewolf Kill (có tính đến sự thao túng của Người Múa Rối)
+  const effectiveWolfTargetId = nightActions.puppeteerTargetId || wolfTargetId;
+  if (nightActions.puppeteerTargetId) {
+    logs.push(`🎭 RỐI THAO TÚNG: Người Múa Rối đã điều khiển tâm trí, buộc bầy Sói phải chuyển mục tiêu săn mồi!`);
+  }
+  if (effectiveWolfTargetId) {
+    processWolfBite(effectiveWolfTargetId, false);
   }
 
   // 1.1 Process Secondary Werewolf Kill (RULE CONFLICT FIX #4: Khi Sói Con chết đêm trước)
-  if (wolfTargetId2 && wolfTargetId2 !== wolfTargetId) {
+  if (wolfTargetId2 && wolfTargetId2 !== effectiveWolfTargetId) {
     processWolfBite(wolfTargetId2, true);
   }
 
@@ -408,6 +428,77 @@ export function resolveNightPhase(players, nightActions, roundNumber) {
       killedPlayerIds.add(whiteWolfTarget.id);
       deathReasons[whiteWolfTarget.id] = 'Bị Sói Trắng bí mật sát hại trong đêm để độc chiếm ngôi làng';
       logs.push(`🐺 SÓI TRẮNG TÀN SÁT: Sói Trắng đã bí mật xé xác Ma Sói ${whiteWolfTarget.name} (#${whiteWolfTarget.id}) trong đêm!`);
+    }
+  }
+
+  // 2.2 Process Assassin (Sát Thủ) Kill
+  const { assassinTargetId, assassinSkipped } = nightActions;
+  if (assassinTargetId && !assassinSkipped) {
+    const assassinTarget = updatedPlayers.find(p => p.id === assassinTargetId);
+    if (assassinTarget && assassinTarget.isAlive) {
+      const isProtected = !isVillageCursed && protectedPlayerId === assassinTarget.id;
+      if (isProtected) {
+        logs.push(`🛡️ ${assassinTarget.name} bị Sát Thủ ám sát nhưng đã được BẢO VỆ che chắn an toàn!`);
+      } else {
+        killedPlayerIds.add(assassinTarget.id);
+        deathReasons[assassinTarget.id] = 'Bị Sát Thủ ám sát trong bóng đêm';
+        logs.push(`🗡️ ÁM SÁT: ${assassinTarget.name} (#${assassinTarget.id}) đã bị Sát Thủ đâm chết trong đêm!`);
+      }
+    }
+  }
+
+  // 2.3 Process Pyromaniac (Kẻ Đốt Nhà) Counter-burn on Werewolves
+  const { pyroTargetId, pyroSkipped } = nightActions;
+  if (pyroTargetId && !pyroSkipped) {
+    const pyroTarget = updatedPlayers.find(p => p.id === pyroTargetId);
+    if (pyroTarget) {
+      logs.push(`🔥 HỎA HOẠN: Ngôi nhà của ${pyroTarget.name} (#${pyroTarget.id}) đã bị Kẻ Đốt Nhà tẩm dầu phóng hỏa!`);
+      // Nếu ngôi nhà bị đốt chính là nạn nhân bị bầy Sói cắn đêm nay:
+      if (effectiveWolfTargetId === pyroTarget.id) {
+        // Tìm con Sói còn sống đầu tiên bên phải nạn nhân (theo chiều kim đồng hồ)
+        const sortedAlive = [...updatedPlayers.filter(p => p.isAlive)].sort((a, b) => a.id - b.id);
+        const victimIdx = sortedAlive.findIndex(p => p.id === pyroTarget.id);
+        if (victimIdx !== -1) {
+          const aliveWolves = sortedAlive.filter(p => isWolfPlayer(p));
+          if (aliveWolves.length > 0) {
+            aliveWolves.sort((a, b) => {
+              const idxA = sortedAlive.findIndex(p => p.id === a.id);
+              const idxB = sortedAlive.findIndex(p => p.id === b.id);
+              const distA = (idxA - victimIdx + sortedAlive.length) % sortedAlive.length;
+              const distB = (idxB - victimIdx + sortedAlive.length) % sortedAlive.length;
+              return distA - distB;
+            });
+            const burnedWolf = aliveWolves[0];
+            if (burnedWolf && !killedPlayerIds.has(burnedWolf.id)) {
+              killedPlayerIds.add(burnedWolf.id);
+              deathReasons[burnedWolf.id] = 'Bị ngọn lửa của Kẻ Đốt Nhà thiêu chết do tấn công nhầm ngôi nhà bị phóng hỏa';
+              logs.push(`🔥🐺 SÓI BỊ THIÊU CHẾT: Ma Sói ${burnedWolf.name} (#${burnedWolf.id}) ngồi bên phải ngôi nhà phóng hỏa đã bị ngọn lửa bùng lên thiêu chết tại chỗ!`);
+            }
+            // Nạn nhân bị sói tấn công được ngọn lửa cứu mạng
+            if (killedPlayerIds.has(pyroTarget.id)) {
+              killedPlayerIds.delete(pyroTarget.id);
+              delete deathReasons[pyroTarget.id];
+              logs.push(`🛡️ NẠN NHÂN THOÁT CHẾT: ${pyroTarget.name} (#${pyroTarget.id}) may mắn sống sót do bầy Sói bị ngọn lửa đẩy lùi!`);
+            }
+          }
+        }
+      }
+    }
+  }
+
+  // 2.4 Process Apothecary (Dược Sĩ)
+  const { apothecarySleepTargetId, apothecaryCurePoison } = nightActions;
+  if (apothecaryCurePoison && witchPoisonTargetId) {
+    killedPlayerIds.delete(witchPoisonTargetId);
+    delete deathReasons[witchPoisonTargetId];
+    const curedP = updatedPlayers.find(p => p.id === witchPoisonTargetId);
+    logs.push(`🧪 DƯỢC SĨ GIẢI ĐỘC: Dược Sĩ đã kịp thời dùng Bình Hồi Phục giải độc cho ${curedP?.name || `#${witchPoisonTargetId}`} thoát chết khỏi độc dược Phù Thủy!`);
+  }
+  if (apothecarySleepTargetId) {
+    const sleepTarget = updatedPlayers.find(p => p.id === apothecarySleepTargetId);
+    if (sleepTarget && sleepTarget.isAlive) {
+      sleepTarget.isAsleepByApothecary = true;
+      logs.push(`💤 THUỐC MÊ DƯỢC SĨ: ${sleepTarget.name} (#${sleepTarget.id}) đã uống phải Bình Thuốc Mê, bị cấm nói và cấm biểu quyết trong ngày hôm nay!`);
     }
   }
 

@@ -1,7 +1,7 @@
-import React from 'react';
-import { Star, Award, ShieldAlert, CheckCircle2 } from 'lucide-react';
+import React, { useState } from 'react';
+import { Star, Award, ShieldAlert, CheckCircle2, Search } from 'lucide-react';
 import GothicButton from './ui/GothicButton';
-import { getPlayerRole } from '../utils/roleUtils';
+import { getPlayerRole, matchesSearch, removeVietnameseTones } from '../utils/roleUtils';
 import triggerHaptic from '../utils/haptics';
 
 export default function SheriffSuccessionModal({
@@ -14,11 +14,19 @@ export default function SheriffSuccessionModal({
 }) {
   if (!isOpen) return null;
 
+  const [searchQuery, setSearchQuery] = useState('');
+
   const handleSelect = (playerId) => {
     triggerHaptic('success');
     onSelectSuccessor(playerId);
     onClose();
   };
+
+  const filteredAlive = alivePlayers.filter(p => {
+    if (!searchQuery) return true;
+    const q = removeVietnameseTones(searchQuery);
+    return matchesSearch(p.name, q) || String(p.id).includes(q);
+  });
 
   return (
     <div 
@@ -85,12 +93,22 @@ export default function SheriffSuccessionModal({
 
         {/* Living Players Grid */}
         <div className="flex-1 overflow-y-auto pr-1 space-y-2 overscroll-contain">
-          <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider flex items-center justify-between">
-            <span>Danh sách người sống ({alivePlayers.length}):</span>
+          <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider flex items-center justify-between gap-2">
+            <span>Danh sách ({filteredAlive.length}):</span>
+            <div className="relative">
+              <Search className="w-3 h-3 text-slate-400 absolute left-2 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                placeholder="Tìm tên..."
+                className="w-28 text-xs py-0.5 pl-6 pr-2 rounded-lg bg-slate-900 border border-slate-700 text-slate-200 placeholder:text-slate-500 focus:outline-none focus:border-amber-500"
+              />
+            </div>
           </div>
 
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 pb-4">
-            {alivePlayers.map(p => {
+            {filteredAlive.map(p => {
               const role = getPlayerRole(p);
               const isOldSheriff = deadSheriff && deadSheriff.id === p.id;
               if (isOldSheriff) return null;

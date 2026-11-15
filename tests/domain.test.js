@@ -872,6 +872,109 @@ console.log('🧪 Starting Phase 1 Domain Model & Strategy Tests...\n');
 
     console.log('✅ Test 45: Role transformation journey tracking across transformations verified.');
 
-    console.log('\n🎉 ALL 45 DOMAIN ENGINE TESTS PASSED PERFECTLY!\n');
+    // --- TEST 46: Sát Thủ (Assassin) mechanics & protection ---
+    const assassin46 = new Player({ id: 91, name: 'Sát Thủ 91', currentRoleId: 'sat-thu', roleId: 'sat-thu', isAlive: true });
+    const targetA46 = new Player({ id: 92, name: 'Dân 92', currentRoleId: 'dan-lang', roleId: 'dan-lang', isAlive: true });
+    const targetB46 = new Player({ id: 93, name: 'Dân 93 (Được bảo vệ)', currentRoleId: 'dan-lang', roleId: 'dan-lang', isAlive: true });
+    const bodyguard46 = new Player({ id: 94, name: 'Bảo Vệ 94', currentRoleId: 'bao-ve', roleId: 'bao-ve', isAlive: true });
+
+    const assassinGame = new WerewolfGame({
+      roundNumber: 1,
+      isNight: true,
+      players: [assassin46, targetA46, targetB46, bodyguard46]
+    });
+
+    // Case 1: Kill unprotected targetA
+    const resA = assassinGame.resolveNight({ assassinTargetId: 92 });
+    assert.strictEqual(resA.game.getPlayer(92).isAlive, false);
+
+    // Case 2: TargetB protected by Bodyguard
+    const resB = assassinGame.resolveNight({ assassinTargetId: 93, protectedPlayerId: 93 });
+    assert.strictEqual(resB.game.getPlayer(93).isAlive, true);
+    console.log('✅ Test 46: Sát Thủ assassination kill & protection shield verified.');
+
+    // --- TEST 47: Kẻ Đốt Nhà (Pyromaniac) counter-burn on wolves & victim salvation ---
+    const pyro47 = new Player({ id: 101, name: 'Kẻ Đốt Nhà 101', currentRoleId: 'ke-dot-nha', roleId: 'ke-dot-nha', isAlive: true });
+    const houseVictim47 = new Player({ id: 102, name: 'Dân 102', currentRoleId: 'dan-lang', roleId: 'dan-lang', isAlive: true });
+    const wolfRight47 = new Player({ id: 103, name: 'Sói Bên Phải 103', currentRoleId: 'soi-thuong', roleId: 'soi-thuong', isAlive: true });
+
+    const pyroGame47 = new WerewolfGame({
+      roundNumber: 1,
+      isNight: true,
+      players: [pyro47, houseVictim47, wolfRight47]
+    });
+
+    const resPyro47 = pyroGame47.resolveNight({
+      wolfTargetId: 102, // Sói chọn cắn nhà 102
+      pyroTargetId: 102  // Kẻ Đốt Nhà tẩm dầu phóng hỏa nhà 102
+    });
+
+    // Con Sói bên phải (103) bị ngọn lửa thiêu chết
+    assert.strictEqual(resPyro47.game.getPlayer(103).isAlive, false);
+    // Nạn nhân (102) được ngọn lửa cứu thoát chết
+    assert.strictEqual(resPyro47.game.getPlayer(102).isAlive, true);
+    console.log('✅ Test 47: Kẻ Đốt Nhà counter-burn on wolf to the right & victim salvation verified.');
+
+    // --- TEST 48: Dược Sĩ (Apothecary) poison cure & sleep potion ---
+    const witchP48 = new Player({ id: 111, name: 'Phù Thủy 111', currentRoleId: 'phu-thuy', roleId: 'phu-thuy', isAlive: true });
+    const poisonedVillager48 = new Player({ id: 112, name: 'Dân 112', currentRoleId: 'dan-lang', roleId: 'dan-lang', isAlive: true });
+    const sleepTarget48 = new Player({ id: 113, name: 'Dân 113', currentRoleId: 'dan-lang', roleId: 'dan-lang', isAlive: true });
+
+    const apothecaryGame48 = new WerewolfGame({
+      roundNumber: 1,
+      isNight: true,
+      players: [witchP48, poisonedVillager48, sleepTarget48]
+    });
+
+    const resApothecary48 = apothecaryGame48.resolveNight({
+      witchPoisonTargetId: 112,
+      apothecaryCurePoison: true,
+      apothecarySleepTargetId: 113
+    });
+
+    // Poisoned villager is cured and lives!
+    assert.strictEqual(resApothecary48.game.getPlayer(112).isAlive, true);
+    // Sleep target receives isAsleepByApothecary = true
+    assert.strictEqual(resApothecary48.game.getPlayer(113).isAsleepByApothecary, true);
+    console.log('✅ Test 48: Dược Sĩ poison cure & sleep potion verified.');
+
+    // --- TEST 49: Người Múa Rối (Puppeteer) wolf redirection ---
+    const puppetWolf49 = new Player({ id: 121, name: 'Sói 121', currentRoleId: 'soi-thuong', roleId: 'soi-thuong', isAlive: true });
+    const puppetTarget1_49 = new Player({ id: 122, name: 'Dân 122', currentRoleId: 'dan-lang', roleId: 'dan-lang', isAlive: true });
+    const puppetTarget2_49 = new Player({ id: 123, name: 'Dân 123', currentRoleId: 'dan-lang', roleId: 'dan-lang', isAlive: true });
+
+    const puppeteerGame49 = new WerewolfGame({
+      roundNumber: 1,
+      isNight: true,
+      players: [puppetWolf49, puppetTarget1_49, puppetTarget2_49]
+    });
+
+    // Wolves intended to bite 122, but Puppeteer redirected to bite 123
+    const resPuppet49 = puppeteerGame49.resolveNight({
+      wolfTargetId: 122,
+      puppeteerTargetId: 123
+    });
+
+    assert.strictEqual(resPuppet49.game.getPlayer(122).isAlive, true);
+    assert.strictEqual(resPuppet49.game.getPlayer(123).isAlive, false);
+    console.log('✅ Test 49: Người Múa Rối wolf bite target override verified.');
+
+    // --- TEST 50: Thành Viên Giáo Phái (Cult Leader) solo victory condition ---
+    const cultLeader50 = new Player({ id: 131, name: 'Giáo Chủ 131', currentRoleId: 'thanh-vien-giao-phai', roleId: 'thanh-vien-giao-phai', isAlive: true, cultGroup: 'A' });
+    const cultFollower50 = new Player({ id: 132, name: 'Tín Đồ 132', currentRoleId: 'dan-lang', roleId: 'dan-lang', isAlive: true, cultGroup: 'A' });
+    const rivalGroupDead50 = new Player({ id: 133, name: 'Kình Địch 133', currentRoleId: 'dan-lang', roleId: 'dan-lang', isAlive: false, cultGroup: 'B' });
+
+    const cultGame50 = new WerewolfGame({
+      roundNumber: 2,
+      isNight: false,
+      players: [cultLeader50, cultFollower50, rivalGroupDead50]
+    });
+
+    const cultEnd50 = cultGame50.checkWinCondition();
+    assert.strictEqual(cultEnd50.isEnded, true);
+    assert.strictEqual(cultEnd50.winner, 'Cult Leader');
+    console.log('✅ Test 50: Thành Viên Giáo Phái solo victory condition verified.');
+
+    console.log('\n🎉 ALL 50 DOMAIN ENGINE TESTS PASSED PERFECTLY!\n');
   });
 }

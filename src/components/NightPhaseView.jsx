@@ -716,6 +716,8 @@ export default function NightPhaseView({
               players={players}
               alivePlayers={alivePlayers}
               nightState={nightState}
+              deckRoleIds={deckRoleIds}
+              roundNumber={roundNumber}
               wolfCanKillDouble={wolfCanKillDouble}
               canWolvesKillTeammates={canWolvesKillTeammates}
               canCursedWolfInfect={canCursedWolfInfect}
