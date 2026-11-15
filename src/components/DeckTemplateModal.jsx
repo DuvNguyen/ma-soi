@@ -8,6 +8,7 @@ import GothicBadge from './ui/GothicBadge';
 import ClawMarks from './ui/ClawMarks';
 import WolfIcon from './ui/WolfIcon';
 import { useGothicDialog } from '../context/GothicDialogContext';
+import { matchesSearch } from '../utils/roleUtils';
 
 export default function DeckTemplateModal({
   isOpen,
@@ -397,7 +398,7 @@ export default function DeckTemplateModal({
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5 max-h-[45vh] overflow-y-auto pr-1">
-                  {ROLES.filter(r => (!roleSearchQuery || r.name.toLowerCase().includes(roleSearchQuery.toLowerCase()) || r.enName.toLowerCase().includes(roleSearchQuery.toLowerCase()) || (r.aliases && r.aliases.some(a => a.toLowerCase().includes(roleSearchQuery.toLowerCase())))) && r.isPlayableDeckCard !== false && !r.isAppointedTitle && r.id !== 'canh-sat-truong' && r.id !== 'canh-sat-characters').map(role => {
+                  {ROLES.filter(r => (!roleSearchQuery || matchesSearch(r.name, roleSearchQuery) || matchesSearch(r.enName, roleSearchQuery) || (r.aliases && r.aliases.some(a => matchesSearch(a, roleSearchQuery)))) && r.isPlayableDeckCard !== false && !r.isAppointedTitle && r.id !== 'canh-sat-truong' && r.id !== 'canh-sat-characters').map(role => {
                     const count = roleCounts[role.id] || 0;
                     const isWolf = role.teamCode === 'W';
 
@@ -544,7 +545,7 @@ export default function DeckTemplateModal({
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
                   {templates
-                    .filter(tpl => !searchQuery || tpl.name?.toLowerCase().includes(searchQuery.toLowerCase()) || tpl.description?.toLowerCase().includes(searchQuery.toLowerCase()))
+                    .filter(tpl => !searchQuery || matchesSearch(tpl.name, searchQuery) || matchesSearch(tpl.description, searchQuery))
                     .map(tpl => {
                     const rolesList = tpl.roleIds.map(id => ROLES.find(r => r.id === id)).filter(Boolean);
                     const wolfs = rolesList.filter(r => r.teamCode === 'W').length;

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Sparkles, Skull, Search } from 'lucide-react';
 import GothicButton from '../ui/GothicButton';
 import WolfIcon from '../ui/WolfIcon';
-import { getPlayerRole, isWolfPlayer } from '../../utils/roleUtils';
+import { getPlayerRole, isWolfPlayer, matchesSearch, removeVietnameseTones } from '../../utils/roleUtils';
 
 export default function NightWitchStep({
   players,
@@ -132,8 +132,8 @@ export default function NightWitchStep({
               {alivePlayers
                 .filter(p => {
                   if (!poisonSearchQuery) return true;
-                  const q = poisonSearchQuery.toLowerCase().trim();
-                  return (p.name && p.name.toLowerCase().includes(q)) || String(p.id).includes(q);
+                  const q = removeVietnameseTones(poisonSearchQuery);
+                  return matchesSearch(p.name, q) || String(p.id).includes(q);
                 })
                 .map(p => {
                 const isWolf = isWolfPlayer(p);

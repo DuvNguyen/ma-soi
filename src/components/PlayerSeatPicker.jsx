@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { ChevronLeft, ChevronRight, Heart, Skull, Shield, Eye, Flame, Check, Search } from 'lucide-react';
 import WolfIcon from './ui/WolfIcon';
-import { getPlayerRole } from '../utils/roleUtils';
+import { getPlayerRole, matchesSearch, removeVietnameseTones } from '../utils/roleUtils';
 import triggerHaptic from '../utils/haptics';
 
 export default function PlayerSeatPicker({
@@ -22,8 +22,8 @@ export default function PlayerSeatPicker({
 
   const filteredPlayers = players.filter(p => {
     if (!searchQuery) return true;
-    const q = searchQuery.toLowerCase().trim();
-    return (p.name && p.name.toLowerCase().includes(q)) || String(p.id).includes(q);
+    const q = removeVietnameseTones(searchQuery);
+    return matchesSearch(p.name, q) || String(p.id).includes(q);
   });
 
   const pageSize = 6;

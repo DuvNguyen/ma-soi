@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Flame, Ghost, Wand2, Eye, Skull, MoonStar, Crosshair, Users, Search, Swords } from 'lucide-react';
 import PlayerSeatPicker from '../PlayerSeatPicker';
 import WolfIcon from '../ui/WolfIcon';
-import { getPlayerRole } from '../../utils/roleUtils';
+import { getPlayerRole, matchesSearch, removeVietnameseTones } from '../../utils/roleUtils';
 
 export default function NightSpecialRolesStep({
   currentRole,
@@ -128,8 +128,8 @@ export default function NightSpecialRolesStep({
             {alivePlayers
               .filter(p => {
                 if (!roleActionSearch) return true;
-                const q = roleActionSearch.toLowerCase().trim();
-                return (p.name && p.name.toLowerCase().includes(q)) || String(p.id).includes(q);
+                const q = removeVietnameseTones(roleActionSearch);
+                return matchesSearch(p.name, q) || String(p.id).includes(q);
               })
               .map(p => {
               const isSelf = wildChildPlayer ? p.id === wildChildPlayer.id : (p.currentRoleId || p.roleId) === 'dua-tre-hoang-da';
@@ -212,8 +212,8 @@ export default function NightSpecialRolesStep({
           {alivePlayers
             .filter(p => {
               if (!roleActionSearch) return true;
-              const q = roleActionSearch.toLowerCase().trim();
-              return (p.name && p.name.toLowerCase().includes(q)) || String(p.id).includes(q);
+              const q = removeVietnameseTones(roleActionSearch);
+              return matchesSearch(p.name, q) || String(p.id).includes(q);
             })
             .map(p => {
             const isSelf = (p.currentRoleId || p.roleId) === 'anh-tu' || getPlayerRole(p)?.id === 'anh-tu';

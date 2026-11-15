@@ -87,3 +87,31 @@ export const isWolfPlayer = (player) => {
   if (!role) return false;
   return role.teamCode === 'W' || WOLF_ROLE_IDS.includes(role.id);
 };
+
+/**
+ * Chuẩn hóa chuỗi tiếng Việt (loại bỏ toàn bộ dấu thanh và dấu phụ)
+ * Hỗ trợ tìm kiếm không dấu: "vi" khớp "Vĩ", "nam" khớp "Nam", "tot" khớp "Tốt", "duc" khớp "Đức"
+ * @param {string|number|null} str
+ * @returns {string} Chuỗi viết thường không dấu
+ */
+export const removeVietnameseTones = (str) => {
+  if (str === null || str === undefined) return '';
+  return String(str)
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[đĐ]/g, m => m === 'đ' ? 'd' : 'D')
+    .toLowerCase()
+    .trim();
+};
+
+/**
+ * Kiểm tra xem chuỗi nguồn có chứa từ khóa tìm kiếm hay không (không phân biệt hoa/thường và dấu tiếng Việt)
+ * @param {string|null} text Chuỗi cần tìm (tên người chơi, tên vai...)
+ * @param {string|null} query Từ khóa người dùng gõ
+ * @returns {boolean}
+ */
+export const matchesSearch = (text, query) => {
+  if (!query) return true;
+  if (!text) return false;
+  return removeVietnameseTones(text).includes(removeVietnameseTones(query));
+};

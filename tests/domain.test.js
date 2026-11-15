@@ -6,6 +6,7 @@ import { Player } from '../src/domain/models/Player.js';
 import { getRoleStrategy } from '../src/domain/strategies/RoleStrategies.js';
 import { getRoleCapacity } from '../src/utils/deckUtils.js';
 import { checkGameEnd } from '../src/utils/gameLogic.js';
+import { matchesSearch, removeVietnameseTones } from '../src/utils/roleUtils.js';
 
 console.log('🧪 Starting Phase 1 Domain Model & Strategy Tests...\n');
 
@@ -805,6 +806,25 @@ console.log('🧪 Starting Phase 1 Domain Model & Strategy Tests...\n');
     assert.strictEqual(duelFail.game.getPlayer(70).hasUsedKnightDuel, true, 'Knight duel consumed');
     console.log('✅ Test 43: Knight duel against Wolf & Villager verified.');
 
-    console.log('\n🎉 ALL 43 DOMAIN ENGINE TESTS PASSED PERFECTLY!\n');
+    // Test 44: Vietnamese diacritics-insensitive search (gõ không dấu vẫn tìm ra tiếng Việt)
+    assert.strictEqual(removeVietnameseTones('Vĩ'), 'vi');
+    assert.strictEqual(removeVietnameseTones('Phú'), 'phu');
+    assert.strictEqual(removeVietnameseTones('Như'), 'nhu');
+    assert.strictEqual(removeVietnameseTones('Tốt'), 'tot');
+    assert.strictEqual(removeVietnameseTones('Đức'), 'duc');
+    assert.strictEqual(removeVietnameseTones('Duyên'), 'duyen');
+
+    assert.strictEqual(matchesSearch('Vĩ', 'vi'), true, 'Typing vi matches Vĩ');
+    assert.strictEqual(matchesSearch('Phú', 'phu'), true, 'Typing phu matches Phú');
+    assert.strictEqual(matchesSearch('Tốt', 'tot'), true, 'Typing tot matches Tốt');
+    assert.strictEqual(matchesSearch('Đức Minh', 'duc'), true, 'Typing duc matches Đức Minh');
+    assert.strictEqual(matchesSearch('Thợ Săn', 'tho san'), true, 'Typing tho san matches Thợ Săn');
+    assert.strictEqual(matchesSearch('Bảo Vệ', 'bao ve'), true, 'Typing bao ve matches Bảo Vệ');
+    assert.strictEqual(matchesSearch('Phù Thủy', 'thuy'), true, 'Typing thuy matches Phù Thủy');
+    assert.strictEqual(matchesSearch('Ma Sói', 'soi'), true, 'Typing soi matches Ma Sói');
+    assert.strictEqual(matchesSearch('Vĩ', 'nam'), false, 'Non-matching query returns false');
+    console.log('✅ Test 44: Vietnamese diacritics-insensitive search verified.');
+
+    console.log('\n🎉 ALL 44 DOMAIN ENGINE TESTS PASSED PERFECTLY!\n');
   });
 }

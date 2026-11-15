@@ -5,6 +5,7 @@ import {
   LayoutGrid, List, Sparkles, Sun, Moon, ArrowLeft, Info
 } from 'lucide-react';
 import WolfIcon from './ui/WolfIcon';
+import { matchesSearch } from '../utils/roleUtils';
 
 export default function RoleLibraryModal({ isOpen, onClose }) {
   if (!isOpen) return null;
@@ -17,15 +18,17 @@ export default function RoleLibraryModal({ isOpen, onClose }) {
 
   const filteredRoles = useMemo(() => {
     return ROLES.filter(r => {
-      const q = searchTerm.toLowerCase().trim();
-      const matchesSearch = !q || 
-        r.name.toLowerCase().includes(q) ||
-        r.enName.toLowerCase().includes(q) ||
-        (r.aliases && r.aliases.some(a => a.toLowerCase().includes(q))) ||
-        (r.shortDesc && r.shortDesc.toLowerCase().includes(q)) ||
-        (r.fullDesc && r.fullDesc.toLowerCase().includes(q));
+      if (!searchTerm) {
+        return selectedTeam === 'ALL' || r.teamCode === selectedTeam;
+      }
+      const matchesText = 
+        matchesSearch(r.name, searchTerm) ||
+        matchesSearch(r.enName, searchTerm) ||
+        (r.aliases && r.aliases.some(a => matchesSearch(a, searchTerm))) ||
+        matchesSearch(r.shortDesc, searchTerm) ||
+        matchesSearch(r.fullDesc, searchTerm);
       const matchesTeam = selectedTeam === 'ALL' || r.teamCode === selectedTeam;
-      return matchesSearch && matchesTeam;
+      return matchesText && matchesTeam;
     });
   }, [searchTerm, selectedTeam]);
 

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Swords, Search, UserCheck, AlertTriangle } from 'lucide-react';
 import GothicButton from '../ui/GothicButton';
-import { getRole, getPlayerRole } from '../../utils/roleUtils';
+import { getRole, getPlayerRole, matchesSearch, removeVietnameseTones } from '../../utils/roleUtils';
 
 export default function DayKnightDuel({
   players,
@@ -102,11 +102,11 @@ export default function DayKnightDuel({
 
   // TRƯỜNG HỢP 2: Đã có Kị Sĩ còn sống và chưa quyết đấu
   const validTargets = alivePlayers.filter(p => p.id !== knight.id);
-  const filteredTargets = validTargets.filter(p =>
-    !searchQuery ||
-    p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    String(p.id).includes(searchQuery)
-  );
+  const filteredTargets = validTargets.filter(p => {
+    if (!searchQuery) return true;
+    const q = removeVietnameseTones(searchQuery);
+    return matchesSearch(p.name, q) || String(p.id).includes(q);
+  });
 
   const handleConfirmKnightDuel = () => {
     if (!selectedKnightTargetId) {
