@@ -1365,6 +1365,45 @@ console.log('🧪 Starting Phase 1 Domain Model & Strategy Tests...\n');
 
     console.log('✅ Test 65: Complex Role Transformation & Cascade Interactions verified.');
 
-    console.log('\n🎉 ALL 65 DOMAIN ENGINE TESTS PASSED PERFECTLY!\n');
+    // --- TEST 66: Role Transformation Graph Model & History Flow ---
+    const modalContent = fs.readFileSync('src/components/PlayerJourneyModal.jsx', 'utf8');
+    assert.ok(modalContent.includes('buildGraphData'), 'PlayerJourneyModal must contain graph building algorithm');
+    assert.ok(modalContent.includes('viewMode === \'graph\''), 'PlayerJourneyModal must support Graph view mode');
+    assert.ok(modalContent.includes('viewMode === \'timeline\''), 'PlayerJourneyModal must support Timeline view mode');
+    assert.ok(modalContent.includes('ArrowRight') && modalContent.includes('ArrowDown'), 'Graph layout must render directional connector arrows');
+    assert.ok(modalContent.includes('edge.title') && modalContent.includes('edge.detail'), 'Graph layout must render transition cause label on arrow path');
+
+    const gridContent = fs.readFileSync('src/components/PlayersGridView.jsx', 'utf8');
+    assert.ok(gridContent.includes('Chuỗi Biến Đổi'), 'PlayersGridView must display quick Transformation Graph trigger button');
+    assert.ok(gridContent.includes('players={players}'), 'PlayersGridView must pass village player list to PlayerJourneyModal');
+
+    // Test multi-step transformation sequence on Player model
+    let pMulti = new Player({ id: 991, name: 'Đứa Trẻ Biến Đổi', currentRoleId: 'dua-tre-hoang', originalRoleId: 'dua-tre-hoang' });
+    pMulti = pMulti.recordHistory({
+      phase: 'Đêm 1',
+      type: 'WILD_CHILD_CHOOSE_IDOL',
+      title: 'Chọn Thần Tượng',
+      detail: 'Chọn Người Chơi 2 làm thần tượng sống còn.',
+      fromRole: 'dua-tre-hoang',
+      toRole: 'dua-tre-hoang'
+    });
+    pMulti = pMulti.recordHistory({
+      phase: 'Ngày 2',
+      type: 'WILD_CHILD_TRANSFORM',
+      title: 'Thần Tượng Tử Nạn → Hóa Sói',
+      detail: 'Thần tượng hy sinh, Đứa Trẻ Hoang hóa thành Ma Sói khát máu.',
+      fromRole: 'dua-tre-hoang',
+      toRole: 'soi-thuong'
+    });
+    pMulti = pMulti.clone({ currentRoleId: 'soi-thuong' });
+
+    assert.strictEqual(pMulti.roleHistory.length, 2, 'Role history accurately preserves sequence of events');
+    assert.strictEqual(pMulti.roleHistory[0].fromRole, 'dua-tre-hoang');
+    assert.strictEqual(pMulti.roleHistory[1].toRole, 'soi-thuong');
+    assert.strictEqual(pMulti.isWolf(), true, 'Current state reflects werewolf transformation');
+
+    console.log('✅ Test 66: Role Transformation Graph Model & Visual Flow verified.');
+
+    console.log('\n🎉 ALL 66 DOMAIN ENGINE TESTS PASSED PERFECTLY!\n');
   });
 }

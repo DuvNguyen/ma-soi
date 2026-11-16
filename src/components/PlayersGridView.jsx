@@ -11,6 +11,8 @@ export default function PlayersGridView({ players, onOpenAssignRole, onOpenRoste
   const wolfCount = players.filter(p => p.isAlive && isWolfPlayer(p)).length;
   const villagerCount = players.filter(p => p.isAlive && !isWolfPlayer(p) && !isHostileThirdParty(p)).length;
   const thirdPartyCount = players.filter(p => p.isAlive && isHostileThirdParty(p)).length;
+  const transformedPlayers = players.filter(p => p.roleHistory && p.roleHistory.length > 0);
+  const transformedCount = transformedPlayers.length;
 
   return (
     <div className="space-y-4 sm:space-y-6 max-w-5xl mx-auto">
@@ -80,17 +82,30 @@ export default function PlayersGridView({ players, onOpenAssignRole, onOpenRoste
             </span>
           </div>
 
-          {onOpenRosters && (
-            <button
-              type="button"
-              onClick={onOpenRosters}
-              className="px-3 py-1.5 rounded-xl bg-purple-950/80 hover:bg-purple-900 border border-purple-600 hover:border-purple-400 text-purple-200 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-md hover:scale-105 active:scale-95"
-              title="Mở danh sách nhóm người chơi để đổi hoặc sửa tên"
-            >
-              <Edit3 className="w-3.5 h-3.5 text-purple-300" />
-              <span>Sửa Nhóm Người</span>
-            </button>
-          )}
+          <div className="flex items-center gap-2">
+            {transformedCount > 0 && (
+              <button
+                type="button"
+                onClick={() => setJourneyPlayer(transformedPlayers[0])}
+                className="px-3 py-1.5 rounded-xl bg-amber-950/70 hover:bg-amber-900 border border-amber-600/80 hover:border-amber-400 text-amber-200 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-md hover:scale-105 active:scale-95"
+                title="Xem sơ đồ chuỗi biến đổi của các nhân vật"
+              >
+                <History className="w-3.5 h-3.5 text-amber-300" />
+                <span>Chuỗi Biến Đổi ({transformedCount})</span>
+              </button>
+            )}
+            {onOpenRosters && (
+              <button
+                type="button"
+                onClick={onOpenRosters}
+                className="px-3 py-1.5 rounded-xl bg-purple-950/80 hover:bg-purple-900 border border-purple-600 hover:border-purple-400 text-purple-200 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-md hover:scale-105 active:scale-95"
+                title="Mở danh sách nhóm người chơi để đổi hoặc sửa tên"
+              >
+                <Edit3 className="w-3.5 h-3.5 text-purple-300" />
+                <span>Sửa Nhóm Người</span>
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Theatre Matrix Seats Grid */}
@@ -284,6 +299,7 @@ export default function PlayersGridView({ players, onOpenAssignRole, onOpenRoste
         isOpen={Boolean(journeyPlayer)}
         onClose={() => setJourneyPlayer(null)}
         player={journeyPlayer}
+        players={players}
       />
     </div>
   );
