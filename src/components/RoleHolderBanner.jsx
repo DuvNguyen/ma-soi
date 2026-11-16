@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { UserCheck, AlertTriangle, AlertCircle, RefreshCw, ChevronDown, ChevronUp, Skull, ShieldCheck, X, SkipForward } from 'lucide-react';
 import { getRoleCapacity } from '../utils/deckUtils';
 import { getPlayerRole } from '../utils/roleUtils';
+import { useGothicDialog } from '../context/GothicDialogContext';
 
 export default function RoleHolderBanner({
   currentRole,
@@ -12,6 +13,7 @@ export default function RoleHolderBanner({
   isWolfStep,
   isWolfPlayer
 }) {
+  const { showConfirm } = useGothicDialog();
   // Check if someone was cursed into a werewolf from this role
   const cursedHolder = !isWolfStep && players.find(p => p.isCursedWolf && p.originalRoleId === currentRole?.id);
 
@@ -131,7 +133,16 @@ export default function RoleHolderBanner({
           {!isWolfStep && !hasHolders && !isRoleCursedOut && onSkipRole && (
             <button
               type="button"
-              onClick={() => onSkipRole(currentRole.id)}
+              onClick={() => {
+                showConfirm({
+                  title: 'BỎ QUA VAI CHƯA GÁN?',
+                  message: `Vai trò "${currentRole.name}" chưa được gán cho bất kỳ người chơi nào trong làng.\n\nBạn có chắc chắn muốn bỏ qua bước này không?`,
+                  variant: 'warning',
+                  confirmText: 'Bỏ Qua Vai Này',
+                  cancelText: 'Quay Lại Gán Vai',
+                  onConfirm: () => onSkipRole(currentRole.id)
+                });
+              }}
               className="text-xs px-2 py-1 rounded-xl border border-slate-700 bg-slate-900/80 hover:bg-slate-800 text-slate-400 hover:text-slate-200 transition-all flex items-center gap-1 cursor-pointer"
               title="Bỏ qua nếu vai này không có trong làng hoặc không ai giơ tay"
             >

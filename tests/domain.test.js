@@ -1425,6 +1425,24 @@ console.log('🧪 Starting Phase 1 Domain Model & Strategy Tests...\n');
 
     console.log('✅ Test 67: Test Mode Toggle, Direct Sister/Brother Picker, and Structured Match Chronicle verified.');
 
-    console.log('\n🎉 ALL 67 DOMAIN ENGINE TESTS PASSED PERFECTLY!\n');
+    // --- TEST 68: Unassigned Role Skip Guard & Direct Shadow (Anh Tu) Role Picker ---
+    const roleBannerContent = fs.readFileSync('src/components/RoleHolderBanner.jsx', 'utf8');
+    assert.ok(roleBannerContent.includes('showConfirm') && roleBannerContent.includes('BỎ QUA VAI CHƯA GÁN?'), 'RoleHolderBanner must show confirmation modal before skipping unassigned role');
+
+    const nightPhaseContent = fs.readFileSync('src/components/NightPhaseView.jsx', 'utf8');
+    assert.ok(nightPhaseContent.includes('VAI TRÒ CHƯA CÓ NGƯỜI GIỮ!'), 'NightPhaseView must prompt confirmation before advancing if role has no holders');
+    assert.ok(nightPhaseContent.includes('Chưa gán vai Ảnh Tử') || nightPhaseContent.includes('Chưa gán người chơi nào cho vai Ảnh Tử'), 'NightPhaseView must validate shadow assignment');
+    assert.ok(nightPhaseContent.includes('Chưa gán Con Hoang') || nightPhaseContent.includes('Chưa gán người chơi nào cho vai Đứa Trẻ Hoang Dã'), 'NightPhaseView must validate wild child assignment');
+
+    const stepHeaderContent = fs.readFileSync('src/components/night/NightStepHeader.jsx', 'utf8');
+    assert.ok(stepHeaderContent.includes('VAI TRÒ CHƯA CÓ NGƯỜI GIỮ!'), 'NightStepHeader breadcrumbs must prompt confirmation before skipping ahead if unassigned');
+
+    const specialRolesUpdated = fs.readFileSync('src/components/night/NightSpecialRolesStep.jsx', 'utf8');
+    assert.ok(specialRolesUpdated.includes('Chọn Người Giữ Vai Ảnh Tử (Doppelganger)'), 'NightSpecialRolesStep must provide direct assignment for Anh Tu');
+    assert.ok(specialRolesUpdated.includes('shadowHostId'), 'NightSpecialRolesStep must support shadowHostId selection');
+
+    console.log('✅ Test 68: Unassigned Role Skip Guard & Direct Shadow Role Assignment verified.');
+
+    console.log('\n🎉 ALL 68 DOMAIN ENGINE TESTS PASSED PERFECTLY!\n');
   });
 }

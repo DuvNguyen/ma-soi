@@ -43,7 +43,7 @@ export default function NightStepHeader({
               <button
                 key={`${step.id}-${idx}`}
                 onClick={() => {
-                  if (idx > safeStepIdx && !stepValidation.isValid) {
+                  if (idx > safeStepIdx) {
                     if (stepValidation.isStrictBlock) {
                       showAlert({
                         title: 'BẮT BUỘC GÁN ĐỦ MA SÓI!',
@@ -54,19 +54,38 @@ export default function NightStepHeader({
                       return;
                     }
 
-                    showConfirm({
-                      title: 'BỎ QUA BƯỚC ĐÊM BẮT BUỘC?',
-                      message: `Bước hiện tại chưa hoàn thành:\n"${stepValidation.message}"\n\nBạn có chắc muốn bỏ qua để nhảy thẳng sang bước tiếp theo?`,
-                      variant: 'warning',
-                      confirmText: 'Bỏ Qua & Nhảy Bước',
-                      cancelText: 'Ở Lại Hoàn Thành',
-                      onConfirm: () => {
-                        changeStep(idx);
-                        if (onSelectSeerTarget) onSelectSeerTarget(null);
-                        if (onSetShowAssignDropdown) onSetShowAssignDropdown(false);
-                      }
-                    });
-                    return;
+                    if (!hasHolders && !isSkipped && !isRoleCursedOut && !isWolfStep) {
+                      showConfirm({
+                        title: 'VAI TRÒ CHƯA CÓ NGƯỜI GIỮ!',
+                        message: `Vai trò "${currentRole?.name || 'này'}" chưa được gán cho bất kỳ ai trong làng.\n\nBạn có chắc muốn bỏ qua để nhảy thẳng sang bước tiếp theo?`,
+                        variant: 'warning',
+                        confirmText: 'Bỏ Qua & Nhảy Bước',
+                        cancelText: 'Quay Lại Gán Vai',
+                        onConfirm: () => {
+                          if (onSkipRole && currentRole) onSkipRole(currentRole.id);
+                          changeStep(idx);
+                          if (onSelectSeerTarget) onSelectSeerTarget(null);
+                          if (onSetShowAssignDropdown) onSetShowAssignDropdown(false);
+                        }
+                      });
+                      return;
+                    }
+
+                    if (!stepValidation.isValid) {
+                      showConfirm({
+                        title: 'BỎ QUA BƯỚC ĐÊM BẮT BUỘC?',
+                        message: `Bước hiện tại chưa hoàn thành:\n"${stepValidation.message}"\n\nBạn có chắc muốn bỏ qua để nhảy thẳng sang bước tiếp theo?`,
+                        variant: 'warning',
+                        confirmText: 'Bỏ Qua & Nhảy Bước',
+                        cancelText: 'Ở Lại Hoàn Thành',
+                        onConfirm: () => {
+                          changeStep(idx);
+                          if (onSelectSeerTarget) onSelectSeerTarget(null);
+                          if (onSetShowAssignDropdown) onSetShowAssignDropdown(false);
+                        }
+                      });
+                      return;
+                    }
                   }
                   changeStep(idx);
                   if (onSelectSeerTarget) onSelectSeerTarget(null);

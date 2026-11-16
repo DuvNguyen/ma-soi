@@ -189,81 +189,167 @@ export default function NightSpecialRolesStep({
 
   // 2. ẢNH TỬ (SHADOW / DOPPELGANGER)
   if (currentRole.id === 'anh-tu') {
+    const shadowHolders = players.filter(p => (p.currentRoleId || p.roleId) === 'anh-tu' || p.originalRoleId === 'anh-tu');
+    const shadowPlayer = shadowHolders[0] || null;
+    const selectedHostId = nightState.shadowHostId || shadowPlayer?.shadowHostId;
+    const selectedHostPlayer = players.find(p => p.id === selectedHostId);
+
     return (
-      <div className="space-y-3">
-        <div className="flex items-center justify-between gap-2">
-          <div className="flex items-center gap-2">
-            <Ghost className="w-5 h-5 text-purple-400" />
-            <h4 className="font-bold text-sm text-purple-200 font-cinzel">
-              Bản Thể liên kết
-            </h4>
+      <div className="space-y-4">
+        {/* SUMMARY CARD */}
+        <div className="p-3.5 rounded-2xl bg-[#14121e] border border-purple-900/60 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 rounded-xl bg-purple-950/60 border border-purple-600/40 text-purple-300 shrink-0">
+              <Ghost className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="font-bold text-purple-200 text-sm font-cinzel">
+                Liên Kết Ảnh Tử & Bản Thể
+              </div>
+              <div className="text-xs text-slate-400 mt-0.5">
+                Khi Bản Thể chết, Ảnh Tử sẽ lập tức kế thừa toàn bộ vai trò và chức năng của Bản Thể.
+              </div>
+            </div>
           </div>
 
-          {/* Compact Search Input */}
-          <div className="relative">
-            <Search className="w-3 h-3 text-slate-400 absolute left-2 top-1/2 -translate-y-1/2 pointer-events-none" />
-            <input
-              type="text"
-              value={roleActionSearch}
-              onChange={(e) => setRoleActionSearch(e.target.value)}
-              placeholder="Tìm tên..."
-              className="w-24 sm:w-32 text-xs py-0.5 pl-6 pr-2 rounded-lg bg-slate-900/90 border border-slate-700 text-slate-200 placeholder:text-slate-500 focus:outline-none focus:border-purple-500"
-            />
+          <div className="flex items-center gap-2 shrink-0">
+            {shadowPlayer ? (
+              <span className="text-xs font-bold px-2.5 py-1 rounded-xl bg-purple-950/80 border border-purple-600 text-purple-200">
+                Ảnh Tử: #{shadowPlayer.id} {shadowPlayer.name}
+              </span>
+            ) : (
+              <span className="text-xs font-semibold px-2.5 py-1 rounded-xl bg-slate-900 border border-slate-700 text-slate-400">
+                Chưa gán Ảnh Tử
+              </span>
+            )}
+            <span className="text-slate-500 font-bold">➔</span>
+            {selectedHostPlayer ? (
+              <span className="text-xs font-bold px-2.5 py-1 rounded-xl bg-purple-900/80 border border-purple-500 text-purple-100">
+                Bản Thể: #{selectedHostPlayer.id} {selectedHostPlayer.name}
+              </span>
+            ) : (
+              <span className="text-xs font-semibold px-2.5 py-1 rounded-xl bg-slate-900 border border-slate-700 text-slate-400">
+                Chưa chọn Bản Thể
+              </span>
+            )}
           </div>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5">
-          {alivePlayers
-            .filter(p => {
-              if (!roleActionSearch) return true;
-              const q = removeVietnameseTones(roleActionSearch);
-              return matchesSearch(p.name, q) || String(p.id).includes(q);
-            })
-            .map(p => {
-            const isSelf = (p.currentRoleId || p.roleId) === 'anh-tu' || getPlayerRole(p)?.id === 'anh-tu';
-            const isSelected = nightState.shadowHostId === p.id;
-            const isWolf = isWolfPlayer(p);
-
-            return (
-              <button
-                key={p.id}
-                disabled={isSelf}
-                onClick={() => onSaveAction('shadowHost', p.id)}
-                className={`p-3 rounded-2xl border text-left transition-all duration-200 flex items-center justify-between cursor-pointer ${
-                  isSelf
-                    ? 'opacity-30 cursor-not-allowed bg-black/40 border-slate-900 text-slate-600'
-                    : isSelected
-                    ? 'bg-purple-950/90 border-purple-400 text-purple-100 shadow-[0_0_20px_rgba(168,85,247,0.4)] ring-1 ring-purple-400'
-                    : isWolf
-                    ? 'bg-gradient-to-r from-[#22070a] to-[#120305] border-rose-600/90 hover:border-rose-400 text-slate-200'
-                    : 'bg-[#121422] hover:bg-[#1a1c30] border-slate-800 text-slate-300'
-                }`}
-              >
-                <div className="flex items-center gap-2.5 truncate">
-                  <div className={`w-7 h-7 rounded-lg flex items-center justify-center font-bold text-xs border ${
-                    isWolf ? 'bg-rose-950 text-rose-300 border-rose-600' : 'bg-slate-900 text-slate-300 border-slate-800'
-                  }`}>
-                    {p.id}
-                  </div>
+        {/* 1. ASSIGN ANH TU IF NOT YET ASSIGNED */}
+        {!shadowPlayer && typeof onAssignRole === 'function' && (
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-purple-300 uppercase tracking-wider">
+                1. Chọn Người Giữ Vai Ảnh Tử (Doppelganger):
+              </span>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+              {alivePlayers.map(p => (
+                <button
+                  key={p.id}
+                  type="button"
+                  onClick={() => onAssignRole(p.id, currentRole.id)}
+                  className="p-2.5 rounded-xl border border-slate-800 bg-[#121422] hover:bg-[#1a1c30] hover:border-purple-500/50 text-slate-200 text-left flex items-center justify-between transition-all cursor-pointer"
+                >
                   <div className="truncate">
-                    <div className="font-bold text-sm truncate flex items-center gap-1.5">
-                      <span>{p.name}</span>
-                      {isWolf && <WolfIcon className="w-2.5 h-2.5 inline text-rose-400" />}
+                    <span className="font-bold text-xs">#{p.id} {p.name}</span>
+                    <span className="text-[10px] text-slate-400 block truncate">
+                      {getPlayerRole(p)?.name || 'Chưa gán'}
+                    </span>
+                  </div>
+                  <span className="text-[10px] text-purple-400 font-bold shrink-0">Chọn vai</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* 2. CHỌN BẢN THỂ LIÊN KẾT */}
+        <div className="space-y-2">
+          <div className="flex items-center justify-between gap-2 flex-wrap">
+            <span className="text-xs font-bold text-purple-300 uppercase tracking-wider">
+              {shadowPlayer ? `2. Chọn Bản Thể Cho #${shadowPlayer.id}:` : '2. Chọn Bản Thể Liên Kết:'}
+            </span>
+
+            <div className="flex items-center gap-2">
+              {/* Compact Search Input */}
+              <div className="relative">
+                <Search className="w-3 h-3 text-slate-400 absolute left-2 top-1/2 -translate-y-1/2 pointer-events-none" />
+                <input
+                  type="text"
+                  value={roleActionSearch}
+                  onChange={(e) => setRoleActionSearch(e.target.value)}
+                  placeholder="Tìm tên..."
+                  className="w-24 sm:w-32 text-xs py-0.5 pl-6 pr-2 rounded-lg bg-slate-900/90 border border-slate-700 text-slate-200 placeholder:text-slate-500 focus:outline-none focus:border-purple-500"
+                />
+              </div>
+
+              {shadowPlayer && typeof onAssignRole === 'function' && (
+                <button
+                  type="button"
+                  onClick={() => onAssignRole(shadowPlayer.id, currentRole.id)}
+                  className="text-[11px] underline text-slate-400 hover:text-purple-300 cursor-pointer"
+                >
+                  Đổi vai
+                </button>
+              )}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5">
+            {alivePlayers
+              .filter(p => {
+                if (!roleActionSearch) return true;
+                const q = removeVietnameseTones(roleActionSearch);
+                return matchesSearch(p.name, q) || String(p.id).includes(q);
+              })
+              .map(p => {
+              const isSelf = shadowPlayer ? p.id === shadowPlayer.id : ((p.currentRoleId || p.roleId) === 'anh-tu' || getPlayerRole(p)?.id === 'anh-tu');
+              const isSelected = selectedHostId === p.id;
+              const isWolf = isWolfPlayer(p);
+
+              return (
+                <button
+                  key={p.id}
+                  disabled={isSelf}
+                  type="button"
+                  onClick={() => onSaveAction('shadowHost', p.id)}
+                  className={`p-3 rounded-2xl border text-left transition-all duration-200 flex items-center justify-between cursor-pointer ${
+                    isSelf
+                      ? 'opacity-30 cursor-not-allowed bg-black/40 border-slate-900 text-slate-600'
+                      : isSelected
+                      ? 'bg-purple-950/90 border-purple-400 text-purple-100 shadow-[0_0_20px_rgba(168,85,247,0.4)] ring-1 ring-purple-400'
+                      : isWolf
+                      ? 'bg-gradient-to-r from-[#22070a] to-[#120305] border-rose-600/90 hover:border-rose-400 text-slate-200'
+                      : 'bg-[#121422] hover:bg-[#1a1c30] border-slate-800 text-slate-300'
+                  }`}
+                >
+                  <div className="flex items-center gap-2.5 truncate">
+                    <div className={`w-7 h-7 rounded-lg flex items-center justify-center font-bold text-xs border ${
+                      isWolf ? 'bg-rose-950 text-rose-300 border-rose-600' : 'bg-slate-900 text-slate-300 border-slate-800'
+                    }`}>
+                      {p.id}
                     </div>
-                    <div className="text-xs text-slate-400">
-                      Vai: {getPlayerRole(p)?.name || '❓ Chưa lộ vai'}
+                    <div className="truncate">
+                      <div className="font-bold text-sm truncate flex items-center gap-1.5">
+                        <span>{p.name}</span>
+                        {isWolf && <WolfIcon className="w-2.5 h-2.5 inline text-rose-400" />}
+                      </div>
+                      <div className="text-xs text-slate-400">
+                        Vai: {getPlayerRole(p)?.name || '❓ Chưa lộ vai'}
+                      </div>
                     </div>
                   </div>
-                </div>
 
-                {isSelf ? (
-                  <span className="text-[10px] text-slate-500">Bản thân</span>
-                ) : isSelected ? (
-                  <span className="text-xs font-bold text-purple-300">👻 Bản Thể</span>
-                ) : null}
-              </button>
-            );
-          })}
+                  {isSelf ? (
+                    <span className="text-[10px] text-purple-400/80 font-bold">Ảnh Tử</span>
+                  ) : isSelected ? (
+                    <span className="text-xs font-bold text-purple-300">👻 Bản Thể</span>
+                  ) : null}
+                </button>
+              );
+            })}
+          </div>
         </div>
       </div>
     );

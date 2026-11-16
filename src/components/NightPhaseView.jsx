@@ -452,6 +452,14 @@ export default function NightPhaseView({
       }
 
       case 'cupid': {
+        const cupidHolder = players.find(p => (p.currentRoleId || p.roleId) === 'cupid' || p.originalRoleId === 'cupid' || getPlayerRole(p)?.id === 'cupid');
+        if (!cupidHolder) {
+          return {
+            isValid: false,
+            message: 'Chưa gán người chơi nào cho vai Cupid',
+            shortMessage: 'Chưa gán Cupid'
+          };
+        }
         const count = (nightState.cupidChosenIds || []).length;
         if (count !== 2) {
           return { 
@@ -500,6 +508,14 @@ export default function NightPhaseView({
       }
 
       case 'dua-tre-hoang-da': {
+        const wildChildHolder = players.find(p => (p.currentRoleId || p.roleId) === 'dua-tre-hoang-da' || p.originalRoleId === 'dua-tre-hoang-da' || getPlayerRole(p)?.id === 'dua-tre-hoang-da');
+        if (!wildChildHolder) {
+          return {
+            isValid: false,
+            message: 'Chưa gán người chơi nào cho vai Đứa Trẻ Hoang Dã (Tarzan)',
+            shortMessage: 'Chưa gán Con Hoang'
+          };
+        }
         if (!nightState.wildChildIdolId) {
           return { 
             isValid: false, 
@@ -515,6 +531,14 @@ export default function NightPhaseView({
       }
 
       case 'anh-tu': {
+        const shadowHolder = players.find(p => (p.currentRoleId || p.roleId) === 'anh-tu' || p.originalRoleId === 'anh-tu' || getPlayerRole(p)?.id === 'anh-tu');
+        if (!shadowHolder) {
+          return {
+            isValid: false,
+            message: 'Chưa gán người chơi nào cho vai Ảnh Tử',
+            shortMessage: 'Chưa gán vai Ảnh Tử'
+          };
+        }
         if (!nightState.shadowHostId) {
           return { 
             isValid: false, 
@@ -810,6 +834,23 @@ export default function NightPhaseView({
       });
       return;
     }
+
+    // Nếu vai trò chưa được gán cho người chơi nào (chưa có ai giữ vai, chưa xác nhận bỏ qua)
+    if (!hasHolders && !isSkipped && !isRoleCursedOut && !isWolfStep && !force) {
+      showConfirm({
+        title: 'VAI TRÒ CHƯA CÓ NGƯỜI GIỮ!',
+        message: `Vai trò "${currentRole?.name || 'này'}" hiện chưa được gán cho bất kỳ người chơi nào trong làng.\n\nBạn có muốn bỏ qua lượt này để đi tiếp, hay quay lại để gán vai?`,
+        variant: 'warning',
+        confirmText: 'Bỏ Qua & Đi Tiếp ➔',
+        cancelText: 'Quay Lại Gán Vai',
+        onConfirm: () => {
+          if (onSkipRole && currentRole) onSkipRole(currentRole.id);
+          handleNextStep(true);
+        }
+      });
+      return;
+    }
+
     triggerHaptic('confirm');
     if (safeStepIdx < nightSteps.length - 1) {
       changeStep(safeStepIdx + 1);
@@ -979,7 +1020,19 @@ export default function NightPhaseView({
               <div className="flex items-center justify-end animate-fade-in pr-1">
                 <button
                   type="button"
-                  onClick={() => handleNextStep(true)}
+                  onClick={() => {
+                    showConfirm({
+                      title: 'QUẢN TRÒ BỎ QUA BƯỚC NÀY?',
+                      message: `Bạn đang chọn ghi đè bỏ qua lượt của vai "${currentRole?.name || 'này'}".\n\nBạn có chắc chắn muốn bỏ qua và chuyển sang bước tiếp theo?`,
+                      variant: 'warning',
+                      confirmText: 'Bỏ Qua & Đi Tiếp ➔',
+                      cancelText: 'Quay Lại',
+                      onConfirm: () => {
+                        if (onSkipRole && currentRole) onSkipRole(currentRole.id);
+                        handleNextStep(true);
+                      }
+                    });
+                  }}
                   className="text-xs font-bold text-amber-400/90 hover:text-amber-300 flex items-center gap-1 cursor-pointer transition-colors px-2 py-1 rounded-lg bg-amber-950/40 border border-amber-800/50"
                 >
                   <span>Bỏ qua bước này (Quản trò ghi đè)</span>
