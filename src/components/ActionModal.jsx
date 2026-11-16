@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
-import { Shield, Eye, Skull, Sparkles, Heart, Crosshair, AlertTriangle, Check, X, User, Scale, Swords, Search, History, Ghost, Flame } from 'lucide-react';
+import { Shield, Eye, Skull, Sparkles, Heart, Crosshair, AlertTriangle, Check, X, User, Scale, Swords, Search, History, Ghost, Flame, Star, HeartPulse, UserX } from 'lucide-react';
 import GothicButton from './ui/GothicButton';
 import GothicBadge from './ui/GothicBadge';
 import WolfIcon from './ui/WolfIcon';
 import { isWolfPlayer, getPlayerRole, matchesSearch, removeVietnameseTones } from '../utils/roleUtils';
 import { ROLES } from '../data/roles';
 import PlayerJourneyModal from './PlayerJourneyModal';
+import { useGothicDialog } from '../context/GothicDialogContext';
 
 export default function ActionModal({
   isOpen,
@@ -18,10 +19,15 @@ export default function ActionModal({
   rolesInGame = [],
   nightState,
   onSaveAction,
-  onAssignRole
+  onAssignRole,
+  onRevivePlayer,
+  onManualKillPlayer,
+  onToggleHypnotized,
+  onToggleSheriff
 }) {
   if (!isOpen) return null;
 
+  const { showConfirm, showAlert } = useGothicDialog();
   const alivePlayers = players.filter(p => p.isAlive);
   const [selectedPair, setSelectedPair] = useState(nightState?.cupidChosenIds || []);
   const [seerResult, setSeerResult] = useState(null);
@@ -32,6 +38,7 @@ export default function ActionModal({
   const [journeyPlayer, setJourneyPlayer] = useState(null);
   const [shadowHostSearch, setShadowHostSearch] = useState('');
   const [wildChildSearch, setWildChildSearch] = useState('');
+  const [cupidSearch, setCupidSearch] = useState('');
 
   const wolfVictim = players.find(p => p.id === nightState?.wolfTargetId);
 
@@ -965,6 +972,10 @@ export default function ActionModal({
         const currentIdolId = targetPlayer?.idolId || nightState?.wildChildIdolId;
         const currentIdol = players.find(p => p.id === currentIdolId);
 
+        const loverPartner = targetPlayer?.loverId ? players.find(p => p.id === targetPlayer.loverId) : null;
+        const isCupid = targetPlayer && (targetCurrentRoleId === 'cupid' || targetCurrentRole?.id === 'cupid' || targetPlayer.originalRoleId === 'cupid');
+        const cupidChosenLovers = (nightState?.cupidChosenIds || []).map(id => players.find(p => p.id === id)).filter(Boolean);
+
         return (
           <div className="space-y-4">
             {/* Header: Thông tin người chơi được gán */}
@@ -982,6 +993,16 @@ export default function ActionModal({
                           💀 Đã chết
                         </span>
                       )}
+                      {targetPlayer?.isSheriff && (
+                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-950/90 border border-amber-600 text-amber-300 font-sans font-bold flex items-center gap-0.5">
+                          ⭐ CST
+                        </span>
+                      )}
+                      {targetPlayer?.isHypnotized && (
+                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-indigo-950/90 border border-indigo-600 text-indigo-300 font-sans font-bold">
+                          🎵 Thôi miên
+                        </span>
+                      )}
                     </h4>
                     <div className="text-xs text-slate-400 font-sans">
                       {targetCurrentRole ? targetCurrentRole.name : 'Chưa có vai trò'}
@@ -989,7 +1010,80 @@ export default function ActionModal({
                   </div>
                 </div>
 
-                <div className="flex items-center gap-1.5 shrink-0">
+                <div className="flex items-center gap-1.5 shrink-0 flex-wrap justify-end">
+                  {/* Hồi sinh nếu đã chết */}
+                  {typeof onRevivePlayer === 'function' && !targetPlayer?.isAlive && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        showConfirm({
+                          title: 'HỒI SINH NGƯỜI CHƠI?',
+                          message: `Khôi phục #${targetPlayer.id} ${targetPlayer.name} về trạng thái CÒN SỐNG?\n\n(Dùng khi quản trò lỡ tay thao tác nhầm hoặc xử lý nhầm đêm/ngày).`,
+                          variant: 'default',
+                          confirmText: 'Hồi Sinh ✓',
+                          cancelText: 'Hủy',
+                          onConfirm: () => onRevivePlayer(targetPlayer.id)
+                        });
+                      }}
+                      title="Hồi sinh người chơi này"
+                      className="px-2.5 py-1 rounded-lg bg-emerald-950/80 hover:bg-emerald-900 border border-emerald-600 text-emerald-200 text-xs font-bold transition-all flex items-center gap-1 cursor-pointer shrink-0 active:scale-95 shadow-[0_0_10px_rgba(16,185,129,0.3)]"
+                    >
+                      <HeartPulse className="w-3.5 h-3.5 text-emerald-400" />
+                      <span>Hồi sinh</span>
+                    </button>
+                  )}
+
+                  {/* Báo tử thủ công nếu còn sống */}
+                  {typeof onManualKillPlayer === 'function' && targetPlayer?.isAlive && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        showConfirm({
+                          title: 'ĐÁNH DẤU HY SINH?',
+                          message: `Đánh dấu #${targetPlayer.id} ${targetPlayer.name} TỬ TRẬN?\n\n(Nếu người chơi có người yêu, người yêu cũng sẽ chết theo).`,
+                          variant: 'blood',
+                          confirmText: 'Xác Nhận Tử Trận 💀',
+                          cancelText: 'Hủy',
+                          onConfirm: () => onManualKillPlayer(targetPlayer.id)
+                        });
+                      }}
+                      title="Đánh dấu hy sinh thủ công"
+                      className="px-2.5 py-1 rounded-lg bg-rose-950/70 hover:bg-rose-900 border border-rose-700/80 text-rose-300 text-xs font-bold transition-all flex items-center gap-1 cursor-pointer shrink-0 active:scale-95"
+                    >
+                      <UserX className="w-3.5 h-3.5" />
+                      <span>Báo tử</span>
+                    </button>
+                  )}
+
+                  {/* Trao / Bỏ Cảnh Sát Trưởng */}
+                  {typeof onToggleSheriff === 'function' && targetPlayer?.isAlive && (
+                    <button
+                      type="button"
+                      onClick={() => onToggleSheriff(targetPlayer.id)}
+                      title={targetPlayer.isSheriff ? 'Bỏ chức Cảnh Sát Trưởng' : 'Trao chức Cảnh Sát Trưởng'}
+                      className={`px-2.5 py-1 rounded-lg border text-xs font-bold transition-all flex items-center gap-1 cursor-pointer shrink-0 active:scale-95 ${
+                        targetPlayer.isSheriff
+                          ? 'bg-amber-950 border-amber-500 text-amber-200 shadow-[0_0_10px_rgba(245,158,11,0.4)]'
+                          : 'bg-slate-900/90 hover:bg-slate-800 border-slate-700 text-slate-300'
+                      }`}
+                    >
+                      <Star className={`w-3.5 h-3.5 ${targetPlayer.isSheriff ? 'text-amber-400 fill-amber-400' : 'text-slate-400'}`} />
+                      <span>{targetPlayer.isSheriff ? 'CST ✓' : 'Trao CST'}</span>
+                    </button>
+                  )}
+
+                  {/* Hủy thôi miên nếu đang bị thôi miên */}
+                  {typeof onToggleHypnotized === 'function' && targetPlayer?.isAlive && targetPlayer.isHypnotized && (
+                    <button
+                      type="button"
+                      onClick={() => onToggleHypnotized(targetPlayer.id)}
+                      title="Hủy trạng thái bị thôi miên"
+                      className="px-2.5 py-1 rounded-lg bg-indigo-950/80 hover:bg-indigo-900 border border-indigo-600 text-indigo-200 text-xs font-bold transition-all flex items-center gap-1 cursor-pointer shrink-0 active:scale-95"
+                    >
+                      <span>🎵 Bỏ thôi miên</span>
+                    </button>
+                  )}
+
                   {targetPlayer?.roleHistory && targetPlayer.roleHistory.length > 0 && (
                     <button
                       type="button"
@@ -1051,6 +1145,159 @@ export default function ActionModal({
                 )}
               </div>
             </div>
+
+            {/* THÔNG TIN CẶP ĐÔI TÌNH NHÂN CỦA NGƯỜI NÀY */}
+            {loverPartner && (
+              <div className="p-3 rounded-2xl bg-pink-950/60 border border-pink-700/60 flex items-center justify-between text-xs text-pink-200 shadow-md">
+                <div className="flex items-center gap-2">
+                  <Heart className="w-4 h-4 text-pink-400 fill-pink-400 shrink-0" />
+                  <span>
+                    Đang ghép đôi với: <strong className="text-white">#{loverPartner.id} {loverPartner.name}</strong> ({getPlayerRole(loverPartner)?.name || 'Chưa lộ vai'})
+                  </span>
+                </div>
+                {typeof onSaveAction === 'function' && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      showConfirm({
+                        title: 'HỦY CẶP ĐÔI YÊU NHAU?',
+                        message: `Hủy liên kết tình nhân giữa #${targetPlayer.id} ${targetPlayer.name} và #${loverPartner.id} ${loverPartner.name}?`,
+                        variant: 'warning',
+                        confirmText: 'Hủy Ghép Đôi',
+                        cancelText: 'Giữ Lại',
+                        onConfirm: () => onSaveAction('cupid', [])
+                      });
+                    }}
+                    className="text-[11px] px-2.5 py-1 rounded-lg bg-pink-900/80 hover:bg-pink-800 border border-pink-500 text-pink-100 font-bold transition-all cursor-pointer shrink-0"
+                  >
+                    Hủy ghép đôi
+                  </button>
+                )}
+              </div>
+            )}
+
+            {/* CẶP ĐÔI YÊU NHAU CHO VAI CUPID */}
+            {isCupid && (
+              <div className="p-3.5 rounded-2xl bg-[#1c0e1e] border border-pink-800/80 shadow-[0_0_20px_rgba(244,114,182,0.25)] space-y-3">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-pink-900/60">
+                  <div className="flex items-center gap-2">
+                    <Heart className="w-5 h-5 text-pink-400 fill-pink-400 shrink-0" />
+                    <div>
+                      <h5 className="font-bold text-sm text-pink-200 font-cinzel">
+                        CẶP ĐÔI TÌNH NHÂN (CUPID)
+                      </h5>
+                      <div className="text-[11px] text-slate-400">
+                        {cupidChosenLovers.length === 2 ? (
+                          <span>
+                            Cặp đôi: <strong className="text-pink-300">#{cupidChosenLovers[0].id} {cupidChosenLovers[0].name}</strong> & <strong className="text-pink-300">#{cupidChosenLovers[1].id} {cupidChosenLovers[1].name}</strong>
+                          </span>
+                        ) : cupidChosenLovers.length === 1 ? (
+                          <span className="text-amber-400 font-semibold">
+                            Đã chọn 1 người: #{cupidChosenLovers[0].id} {cupidChosenLovers[0].name} (Cần chọn thêm 1 người)
+                          </span>
+                        ) : (
+                          <span className="text-slate-500">
+                            Chưa ghép đôi cặp nào
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 self-end sm:self-auto">
+                    <div className="relative">
+                      <Search className="w-3 h-3 text-slate-400 absolute left-2 top-1/2 -translate-y-1/2 pointer-events-none" />
+                      <input
+                        type="text"
+                        value={cupidSearch}
+                        onChange={(e) => setCupidSearch(e.target.value)}
+                        placeholder="Tìm tên..."
+                        className="w-24 sm:w-28 text-xs py-0.5 pl-6 pr-2 rounded-lg bg-slate-900/90 border border-slate-700 text-slate-200 placeholder:text-slate-500 focus:outline-none focus:border-pink-500"
+                      />
+                    </div>
+
+                    {cupidChosenLovers.length > 0 && typeof onSaveAction === 'function' && (
+                      <button
+                        type="button"
+                        onClick={() => onSaveAction('cupid', [])}
+                        className="text-[11px] px-2 py-0.5 rounded-lg bg-rose-950/70 hover:bg-rose-900 border border-rose-800 text-rose-300 font-semibold transition-all cursor-pointer"
+                        title="Hủy cặp đôi hiện tại"
+                      >
+                        Hủy cặp đôi
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-44 overflow-y-auto pr-1">
+                  {alivePlayers
+                    .filter(p => {
+                      if (!cupidSearch) return true;
+                      const q = removeVietnameseTones(cupidSearch);
+                      return matchesSearch(p.name, q) || String(p.id).includes(q);
+                    })
+                    .map(p => {
+                      const currentCupidIds = nightState?.cupidChosenIds || [];
+                      const isSelected = currentCupidIds.includes(p.id);
+                      const isWolf = isWolfPlayer(p);
+                      const pRole = getPlayerRole(p);
+
+                      return (
+                        <button
+                          key={p.id}
+                          type="button"
+                          onClick={() => {
+                            if (typeof onSaveAction === 'function') {
+                              let next;
+                              if (isSelected) {
+                                next = currentCupidIds.filter(id => id !== p.id);
+                              } else if (currentCupidIds.length >= 2) {
+                                next = [currentCupidIds[1], p.id];
+                              } else {
+                                next = [...currentCupidIds, p.id];
+                              }
+                              onSaveAction('cupid', next);
+                            }
+                          }}
+                          className={`p-2 rounded-xl border text-left transition-all duration-150 flex items-center justify-between cursor-pointer ${
+                            isSelected
+                              ? 'bg-pink-950/90 border-pink-400 text-pink-100 shadow-[0_0_15px_rgba(244,114,182,0.4)] ring-1 ring-pink-400'
+                              : isWolf
+                              ? 'bg-[#1a080c] border-rose-900/70 hover:border-rose-500 text-slate-200'
+                              : 'bg-[#0f111d] hover:bg-[#181a2e] border-slate-800 hover:border-pink-600/70 text-slate-300'
+                          }`}
+                        >
+                          <div className="flex items-center gap-2 truncate">
+                            <div className={`w-6 h-6 rounded-lg flex items-center justify-center font-bold text-xs shrink-0 border ${
+                              isSelected
+                                ? 'bg-pink-900 text-pink-200 border-pink-500'
+                                : isWolf
+                                ? 'bg-rose-950 text-rose-300 border-rose-700'
+                                : 'bg-slate-900 text-slate-300 border-slate-800'
+                            }`}>
+                              {p.id}
+                            </div>
+                            <div className="truncate">
+                              <div className="font-bold text-xs truncate">
+                                {p.name}
+                              </div>
+                              <div className="text-[10px] text-slate-400 truncate">
+                                {pRole?.name || '❓ Chưa lộ'}
+                              </div>
+                            </div>
+                          </div>
+
+                          {isSelected && (
+                            <span className="text-[10px] font-bold text-pink-300 shrink-0">
+                              ❤️ Cặp đôi
+                            </span>
+                          )}
+                        </button>
+                      );
+                    })}
+                </div>
+              </div>
+            )}
 
             {/* BẢN THỂ LIÊN KẾT CHO ẢNH TỬ (DOPPELGANGER) */}
             {isShadow && targetPlayer?.isAlive && (

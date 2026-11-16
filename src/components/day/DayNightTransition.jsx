@@ -8,11 +8,13 @@ export default function DayNightTransition({
   pendingAvengerShot,
   sheriffDead,
   sheriff,
+  hasLynchedToday,
   onOpenHunterModal,
   onOpenAvengerModal,
   onOpenSheriffModal,
   onAdvanceToNight,
-  showAlert
+  showAlert,
+  showConfirm
 }) {
   const handleTransition = () => {
     if (pendingHunterShot) {
@@ -42,6 +44,20 @@ export default function DayNightTransition({
       if (onOpenSheriffModal) {
         onOpenSheriffModal(sheriff, true);
       }
+      return;
+    }
+
+    if (!hasLynchedToday && typeof showConfirm === 'function') {
+      showConfirm({
+        title: 'HÔM NAY CHƯA TREO CỔ AI!',
+        message: 'Làng chưa thực hiện biểu quyết treo cổ người chơi nào hôm nay.\n\nBạn có chắc chắn muốn kết thúc ngày và chuyển sang ban đêm tiếp theo không?',
+        variant: 'warning',
+        confirmText: 'Vào Ban Đêm ➔',
+        cancelText: 'Quay Lại Biểu Quyết',
+        onConfirm: () => {
+          onAdvanceToNight();
+        }
+      });
       return;
     }
 

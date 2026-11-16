@@ -1642,6 +1642,55 @@ export default function App() {
     }));
   };
 
+  const handleRevivePlayer = (playerId) => {
+    setPlayers(prev => prev.map(p => {
+      if (p.id === playerId) {
+        return p instanceof Player 
+          ? p.clone({ isAlive: true, deathReason: null, deathPhase: null })
+          : { ...p, isAlive: true, deathReason: null, deathPhase: null };
+      }
+      return p;
+    }));
+    if (lynchedTodayPlayerId === playerId) {
+      setLynchedTodayPlayerId(null);
+    }
+    triggerHaptic('confirm');
+  };
+
+  const handleManualKillPlayer = (playerId, reason = 'Quản trò đánh dấu hy sinh') => {
+    const phaseText = isNight ? `Đêm ${roundNumber}` : `Ngày ${roundNumber}`;
+    setPlayers(prev => {
+      const deadPlayer = prev.find(p => p.id === playerId);
+      return prev.map(p => {
+        if (p.id === playerId) {
+          return p instanceof Player
+            ? p.clone({ isAlive: false, deathReason: reason, deathPhase: phaseText })
+            : { ...p, isAlive: false, deathReason: reason, deathPhase: phaseText };
+        }
+        if (deadPlayer?.loverId && p.id === deadPlayer.loverId && p.isAlive) {
+          const loverReason = `Chết theo người yêu (#${deadPlayer.id} ${deadPlayer.name})`;
+          return p instanceof Player
+            ? p.clone({ isAlive: false, deathReason: loverReason, deathPhase: phaseText })
+            : { ...p, isAlive: false, deathReason: loverReason, deathPhase: phaseText };
+        }
+        return p;
+      });
+    });
+    triggerHaptic('error');
+  };
+
+  const handleToggleHypnotized = (playerId) => {
+    setPlayers(prev => prev.map(p => {
+      if (p.id === playerId) {
+        return p instanceof Player
+          ? p.clone({ isHypnotized: !p.isHypnotized })
+          : { ...p, isHypnotized: !p.isHypnotized };
+      }
+      return p;
+    }));
+    triggerHaptic('selection');
+  };
+
   const handleAdvanceToDay = () => {
     const game = new WerewolfGame({
       roundNumber,
@@ -3074,6 +3123,10 @@ export default function App() {
         nightState={nightState}
         onSaveAction={handleSaveAction}
         onAssignRole={handleAssignRole}
+        onRevivePlayer={handleRevivePlayer}
+        onManualKillPlayer={handleManualKillPlayer}
+        onToggleHypnotized={handleToggleHypnotized}
+        onToggleSheriff={handleToggleSheriff}
       />
 
       {/* Unified Game Setup Modal (Tích hợp Người chơi + Bộ bài) */}

@@ -1459,6 +1459,23 @@ console.log('🧪 Starting Phase 1 Domain Model & Strategy Tests...\n');
 
     console.log('✅ Test 69: Doppelganger / Wild Child Re-assignment from Seating Diagram & ActionModal verified.');
 
-    console.log('\n🎉 ALL 69 DOMAIN ENGINE TESTS PASSED PERFECTLY!\n');
+    // --- TEST 70: Game Master Operational Mistake Recovery & Full Audit ---
+    const appAuditContent = fs.readFileSync('src/App.jsx', 'utf8');
+    assert.ok(appAuditContent.includes('handleRevivePlayer'), 'App.jsx must provide handleRevivePlayer for mistakenly killed players');
+    assert.ok(appAuditContent.includes('handleManualKillPlayer'), 'App.jsx must provide handleManualKillPlayer for manual corrections');
+    assert.ok(appAuditContent.includes('handleToggleHypnotized'), 'App.jsx must provide handleToggleHypnotized');
+
+    const modalAuditContent = fs.readFileSync('src/components/ActionModal.jsx', 'utf8');
+    assert.ok(modalAuditContent.includes('HỒI SINH NGƯỜI CHƠI'), 'ActionModal must prompt confirmation before reviving dead player');
+    assert.ok(modalAuditContent.includes('ĐÁNH DẤU HY SINH'), 'ActionModal must prompt confirmation before manual kill');
+    assert.ok(modalAuditContent.includes('CẶP ĐÔI TÌNH NHÂN (CUPID)'), 'ActionModal must provide Cupid lovers re-linking section');
+    assert.ok(modalAuditContent.includes('HỦY CẶP ĐÔI YÊU NHAU'), 'ActionModal must support unlinking lovers');
+
+    const dayNightContent = fs.readFileSync('src/components/day/DayNightTransition.jsx', 'utf8');
+    assert.ok(dayNightContent.includes('HÔM NAY CHƯA TREO CỔ AI!'), 'DayNightTransition must warn if ending day without lynching anyone');
+
+    console.log('✅ Test 70: Game Master Operational Mistake Recovery & Full Audit verified.');
+
+    console.log('\n🎉 ALL 70 DOMAIN ENGINE TESTS PASSED PERFECTLY!\n');
   });
 }

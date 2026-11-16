@@ -196,11 +196,13 @@ export default function DayPhaseView({
         pendingAvengerShot={pendingAvengerShot}
         sheriffDead={sheriffDead}
         sheriff={sheriff}
+        hasLynchedToday={hasLynchedToday}
         onOpenHunterModal={onOpenHunterModal}
         onOpenAvengerModal={onOpenAvengerModal}
         onOpenSheriffModal={onOpenSheriffModal}
         onAdvanceToNight={onAdvanceToNight}
         showAlert={showAlert}
+        showConfirm={showConfirm}
       />
     </div>
   );
