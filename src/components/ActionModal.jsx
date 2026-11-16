@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Shield, Eye, Skull, Sparkles, Heart, Crosshair, AlertTriangle, Check, X, User, Scale, Swords, Search, History } from 'lucide-react';
+import { Shield, Eye, Skull, Sparkles, Heart, Crosshair, AlertTriangle, Check, X, User, Scale, Swords, Search, History, Ghost, Flame } from 'lucide-react';
 import GothicButton from './ui/GothicButton';
 import GothicBadge from './ui/GothicBadge';
 import WolfIcon from './ui/WolfIcon';
@@ -30,6 +30,8 @@ export default function ActionModal({
   const [bannedVoterIds, setBannedVoterIds] = useState([]);
   const [hunterSearchQuery, setHunterSearchQuery] = useState('');
   const [journeyPlayer, setJourneyPlayer] = useState(null);
+  const [shadowHostSearch, setShadowHostSearch] = useState('');
+  const [wildChildSearch, setWildChildSearch] = useState('');
 
   const wolfVictim = players.find(p => p.id === nightState?.wolfTargetId);
 
@@ -822,7 +824,7 @@ export default function ActionModal({
 
       // ================= GÁN / LỘ VAI TRÒ CHO NGƯỜI CHƠI =================
       case 'assign_role': {
-        const targetPlayer = player;
+        const targetPlayer = players.find(p => p.id === player?.id) || player;
         const targetCurrentRoleId = targetPlayer?.originalRoleId || targetPlayer?.currentRoleId || targetPlayer?.roleId;
         const targetCurrentRole = targetPlayer ? getPlayerRole(targetPlayer) : null;
 
@@ -955,6 +957,14 @@ export default function ActionModal({
         const villagerEntry = availableRoleEntries.find(e => !e.isFunctional);
         const remainingVillagersCount = villagerEntry ? villagerEntry.remainingCount : 0;
 
+        const isShadow = targetPlayer && (targetCurrentRoleId === 'anh-tu' || targetCurrentRole?.id === 'anh-tu' || targetPlayer.originalRoleId === 'anh-tu');
+        const currentShadowHostId = targetPlayer?.shadowHostId || nightState?.shadowHostId;
+        const currentShadowHost = players.find(p => p.id === currentShadowHostId);
+
+        const isWildChild = targetPlayer && (targetCurrentRoleId === 'dua-tre-hoang-da' || targetCurrentRole?.id === 'dua-tre-hoang-da' || targetPlayer.originalRoleId === 'dua-tre-hoang-da');
+        const currentIdolId = targetPlayer?.idolId || nightState?.wildChildIdolId;
+        const currentIdol = players.find(p => p.id === currentIdolId);
+
         return (
           <div className="space-y-4">
             {/* Header: Thông tin người chơi được gán */}
@@ -1041,6 +1051,228 @@ export default function ActionModal({
                 )}
               </div>
             </div>
+
+            {/* BẢN THỂ LIÊN KẾT CHO ẢNH TỬ (DOPPELGANGER) */}
+            {isShadow && targetPlayer?.isAlive && (
+              <div className="p-3.5 rounded-2xl bg-[#141026] border border-purple-800/80 shadow-[0_0_20px_rgba(147,51,234,0.25)] space-y-3">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-purple-900/60">
+                  <div className="flex items-center gap-2">
+                    <Ghost className="w-5 h-5 text-purple-400 shrink-0" />
+                    <div>
+                      <h5 className="font-bold text-sm text-purple-200 font-cinzel">
+                        BẢN THỂ LIÊN KẾT (ẢNH TỬ)
+                      </h5>
+                      <div className="text-[11px] text-slate-400">
+                        {currentShadowHost ? (
+                          <span>
+                            Đang liên kết: <strong className="text-purple-300">#{currentShadowHost.id} {currentShadowHost.name}</strong> ({getPlayerRole(currentShadowHost)?.name || 'Chưa lộ vai'})
+                          </span>
+                        ) : (
+                          <span className="text-amber-400 font-semibold">
+                            Chưa chọn bản thể
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 self-end sm:self-auto">
+                    <div className="relative">
+                      <Search className="w-3 h-3 text-slate-400 absolute left-2 top-1/2 -translate-y-1/2 pointer-events-none" />
+                      <input
+                        type="text"
+                        value={shadowHostSearch}
+                        onChange={(e) => setShadowHostSearch(e.target.value)}
+                        placeholder="Tìm tên..."
+                        className="w-24 sm:w-28 text-xs py-0.5 pl-6 pr-2 rounded-lg bg-slate-900/90 border border-slate-700 text-slate-200 placeholder:text-slate-500 focus:outline-none focus:border-purple-500"
+                      />
+                    </div>
+
+                    {currentShadowHost && typeof onSaveAction === 'function' && (
+                      <button
+                        type="button"
+                        onClick={() => onSaveAction('shadowHost', null)}
+                        className="text-[11px] px-2 py-0.5 rounded-lg bg-rose-950/70 hover:bg-rose-900 border border-rose-800 text-rose-300 font-semibold transition-all cursor-pointer"
+                        title="Hủy liên kết bản thể hiện tại"
+                      >
+                        Hủy liên kết
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-44 overflow-y-auto pr-1">
+                  {alivePlayers
+                    .filter(p => p.id !== targetPlayer.id)
+                    .filter(p => {
+                      if (!shadowHostSearch) return true;
+                      const q = removeVietnameseTones(shadowHostSearch);
+                      return matchesSearch(p.name, q) || String(p.id).includes(q);
+                    })
+                    .map(p => {
+                      const isSelected = currentShadowHostId === p.id;
+                      const isWolf = isWolfPlayer(p);
+                      const pRole = getPlayerRole(p);
+
+                      return (
+                        <button
+                          key={p.id}
+                          type="button"
+                          onClick={() => {
+                            if (typeof onSaveAction === 'function') {
+                              onSaveAction('shadowHost', isSelected ? null : p.id);
+                            }
+                          }}
+                          className={`p-2 rounded-xl border text-left transition-all duration-150 flex items-center justify-between cursor-pointer ${
+                            isSelected
+                              ? 'bg-purple-950/90 border-purple-400 text-purple-100 shadow-[0_0_15px_rgba(168,85,247,0.4)] ring-1 ring-purple-400'
+                              : isWolf
+                              ? 'bg-[#1a080c] border-rose-900/70 hover:border-rose-500 text-slate-200'
+                              : 'bg-[#0f111d] hover:bg-[#181a2e] border-slate-800 hover:border-purple-600/70 text-slate-300'
+                          }`}
+                        >
+                          <div className="flex items-center gap-2 truncate">
+                            <div className={`w-6 h-6 rounded-lg flex items-center justify-center font-bold text-xs shrink-0 border ${
+                              isSelected
+                                ? 'bg-purple-900 text-purple-200 border-purple-500'
+                                : isWolf
+                                ? 'bg-rose-950 text-rose-300 border-rose-700'
+                                : 'bg-slate-900 text-slate-300 border-slate-800'
+                            }`}>
+                              {p.id}
+                            </div>
+                            <div className="truncate">
+                              <div className="font-bold text-xs truncate">
+                                {p.name}
+                              </div>
+                              <div className="text-[10px] text-slate-400 truncate">
+                                {pRole?.name || '❓ Chưa lộ'}
+                              </div>
+                            </div>
+                          </div>
+
+                          {isSelected && (
+                            <span className="text-[10px] font-bold text-purple-300 shrink-0">
+                              👻 Bản thể
+                            </span>
+                          )}
+                        </button>
+                      );
+                    })}
+                </div>
+              </div>
+            )}
+
+            {/* MẸ / THẦN TƯỢNG CHO ĐỨA TRẺ HOANG DÃ */}
+            {isWildChild && targetPlayer?.isAlive && (
+              <div className="p-3.5 rounded-2xl bg-[#181309] border border-amber-800/80 shadow-[0_0_20px_rgba(245,158,11,0.25)] space-y-3">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-amber-900/60">
+                  <div className="flex items-center gap-2">
+                    <Flame className="w-5 h-5 text-amber-400 shrink-0" />
+                    <div>
+                      <h5 className="font-bold text-sm text-amber-200 font-cinzel">
+                        MẸ / THẦN TƯỢNG (ĐỨA TRẺ HOANG DÃ)
+                      </h5>
+                      <div className="text-[11px] text-slate-400">
+                        {currentIdol ? (
+                          <span>
+                            Đang chọn: <strong className="text-amber-300">#{currentIdol.id} {currentIdol.name}</strong> ({getPlayerRole(currentIdol)?.name || 'Chưa lộ vai'})
+                          </span>
+                        ) : (
+                          <span className="text-amber-400 font-semibold">
+                            Chưa chọn Mẹ
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 self-end sm:self-auto">
+                    <div className="relative">
+                      <Search className="w-3 h-3 text-slate-400 absolute left-2 top-1/2 -translate-y-1/2 pointer-events-none" />
+                      <input
+                        type="text"
+                        value={wildChildSearch}
+                        onChange={(e) => setWildChildSearch(e.target.value)}
+                        placeholder="Tìm tên..."
+                        className="w-24 sm:w-28 text-xs py-0.5 pl-6 pr-2 rounded-lg bg-slate-900/90 border border-slate-700 text-slate-200 placeholder:text-slate-500 focus:outline-none focus:border-amber-500"
+                      />
+                    </div>
+
+                    {currentIdol && typeof onSaveAction === 'function' && (
+                      <button
+                        type="button"
+                        onClick={() => onSaveAction('wildChild', null)}
+                        className="text-[11px] px-2 py-0.5 rounded-lg bg-rose-950/70 hover:bg-rose-900 border border-rose-800 text-rose-300 font-semibold transition-all cursor-pointer"
+                        title="Hủy liên kết Mẹ hiện tại"
+                      >
+                        Hủy liên kết
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-44 overflow-y-auto pr-1">
+                  {alivePlayers
+                    .filter(p => p.id !== targetPlayer.id)
+                    .filter(p => {
+                      if (!wildChildSearch) return true;
+                      const q = removeVietnameseTones(wildChildSearch);
+                      return matchesSearch(p.name, q) || String(p.id).includes(q);
+                    })
+                    .map(p => {
+                      const isSelected = currentIdolId === p.id;
+                      const isWolf = isWolfPlayer(p);
+                      const pRole = getPlayerRole(p);
+
+                      return (
+                        <button
+                          key={p.id}
+                          type="button"
+                          onClick={() => {
+                            if (typeof onSaveAction === 'function') {
+                              onSaveAction('wildChild', isSelected ? null : p.id);
+                            }
+                          }}
+                          className={`p-2 rounded-xl border text-left transition-all duration-150 flex items-center justify-between cursor-pointer ${
+                            isSelected
+                              ? 'bg-amber-950/90 border-amber-400 text-amber-100 shadow-[0_0_15px_rgba(245,158,11,0.4)] ring-1 ring-amber-400'
+                              : isWolf
+                              ? 'bg-[#1a080c] border-rose-900/70 hover:border-rose-500 text-slate-200'
+                              : 'bg-[#0f111d] hover:bg-[#181a2e] border-slate-800 hover:border-amber-600/70 text-slate-300'
+                          }`}
+                        >
+                          <div className="flex items-center gap-2 truncate">
+                            <div className={`w-6 h-6 rounded-lg flex items-center justify-center font-bold text-xs shrink-0 border ${
+                              isSelected
+                                ? 'bg-amber-900 text-amber-200 border-amber-500'
+                                : isWolf
+                                ? 'bg-rose-950 text-rose-300 border-rose-700'
+                                : 'bg-slate-900 text-slate-300 border-slate-800'
+                            }`}>
+                              {p.id}
+                            </div>
+                            <div className="truncate">
+                              <div className="font-bold text-xs truncate">
+                                {p.name}
+                              </div>
+                              <div className="text-[10px] text-slate-400 truncate">
+                                {pRole?.name || '❓ Chưa lộ'}
+                              </div>
+                            </div>
+                          </div>
+
+                          {isSelected && (
+                            <span className="text-[10px] font-bold text-amber-300 shrink-0">
+                              ★ Mẹ
+                            </span>
+                          )}
+                        </button>
+                      );
+                    })}
+                </div>
+              </div>
+            )}
 
             {/* Thông báo nếu đã hết vai chức năng */}
             {remainingFunctionalCount === 0 && (

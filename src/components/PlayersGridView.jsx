@@ -228,20 +228,32 @@ export default function PlayersGridView({ players, onOpenAssignRole, onOpenRoste
                             🗝️ Chờ kế thừa
                           </span>
                         )}
-                        {p.isAlive && (p.currentRoleId === 'dua-tre-hoang-da' || p.roleId === 'dua-tre-hoang-da') && p.idolId && (
-                          <span className="text-[8px] text-amber-300 font-medium block truncate" title={`Mẹ (Thần tượng): Ghế #${p.idolId}`}>
-                            ★ Mẹ: #{p.idolId}
-                          </span>
+                        {p.isAlive && (p.currentRoleId === 'dua-tre-hoang-da' || p.roleId === 'dua-tre-hoang-da' || pRole?.id === 'dua-tre-hoang-da') && !p.isCursedWolf && (
+                          p.idolId ? (
+                            <span className="text-[8px] text-amber-300 font-medium block truncate bg-amber-950/50 border border-amber-800/60 rounded px-1 py-0.5 mt-0.5" title={`Mẹ (Thần tượng): Ghế #${p.idolId}`}>
+                              ★ Mẹ: #{p.idolId}
+                            </span>
+                          ) : (
+                            <span className="text-[8px] text-amber-400 font-semibold block truncate bg-amber-950/50 border border-amber-800/60 rounded px-1 py-0.5 mt-0.5" title="Chưa chọn Mẹ">
+                              ★ Chưa gán Mẹ
+                            </span>
+                          )
                         )}
                         {p.isAlive && p.isCursedWolf && p.originalRoleId === 'dua-tre-hoang-da' && (
                           <span className="text-[8px] text-rose-300 font-bold block truncate" title={`Con Hoang đã hóa Sói (Mẹ #${p.idolId} đã chết)`}>
                             🐺 Con Hoang Hóa Sói
                           </span>
                         )}
-                        {p.isAlive && (p.currentRoleId === 'anh-tu' || p.roleId === 'anh-tu') && p.shadowHostId && (
-                          <span className="text-[8px] text-purple-300 font-medium block truncate" title={`Bản thể: Ghế #${p.shadowHostId}`}>
-                            👻 Bản thể: #{p.shadowHostId}
-                          </span>
+                        {p.isAlive && (p.currentRoleId === 'anh-tu' || p.roleId === 'anh-tu' || pRole?.id === 'anh-tu') && (
+                          p.shadowHostId ? (
+                            <span className="text-[8px] text-purple-300 font-medium block truncate bg-purple-950/50 border border-purple-800/60 rounded px-1 py-0.5 mt-0.5" title={`Bản thể: Ghế #${p.shadowHostId}`}>
+                              👻 Bản thể: #{p.shadowHostId}
+                            </span>
+                          ) : (
+                            <span className="text-[8px] text-amber-300 font-semibold block truncate bg-amber-950/50 border border-amber-800/60 rounded px-1 py-0.5 mt-0.5" title="Chưa liên kết bản thể">
+                              👻 Chưa gán bản thể
+                            </span>
+                          )
                         )}
                       </div>
                     )

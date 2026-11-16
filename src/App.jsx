@@ -948,7 +948,7 @@ export default function App() {
       } else if (type === 'shadowHost') {
         next.shadowHostId = payload;
         setPlayers(current => current.map(p => {
-          if ((p.currentRoleId || p.roleId) === 'anh-tu' || getPlayerRole(p)?.id === 'anh-tu') {
+          if ((p.currentRoleId || p.roleId) === 'anh-tu' || getPlayerRole(p)?.id === 'anh-tu' || p.originalRoleId === 'anh-tu') {
             return p instanceof Player ? p.clone({ shadowHostId: payload }) : { ...p, shadowHostId: payload };
           }
           return p;

@@ -1443,6 +1443,22 @@ console.log('🧪 Starting Phase 1 Domain Model & Strategy Tests...\n');
 
     console.log('✅ Test 68: Unassigned Role Skip Guard & Direct Shadow Role Assignment verified.');
 
-    console.log('\n🎉 ALL 68 DOMAIN ENGINE TESTS PASSED PERFECTLY!\n');
+    // --- TEST 69: Doppelganger / Wild Child Re-assignment from Seating Diagram & ActionModal ---
+    const actionModalContent = fs.readFileSync('src/components/ActionModal.jsx', 'utf8');
+    assert.ok(actionModalContent.includes('BẢN THỂ LIÊN KẾT (ẢNH TỬ)'), 'ActionModal must have dedicated Doppelganger host management section');
+    assert.ok(actionModalContent.includes("onSaveAction('shadowHost'"), 'ActionModal must support reassigning shadowHostId');
+    assert.ok(actionModalContent.includes('MẸ / THẦN TƯỢNG (ĐỨA TRẺ HOANG DÃ)'), 'ActionModal must support Wild Child idol management');
+    assert.ok(actionModalContent.includes("onSaveAction('wildChild'"), 'ActionModal must support reassigning wildChildIdolId');
+
+    const gridViewContent = fs.readFileSync('src/components/PlayersGridView.jsx', 'utf8');
+    assert.ok(gridViewContent.includes('Chưa gán bản thể'), 'PlayersGridView must display missing shadow host indicator');
+    assert.ok(gridViewContent.includes('Bản thể: #'), 'PlayersGridView must display linked shadow host seat number');
+
+    const appLogicContent = fs.readFileSync('src/App.jsx', 'utf8');
+    assert.ok(appLogicContent.includes("type === 'shadowHost'"), 'App.jsx must update shadowHostId in nightState and player models');
+
+    console.log('✅ Test 69: Doppelganger / Wild Child Re-assignment from Seating Diagram & ActionModal verified.');
+
+    console.log('\n🎉 ALL 69 DOMAIN ENGINE TESTS PASSED PERFECTLY!\n');
   });
 }
