@@ -25,7 +25,7 @@ import GameSettingsModal from './components/GameSettingsModal';
 import GothicButton from './components/ui/GothicButton';
 import GothicBadge from './components/ui/GothicBadge';
 import WolfIcon from './components/ui/WolfIcon';
-import { Moon, Sun, Users, BookOpen, RotateCcw, Shield, Eye, Skull, Sparkles, Trophy, Layers, Database, CheckCircle2, RefreshCw, History, Settings, SlidersHorizontal } from 'lucide-react';
+import { Moon, Sun, Users, BookOpen, RotateCcw, Shield, Eye, Skull, Sparkles, Trophy, Layers, Database, CheckCircle2, RefreshCw, History, Settings, SlidersHorizontal, FlaskConical } from 'lucide-react';
 
 const STORAGE_KEY = 'werewolf_active_game_state';
 export const GAME_SCHEMA_VERSION = 2;
@@ -218,6 +218,21 @@ export default function App() {
     } catch (e) {}
     return savedInitial?.canWolvesKillTeammates || false;
   });
+  const [isTestMode, setIsTestMode] = useState(() => {
+    try {
+      const saved = localStorage.getItem('werewolf_test_mode');
+      if (saved !== null) return JSON.parse(saved);
+    } catch (e) {}
+    return false;
+  });
+
+  const handleToggleTestMode = (nextVal) => {
+    setIsTestMode(nextVal);
+    try {
+      localStorage.setItem('werewolf_test_mode', JSON.stringify(nextVal));
+    } catch (e) {}
+  };
+
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   // Persistence of current night step (survival across F5 / reload)
@@ -322,16 +337,33 @@ export default function App() {
       } catch (err) {
         console.warn('Failed to save state to localStorage:', err);
       }
-
-      // 2. Cloud DB sync (Neon)
-      syncGameStateApi(stateToSave);
+      // Lưu ý: Không đồng bộ Cloud DB liên tục trong lúc chơi để loại bỏ độ trễ (lag).
+      // Bản ghi ván đấu hoàn chỉnh sẽ được lưu lên Neon khi kết thúc game.
     }
   }, [roundNumber, isNight, activeTab, players, deckRoleIds, rolesInGame, nightState, lynchedTodayPlayerId, gameEndResult, isVillageCursed, wolfCanKillDouble, pendingHunterShot, pendingAvengerShot, scapegoatBannedVoterIds, scapegoatBannedRound, preLynchSnapshot, selectedTemplateId, currentNightStepIdx, gameDiary, canWolvesKillTeammates]);
 
   // Helper canonical diary chronologist: merges & sorts chapters strictly by round number and phase (Night before Day)
   const appendToDiary = (prevDiary, newEntry) => {
-    const filtered = (prevDiary || []).filter(d => d.phase !== newEntry.phase);
-    const updated = [...filtered, newEntry];
+    const existing = (prevDiary || []).find(d => d.phase === newEntry.phase);
+    let updated;
+    if (existing) {
+      const mergedEvents = [...(existing.events || []), ...(newEntry.events || [])];
+      const mergedLogs = [...(existing.logs || []), ...(newEntry.logs || [])];
+      const uniqueLogs = Array.from(new Set(mergedLogs));
+      const uniqueEvents = mergedEvents.filter((ev, idx, arr) => 
+        arr.findIndex(x => (x.text && x.text === ev.text) || (x.tag === ev.tag && x.text === ev.text)) === idx
+      );
+      const mergedEntry = {
+        ...existing,
+        ...newEntry,
+        events: uniqueEvents,
+        logs: uniqueLogs
+      };
+      updated = (prevDiary || []).map(d => d.phase === newEntry.phase ? mergedEntry : d);
+    } else {
+      updated = [...(prevDiary || []), newEntry];
+    }
+
     return updated.sort((a, b) => {
       const extractRound = (item) => {
         if (typeof item.round === 'number') return item.round;
@@ -690,6 +722,13 @@ export default function App() {
       if (savedMatchIdRef.current) {
         return result;
       }
+
+      if (isTestMode) {
+        // Test Mode: Không lưu lịch sử đấu vào LocalStorage hay Neon DB
+        console.log('[Test Mode] Game ended, match record is NOT saved to match history.');
+        return result;
+      }
+
       const matchId = `match-${Date.now()}`;
       savedMatchIdRef.current = matchId;
 
@@ -698,13 +737,22 @@ export default function App() {
       let fullTimeline = [...gameDiary];
       if (!isNight) {
         const lynchedP = players.find(p => p.id === lynchedTodayPlayerId);
+        const lynchText = lynchedP 
+          ? `Dân làng biểu quyết treo cổ ${lynchedP.name} (#${lynchedP.id}) - Vai: ${getPlayerRole(lynchedP)?.name || 'Chưa lộ vai'}.` 
+          : 'Ban ngày trôi qua, không ai bị treo cổ.';
         fullTimeline = appendToDiary(fullTimeline, {
           phase: `Ngày ${roundNumber}`,
           type: 'day',
           round: roundNumber,
-          logs: [
-            lynchedP ? `Dân làng biểu quyết treo cổ ${lynchedP.name} (#${lynchedP.id}).` : 'Ban ngày trôi qua, không ai bị treo cổ.'
-          ]
+          events: [
+            {
+              type: lynchedP ? 'LYNCH' : 'NO_LYNCH',
+              icon: lynchedP ? '⚖️' : '🕊️',
+              tag: lynchedP ? 'Xử Tử' : 'Hòa Bình',
+              text: lynchText
+            }
+          ],
+          logs: [lynchText]
         });
       }
 
@@ -1648,12 +1696,305 @@ export default function App() {
       });
     }
 
+    // Ghi nhận nhật ký sự kiện chi tiết của Đêm vừa qua vào quyển nhật ký biên niên sử
+    const nightEvents = [];
+
+    // 1. Cupid se duyên (Đêm 1)
+    if (roundNumber === 1 && Array.isArray(nightState.cupidChosenIds) && nightState.cupidChosenIds.length === 2) {
+      const p1 = players.find(p => p.id === nightState.cupidChosenIds[0]);
+      const p2 = players.find(p => p.id === nightState.cupidChosenIds[1]);
+      if (p1 && p2) {
+        nightEvents.push({
+          type: 'CUPID',
+          icon: '💘',
+          tag: 'Se Duyên',
+          text: `Cupid kết nối duyên phận giữa #${p1.id} ${p1.name} và #${p2.id} ${p2.name}.`
+        });
+      }
+    }
+
+    // 2. Hai Chị Em (Đêm 1)
+    if (roundNumber === 1) {
+      const sisters = players.filter(p => (p.currentRoleId || p.roleId) === 'hai-chi-em');
+      if (sisters.length >= 2) {
+        nightEvents.push({
+          type: 'SISTERS',
+          icon: '👭',
+          tag: 'Hai Chị Em',
+          text: `Hai Chị Em (#${sisters.map(s => `${s.id} ${s.name}`).join(' & #')}) thức dậy nhận diện nhau.`
+        });
+      }
+    }
+
+    // 3. Ba Anh Em (Đêm 1)
+    if (roundNumber === 1) {
+      const brothers = players.filter(p => (p.currentRoleId || p.roleId) === 'ba-anh-em');
+      if (brothers.length >= 3) {
+        nightEvents.push({
+          type: 'BROTHERS',
+          icon: '👨‍👦‍👦',
+          tag: 'Ba Anh Em',
+          text: `Ba Anh Em (#${brothers.map(b => `${b.id} ${b.name}`).join(', #')}) thức dậy nhận diện nhau.`
+        });
+      }
+    }
+
+    // 4. Đứa Trẻ Hoang Dã chọn Thần Tượng (Đêm 1)
+    if (roundNumber === 1 && nightState.wildChildIdolId) {
+      const wildChild = players.find(p => (p.currentRoleId || p.roleId) === 'dua-tre-hoang-da' || p.originalRoleId === 'dua-tre-hoang-da');
+      const idol = players.find(p => p.id === nightState.wildChildIdolId);
+      if (wildChild && idol) {
+        nightEvents.push({
+          type: 'WILD_CHILD_IDOL',
+          icon: '🔥',
+          tag: 'Thần Tượng',
+          text: `Đứa Trẻ Hoang Dã (${wildChild.name} #${wildChild.id}) chọn #${idol.id} ${idol.name} làm thần tượng.`
+        });
+      }
+    }
+
+    // 5. Ảnh Tử chọn Bản Thể (Đêm 1)
+    if (roundNumber === 1 && nightState.shadowHostId) {
+      const shadow = players.find(p => (p.currentRoleId || p.roleId) === 'anh-tu');
+      const host = players.find(p => p.id === nightState.shadowHostId);
+      if (shadow && host) {
+        nightEvents.push({
+          type: 'SHADOW_HOST',
+          icon: '👻',
+          tag: 'Bản Thể',
+          text: `Ảnh Tử (${shadow.name} #${shadow.id}) liên kết linh hồn với #${host.id} ${host.name}.`
+        });
+      }
+    }
+
+    // 6. Tiên Tri soi
+    if (nightState.seerCheckedId) {
+      const seerTarget = players.find(p => p.id === nightState.seerCheckedId);
+      if (seerTarget) {
+        const isWolf = isWolfPlayer(seerTarget);
+        nightEvents.push({
+          type: 'SEER',
+          icon: '🔮',
+          tag: 'Tiên Tri',
+          text: `Tiên Tri soi #${seerTarget.id} ${seerTarget.name} → Kết quả: ${isWolf ? '🔴 Phe Ma Sói' : '🔵 Phe Dân Làng'}.`
+        });
+      }
+    }
+
+    // 7. Cáo đánh hơi
+    if (nightState.foxCheckedThisNight) {
+      nightEvents.push({
+        type: 'FOX',
+        icon: '🦊',
+        tag: 'Đánh Hơi',
+        text: `Cáo đánh hơi nhóm 3 người → Kết quả: ${nightState.foxFoundWolf ? 'Có Ma Sói (giữ được phép)' : 'Không có Sói (Cáo mất năng lực)'}.`
+      });
+    }
+
+    // 8. Bảo Vệ che chở
+    if (nightState.protectedPlayerId && !nightState.protectSkipped) {
+      const protectedP = players.find(p => p.id === nightState.protectedPlayerId);
+      if (protectedP) {
+        nightEvents.push({
+          type: 'GUARD',
+          icon: '🛡️',
+          tag: 'Bảo Vệ',
+          text: `Bảo Vệ lập lá chắn che chở cho #${protectedP.id} ${protectedP.name}.`
+        });
+      }
+    }
+
+    // 9. Ma Sói tấn công
+    if (nightState.wolfTargetId) {
+      const wolfTarget = players.find(p => p.id === nightState.wolfTargetId);
+      if (wolfTarget) {
+        nightEvents.push({
+          type: 'WOLF_BITE',
+          icon: '🐺',
+          tag: 'Ma Sói',
+          text: `Bầy Ma Sói tấn công cắn #${wolfTarget.id} ${wolfTarget.name}.`
+        });
+      }
+    }
+
+    // 10. Sói Cuồng Nộ (cắn mục tiêu thứ 2)
+    if (nightState.wolfTargetId2) {
+      const wolfTarget2 = players.find(p => p.id === nightState.wolfTargetId2);
+      if (wolfTarget2) {
+        nightEvents.push({
+          type: 'WOLF_BITE',
+          icon: '🔥',
+          tag: 'Sói Cuồng Nộ',
+          text: `Cú cắn cuồng nộ thứ hai nhắm vào #${wolfTarget2.id} ${wolfTarget2.name}.`
+        });
+      }
+    }
+
+    // 11. Sói Lớn Xấu Xa
+    if (nightState.bigBadWolfTargetId) {
+      const bbwTarget = players.find(p => p.id === nightState.bigBadWolfTargetId);
+      if (bbwTarget) {
+        nightEvents.push({
+          type: 'WOLF_BITE',
+          icon: '🐺',
+          tag: 'Sói Lớn',
+          text: `Sói Lớn Xấu Xa cắn thêm #${bbwTarget.id} ${bbwTarget.name}.`
+        });
+      }
+    }
+
+    // 12. Sói Trắng
+    if (nightState.whiteWolfVictimId) {
+      const whiteWolfVictim = players.find(p => p.id === nightState.whiteWolfVictimId);
+      if (whiteWolfVictim) {
+        nightEvents.push({
+          type: 'WHITE_WOLF',
+          icon: '🐺',
+          tag: 'Sói Trắng',
+          text: `Sói Trắng cắn sát hại đồng bọn #${whiteWolfVictim.id} ${whiteWolfVictim.name}.`
+        });
+      }
+    }
+
+    // 13. Phù Thủy
+    if (nightState.witchSaved) {
+      const savedP = players.find(p => p.id === nightState.wolfTargetId);
+      if (savedP) {
+        nightEvents.push({
+          type: 'WITCH_SAVE',
+          icon: '🧪',
+          tag: 'Bình Cứu',
+          text: `Phù Thủy dùng bình hồi sinh cứu sống #${savedP.id} ${savedP.name}.`
+        });
+      }
+    }
+    if (nightState.witchPoisonTargetId) {
+      const poisonP = players.find(p => p.id === nightState.witchPoisonTargetId);
+      if (poisonP) {
+        nightEvents.push({
+          type: 'WITCH_POISON',
+          icon: '☠️',
+          tag: 'Đầu Độc',
+          text: `Phù Thủy dùng bình độc tiêu diệt #${poisonP.id} ${poisonP.name}.`
+        });
+      }
+    }
+
+    // 14. Thổi Sáo
+    if (Array.isArray(nightState.piperChosenIds) && nightState.piperChosenIds.length > 0) {
+      const piperTargets = players.filter(p => nightState.piperChosenIds.includes(p.id));
+      nightEvents.push({
+        type: 'PIPER',
+        icon: '🎵',
+        tag: 'Thôi Miên',
+        text: `Người Thổi Sáo mê hoặc #${piperTargets.map(p => `${p.id} ${p.name}`).join(' & #')}.`
+      });
+    }
+
+    // 15. Kẻ Đốt Nhà
+    if (nightState.pyroTargetId) {
+      const pyroP = players.find(p => p.id === nightState.pyroTargetId);
+      if (pyroP) {
+        nightEvents.push({
+          type: 'PYRO',
+          icon: '🔥',
+          tag: 'Phóng Hỏa',
+          text: `Kẻ Đốt Nhà tưới dầu phóng hỏa nhà #${pyroP.id} ${pyroP.name}.`
+        });
+      }
+    }
+
+    // 16. Sát Thủ
+    if (nightState.assassinTargetId) {
+      const assassinP = players.find(p => p.id === nightState.assassinTargetId);
+      if (assassinP) {
+        nightEvents.push({
+          type: 'ASSASSIN',
+          icon: '🗡️',
+          tag: 'Ám Sát',
+          text: `Sát Thủ ra tay ám sát #${assassinP.id} ${assassinP.name}.`
+        });
+      }
+    }
+
+    // 17. Sói Lửa
+    if (nightState.fireWolfTargetId) {
+      const fireP = players.find(p => p.id === nightState.fireWolfTargetId);
+      if (fireP) {
+        nightEvents.push({
+          type: 'FIRE_WOLF',
+          icon: '🔥',
+          tag: 'Thiêu Rụi',
+          text: `Sói Lửa thiêu rụi vĩnh viễn năng lực của #${fireP.id} ${fireP.name}.`
+        });
+      }
+    }
+
+    // 18. Dược Sĩ
+    if (nightState.apothecarySleepTargetId) {
+      const sleepP = players.find(p => p.id === nightState.apothecarySleepTargetId);
+      if (sleepP) {
+        nightEvents.push({
+          type: 'APOTHECARY',
+          icon: '💊',
+          tag: 'Thuốc Ngủ',
+          text: `Dược Sĩ cho #${sleepP.id} ${sleepP.name} uống thuốc ngủ.`
+        });
+      }
+    }
+
+    // 19. Nguyệt Nữ
+    if (nightState.silencedPlayerId && !nightState.moonPriestessSkipped) {
+      const silencedP = players.find(p => p.id === nightState.silencedPlayerId);
+      if (silencedP) {
+        nightEvents.push({
+          type: 'SILENCED',
+          icon: '🔇',
+          tag: 'Khóa Phép',
+          text: `Nguyệt Nữ khóa phép câm lặng #${silencedP.id} ${silencedP.name}.`
+        });
+      }
+    }
+
+    // 20. Quạ
+    if (nightState.ravenTargetId && !nightState.ravenSkipped) {
+      const ravenP = players.find(p => p.id === nightState.ravenTargetId);
+      if (ravenP) {
+        nightEvents.push({
+          type: 'RAVEN',
+          icon: '🦅',
+          tag: 'Tố Cáo',
+          text: `Quạ gieo 2 phiếu phạt lên đầu #${ravenP.id} ${ravenP.name}.`
+        });
+      }
+    }
+
+    // 21. Báo cáo thương vong từ resolveNight
+    if (logs && logs.length > 0) {
+      logs.forEach(l => {
+        nightEvents.push({
+          type: 'NIGHT_CASUALTY',
+          icon: '⚰️',
+          tag: 'Thương Vong',
+          text: l
+        });
+      });
+    } else {
+      nightEvents.push({
+        type: 'PEACEFUL',
+        icon: '🕊️',
+        tag: 'Bình Yên',
+        text: 'Đêm trôi qua trong yên bình, không ai tử nạn.'
+      });
+    }
+
     // Ghi nhật ký Đêm vừa qua vào quyển nhật ký biên niên sử
     const nightEntry = {
       phase: `Đêm ${roundNumber}`,
       type: 'night',
       round: roundNumber,
-      logs: [...logs]
+      events: nightEvents,
+      logs: nightEvents.map(e => e.text)
     };
     setGameDiary(prev => appendToDiary(prev, nightEntry));
 
@@ -2036,6 +2377,24 @@ export default function App() {
 
     setPlayers(nextGame.players);
     setNightLogs(prev => [...prev, ...logs]);
+
+    // Ghi nhật ký sự kiện Kị Sĩ khiêu chiến vào biên niên sử
+    const duelEvent = {
+      type: 'KNIGHT_DUEL',
+      icon: '⚔️',
+      tag: 'Khiêu Chiến',
+      text: isWolf
+        ? `Kị Sĩ (${knight.name} #${knight.id}) khiêu chiến thành công, chém gục Ma Sói (${target.name} #${target.id})!`
+        : `Kị Sĩ (${knight.name} #${knight.id}) phán đoán sai lầm khiêu chiến ${target.name} và tử trận!`
+    };
+    const dayDuelEntry = {
+      phase: `Ngày ${roundNumber}`,
+      type: 'day',
+      round: roundNumber,
+      events: [duelEvent],
+      logs: [duelEvent.text]
+    };
+    setGameDiary(prev => appendToDiary(prev, dayDuelEntry));
     if (deadSheriff) {
       handleOpenSheriffModal(deadSheriff, false);
     }
@@ -2189,19 +2548,35 @@ export default function App() {
     const lynchedP = players.find(p => p.id === lynchedTodayPlayerId);
     const dayEvents = [];
     if (sheriff) {
-      dayEvents.push(`Cảnh Sát Trưởng: ${sheriff.name} (#${sheriff.id})`);
+      dayEvents.push({
+        type: 'SHERIFF',
+        icon: '👑',
+        tag: 'Trưởng Làng',
+        text: `Cảnh Sát Trưởng: ${sheriff.name} (#${sheriff.id})`
+      });
     }
     if (lynchedP) {
-      dayEvents.push(`Dân làng biểu quyết treo cổ ${lynchedP.name} (#${lynchedP.id}) - Vai: ${getPlayerRole(lynchedP)?.name || 'Chưa lộ vai'}.`);
+      dayEvents.push({
+        type: 'LYNCH',
+        icon: '⚖️',
+        tag: 'Xử Tử',
+        text: `Dân làng biểu quyết treo cổ ${lynchedP.name} (#${lynchedP.id}) - Vai: ${getPlayerRole(lynchedP)?.name || 'Chưa lộ vai'}.`
+      });
     } else {
-      dayEvents.push('Ban ngày trôi qua trong tranh luận. Không có ai bị xử tử.');
+      dayEvents.push({
+        type: 'NO_LYNCH',
+        icon: '🕊️',
+        tag: 'Hòa Bình',
+        text: 'Ban ngày trôi qua trong tranh luận. Không có ai bị xử tử.'
+      });
     }
 
     const dayEntry = {
       phase: `Ngày ${roundNumber}`,
       type: 'day',
       round: roundNumber,
-      logs: dayEvents
+      events: dayEvents,
+      logs: dayEvents.map(e => e.text)
     };
     setGameDiary(prev => appendToDiary(prev, dayEntry));
 
@@ -2456,6 +2831,19 @@ export default function App() {
 
             {/* Tools Group: Cài Đặt, Lịch Sử, Thư Viện */}
             <div className="flex items-center gap-0.5 bg-[#101220]/80 p-0.5 rounded-lg sm:rounded-xl border border-slate-800 shrink-0">
+              {/* Test Mode Badge Alert */}
+              {isTestMode && (
+                <button
+                  type="button"
+                  onClick={() => setIsSettingsOpen(true)}
+                  className="h-6 sm:h-7 px-1.5 sm:px-2 rounded-md sm:rounded-lg bg-amber-950/90 border border-amber-500 text-amber-200 text-[10px] sm:text-xs font-bold flex items-center gap-1 shrink-0 animate-pulse cursor-pointer shadow-sm mr-0.5"
+                  title="Chế độ Thử Nghiệm đang BẬT: Trận này không lưu lịch sử đấu"
+                >
+                  <FlaskConical className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-amber-400" />
+                  <span>TEST MODE</span>
+                </button>
+              )}
+
               {/* Cài Đặt Luật Chơi */}
               <button
                 type="button"
@@ -2750,6 +3138,8 @@ export default function App() {
         onClose={() => setIsSettingsOpen(false)}
         canWolvesKillTeammates={canWolvesKillTeammates}
         onToggleWolvesKillTeammates={handleToggleWolvesKillTeammates}
+        isTestMode={isTestMode}
+        onToggleTestMode={handleToggleTestMode}
       />
     </div>
   );

@@ -150,6 +150,23 @@ export default function MatchHistoryModal({ isOpen, onClose }) {
     return <span className="px-2 py-0.5 rounded text-[11px] font-bold bg-slate-800 text-slate-300">Chưa Hoàn Thành</span>;
   };
 
+  const getEventBadgeColor = (type = '', tag = '') => {
+    const t = (String(type) + ' ' + String(tag)).toUpperCase();
+    if (t.includes('CUPID') || t.includes('DUYÊN') || t.includes('YÊU')) {
+      return 'bg-pink-950/80 text-pink-300 border-pink-700/60';
+    }
+    if (t.includes('WOLF') || t.includes('SÓI') || t.includes('ÁM SÁT') || t.includes('TỬ NẠN') || t.includes('ĐẦU ĐỘC') || t.includes('CASUALTY')) {
+      return 'bg-rose-950/80 text-rose-300 border-rose-700/60';
+    }
+    if (t.includes('GUARD') || t.includes('BẢO VỆ') || t.includes('BÌNH YÊN') || t.includes('HÒA BÌNH') || t.includes('CỨU')) {
+      return 'bg-emerald-950/80 text-emerald-300 border-emerald-700/60';
+    }
+    if (t.includes('SHERIFF') || t.includes('TRƯỞNG') || t.includes('LYNCH') || t.includes('XỬ TỬ') || t.includes('THỢ SĂN') || t.includes('KHIÊU CHIẾN') || t.includes('THẦN TƯỢNG')) {
+      return 'bg-amber-950/80 text-amber-300 border-amber-700/60';
+    }
+    return 'bg-purple-950/80 text-purple-300 border-purple-700/60';
+  };
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-black/65 backdrop-blur-sm animate-fade-in">
       <div className="relative bg-gradient-to-b from-[#180407]/90 via-[#0d0204]/85 to-[#070102]/90 backdrop-blur-md border-2 border-rose-600/90 rounded-3xl w-full max-w-4xl max-h-[90vh] flex flex-col shadow-[0_0_60px_rgba(225,29,72,0.5)] ring-1 ring-rose-500/50 overflow-hidden">
@@ -497,18 +514,41 @@ export default function MatchHistoryModal({ isOpen, onClose }) {
                               </span>
                             </div>
 
-                            <div className="space-y-1.5 pl-2 text-xs">
-                              {logsList.map((log, lIdx) => (
-                                <div key={lIdx} className="flex items-start gap-2 text-slate-300">
-                                  <span className={`text-[10px] mt-0.5 shrink-0 ${isDay ? 'text-amber-400 font-bold' : 'text-purple-400 font-bold'}`}>
-                                    ✦
-                                  </span>
-                                  <span className="leading-relaxed">
-                                    {typeof log === 'string' ? log : JSON.stringify(log)}
-                                  </span>
-                                </div>
-                              ))}
-                            </div>
+                            {Array.isArray(chapter.events) && chapter.events.length > 0 ? (
+                              <div className="space-y-1.5">
+                                {chapter.events.map((ev, eIdx) => {
+                                  const badgeColor = getEventBadgeColor(ev.type, ev.tag);
+                                  return (
+                                    <div key={eIdx} className="flex items-start gap-2 p-2 rounded-xl bg-black/40 border border-white/5 hover:border-white/10 transition-colors">
+                                      <span className="text-sm shrink-0 mt-0.5 select-none">{ev.icon || '✦'}</span>
+                                      <div className="flex-1 min-w-0">
+                                        <div className="flex items-center gap-1.5 mb-0.5">
+                                          <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded border font-mono tracking-wider ${badgeColor}`}>
+                                            {ev.tag || 'Sự Kiện'}
+                                          </span>
+                                        </div>
+                                        <div className="text-xs text-slate-200 leading-relaxed font-sans">
+                                          {ev.text}
+                                        </div>
+                                      </div>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            ) : (
+                              <div className="space-y-1.5 pl-2 text-xs">
+                                {logsList.map((log, lIdx) => (
+                                  <div key={lIdx} className="flex items-start gap-2 text-slate-300">
+                                    <span className={`text-[10px] mt-0.5 shrink-0 ${isDay ? 'text-amber-400 font-bold' : 'text-purple-400 font-bold'}`}>
+                                      ✦
+                                    </span>
+                                    <span className="leading-relaxed">
+                                      {typeof log === 'string' ? log : JSON.stringify(log)}
+                                    </span>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
                           </div>
                         );
                       })}

@@ -15,6 +15,7 @@ export default function NightSpecialRolesStep({
   canWolvesKillTeammates,
   onSaveAction,
   onAssignRole,
+  onAssignRoleToMultiple,
   isWolfPlayer
 }) {
   const [roleActionSearch, setRoleActionSearch] = useState('');
@@ -958,67 +959,151 @@ export default function NightSpecialRolesStep({
     );
   }
 
-  // 10. HAI CHỊ EM (TWO SISTERS - ĐÊM 1 NHẬN DIỆN)
+  // 10. HAI CHỊ EM (TWO SISTERS - ĐÊM 1 NHẬN DIỆN & GÁN VAI TRỰC TIẾP)
   if (currentRole.id === 'hai-chi-em') {
     const sisters = players.filter(p => (p.currentRoleId || p.roleId) === 'hai-chi-em' || getPlayerRole(p)?.id === 'hai-chi-em');
+    const sisterIds = sisters.map(s => s.id);
+
     return (
-      <div className="p-4 rounded-2xl bg-[#14121e] border border-pink-500/30 text-pink-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <div className="p-2.5 rounded-xl bg-pink-950/60 border border-pink-600/40 text-pink-300 shrink-0">
-            <Users className="w-5 h-5" />
-          </div>
-          <div>
-            <div className="font-bold text-pink-200 text-sm">Hai Chị Em Nhận Diện Nhau</div>
-            <div className="text-xs text-slate-400 mt-0.5">
-              Thức dậy trong Đêm 1 để biết mặt nhau và cùng thuộc phe Dân Làng
+      <div className="space-y-4">
+        <div className="p-4 rounded-2xl bg-[#14121e] border border-pink-500/30 text-pink-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 rounded-xl bg-pink-950/60 border border-pink-600/40 text-pink-300 shrink-0">
+              <Users className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="font-bold text-pink-200 text-sm font-cinzel">Hai Chị Em Nhận Diện Nhau</div>
+              <div className="text-xs text-slate-400 mt-0.5">
+                Thức dậy trong Đêm 1 để biết mặt nhau ({sisters.length}/2 người)
+              </div>
             </div>
           </div>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          {sisters.length > 0 ? (
-            sisters.map(s => (
-              <span key={s.id} className="text-xs font-semibold px-2.5 py-1 rounded-lg bg-pink-950/80 border border-pink-600 text-pink-200">
-                #{s.id} {s.name}
+          <div className="flex flex-wrap items-center gap-2">
+            {sisters.length > 0 ? (
+              sisters.map(s => (
+                <span key={s.id} className="text-xs font-semibold px-2.5 py-1 rounded-lg bg-pink-950/80 border border-pink-600 text-pink-200">
+                  #{s.id} {s.name}
+                </span>
+              ))
+            ) : (
+              <span className="text-xs px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-700 text-slate-400">
+                Chưa gán vai
               </span>
-            ))
-          ) : (
-            <span className="text-xs px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-700 text-slate-400">
-              Chưa gán vai
+            )}
+          </div>
+        </div>
+
+        {/* Seat Picker for Hai Chị Em (Hỗ trợ gán / đổi người khi gán nhầm) */}
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold text-pink-300 uppercase tracking-wider">
+              Chọn Đúng 2 Ghế Cho Vai Hai Chị Em ({sisterIds.length}/2):
             </span>
-          )}
+            {sisterIds.length > 0 && typeof onAssignRoleToMultiple === 'function' && (
+              <button
+                type="button"
+                onClick={() => onAssignRoleToMultiple([], 'hai-chi-em')}
+                className="text-[11px] text-slate-400 hover:text-pink-300 cursor-pointer"
+              >
+                ✕ Xóa gán lại
+              </button>
+            )}
+          </div>
+          <PlayerSeatPicker
+            players={players}
+            selectedIds={sisterIds}
+            onSelect={(id) => {
+              let next = [];
+              if (sisterIds.includes(id)) {
+                next = sisterIds.filter(x => x !== id);
+              } else if (sisterIds.length < 2) {
+                next = [...sisterIds, id];
+              } else {
+                next = [sisterIds[1], id];
+              }
+              if (typeof onAssignRoleToMultiple === 'function') {
+                onAssignRoleToMultiple(next, 'hai-chi-em');
+              }
+            }}
+            maxSelect={2}
+            variant="cupid"
+            isWolfPlayer={isWolfPlayer}
+          />
         </div>
       </div>
     );
   }
 
-  // 11. BA ANH EM (THREE BROTHERS - ĐÊM 1 NHẬN DIỆN)
+  // 11. BA ANH EM (THREE BROTHERS - ĐÊM 1 NHẬN DIỆN & GÁN VAI TRỰC TIẾP)
   if (currentRole.id === 'ba-anh-em') {
     const brothers = players.filter(p => (p.currentRoleId || p.roleId) === 'ba-anh-em' || getPlayerRole(p)?.id === 'ba-anh-em');
+    const brotherIds = brothers.map(b => b.id);
+
     return (
-      <div className="p-4 rounded-2xl bg-[#14121e] border border-blue-500/30 text-blue-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <div className="p-2.5 rounded-xl bg-blue-950/60 border border-blue-600/40 text-blue-300 shrink-0">
-            <Users className="w-5 h-5" />
-          </div>
-          <div>
-            <div className="font-bold text-blue-200 text-sm">Ba Anh Em Nhận Diện Nhau</div>
-            <div className="text-xs text-slate-400 mt-0.5">
-              Thức dậy trong Đêm 1 để biết mặt nhau và cùng thuộc phe Dân Làng
+      <div className="space-y-4">
+        <div className="p-4 rounded-2xl bg-[#14121e] border border-blue-500/30 text-blue-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 rounded-xl bg-blue-950/60 border border-blue-600/40 text-blue-300 shrink-0">
+              <Users className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="font-bold text-blue-200 text-sm font-cinzel">Ba Anh Em Nhận Diện Nhau</div>
+              <div className="text-xs text-slate-400 mt-0.5">
+                Thức dậy trong Đêm 1 để biết mặt nhau ({brothers.length}/3 người)
+              </div>
             </div>
           </div>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          {brothers.length > 0 ? (
-            brothers.map(b => (
-              <span key={b.id} className="text-xs font-semibold px-2.5 py-1 rounded-lg bg-blue-950/80 border border-blue-600 text-blue-200">
-                #{b.id} {b.name}
+          <div className="flex flex-wrap items-center gap-2">
+            {brothers.length > 0 ? (
+              brothers.map(b => (
+                <span key={b.id} className="text-xs font-semibold px-2.5 py-1 rounded-lg bg-blue-950/80 border border-blue-600 text-blue-200">
+                  #{b.id} {b.name}
+                </span>
+              ))
+            ) : (
+              <span className="text-xs px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-700 text-slate-400">
+                Chưa gán vai
               </span>
-            ))
-          ) : (
-            <span className="text-xs px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-700 text-slate-400">
-              Chưa gán vai
+            )}
+          </div>
+        </div>
+
+        {/* Seat Picker for Ba Anh Em (Hỗ trợ gán / đổi người khi gán nhầm) */}
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold text-blue-300 uppercase tracking-wider">
+              Chọn Đúng 3 Ghế Cho Vai Ba Anh Em ({brotherIds.length}/3):
             </span>
-          )}
+            {brotherIds.length > 0 && typeof onAssignRoleToMultiple === 'function' && (
+              <button
+                type="button"
+                onClick={() => onAssignRoleToMultiple([], 'ba-anh-em')}
+                className="text-[11px] text-slate-400 hover:text-blue-300 cursor-pointer"
+              >
+                ✕ Xóa gán lại
+              </button>
+            )}
+          </div>
+          <PlayerSeatPicker
+            players={players}
+            selectedIds={brotherIds}
+            onSelect={(id) => {
+              let next = [];
+              if (brotherIds.includes(id)) {
+                next = brotherIds.filter(x => x !== id);
+              } else if (brotherIds.length < 3) {
+                next = [...brotherIds, id];
+              } else {
+                next = [...brotherIds.slice(1), id];
+              }
+              if (typeof onAssignRoleToMultiple === 'function') {
+                onAssignRoleToMultiple(next, 'ba-anh-em');
+              }
+            }}
+            maxSelect={3}
+            variant="villager"
+            isWolfPlayer={isWolfPlayer}
+          />
         </div>
       </div>
     );

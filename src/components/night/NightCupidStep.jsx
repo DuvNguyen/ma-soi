@@ -15,11 +15,22 @@ export default function NightCupidStep({
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-2">
-        <Heart className="w-5 h-5 text-pink-400 fill-pink-500/40" />
-        <h4 className="font-bold text-sm text-pink-200 font-cinzel">
-          Ghép đôi Cupid
-        </h4>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Heart className="w-5 h-5 text-pink-400 fill-pink-500/40" />
+          <h4 className="font-bold text-sm text-pink-200 font-cinzel">
+            Ghép đôi Cupid
+          </h4>
+        </div>
+        {chosen.length > 0 && (
+          <button
+            type="button"
+            onClick={() => onSaveAction('cupid', [])}
+            className="text-xs text-pink-300 hover:text-pink-100 px-2.5 py-1 rounded-lg bg-pink-950/60 border border-pink-700/60 flex items-center gap-1 font-bold cursor-pointer transition-colors shadow-sm"
+          >
+            ✕ Xóa chọn lại
+          </button>
+        )}
       </div>
 
       {/* SUMMARY COUPLE BOX */}

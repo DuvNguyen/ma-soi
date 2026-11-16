@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Settings, Shield, Skull, Check, X, AlertTriangle, RefreshCw, Database, Smartphone, Share2, PlusSquare } from 'lucide-react';
+import { Settings, Shield, Skull, Check, X, AlertTriangle, RefreshCw, Database, Smartphone, Share2, PlusSquare, FlaskConical } from 'lucide-react';
 import GothicButton from './ui/GothicButton';
 import ClawMarks from './ui/ClawMarks';
 import WolfIcon from './ui/WolfIcon';
@@ -9,7 +9,9 @@ export default function GameSettingsModal({
   isOpen,
   onClose,
   canWolvesKillTeammates,
-  onToggleWolvesKillTeammates
+  onToggleWolvesKillTeammates,
+  isTestMode = false,
+  onToggleTestMode
 }) {
   const { showConfirm } = useGothicDialog();
   const [isStandalone, setIsStandalone] = useState(false);
@@ -128,6 +130,57 @@ export default function GameSettingsModal({
               <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0" />
               <span>Lưu ý: Mỗi lần bật/tắt luật này sẽ đặt lại bàn và bắt đầu một ván chơi mới.</span>
             </div>
+          </div>
+
+          {/* TOGGLE TEST MODE (KHÔNG LƯU LỊCH SỬ ĐẤU) */}
+          <div className="p-4 rounded-2xl bg-[#141624] border border-amber-900/60 shadow-lg space-y-3">
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex items-start gap-3">
+                <div className="w-9 h-9 rounded-xl bg-amber-950 border border-amber-500/80 flex items-center justify-center text-amber-300 shrink-0 mt-0.5">
+                  <FlaskConical className="w-5 h-5 text-amber-400" />
+                </div>
+                <div>
+                  <h4 className="font-bold text-sm text-slate-100 flex items-center gap-2">
+                    <span>Chế Độ Thử Nghiệm (Test Mode)</span>
+                    {isTestMode ? (
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-950 border border-amber-500 text-amber-300">
+                        Đang Bật
+                      </span>
+                    ) : (
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-900 border border-slate-700 text-slate-400">
+                        Đang Tắt
+                      </span>
+                    )}
+                  </h4>
+                  <p className="text-xs text-slate-400 mt-1 leading-relaxed">
+                    Dành cho Quản trò thử nghiệm tương tác role hoặc test ván đấu. Khi bật, ván chơi diễn ra bình thường nhưng kết quả sẽ không lưu vào Lịch sử Đấu.
+                  </p>
+                </div>
+              </div>
+
+              {/* Toggle Switch */}
+              <button
+                type="button"
+                onClick={() => onToggleTestMode && onToggleTestMode(!isTestMode)}
+                className={`relative inline-flex h-6 w-12 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                  isTestMode ? 'bg-amber-600 shadow-[0_0_12px_rgba(217,119,6,0.6)]' : 'bg-slate-800'
+                }`}
+                title="Bật/tắt chế độ thử nghiệm"
+              >
+                <span
+                  className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-lg ring-0 transition duration-200 ease-in-out ${
+                    isTestMode ? 'translate-x-6' : 'translate-x-0'
+                  }`}
+                />
+              </button>
+            </div>
+
+            {isTestMode && (
+              <div className="p-2.5 rounded-xl bg-amber-950/60 border border-amber-700/80 text-amber-200 text-[11px] flex items-center gap-2">
+                <span className="font-bold">🧪 ĐANG BẬT:</span>
+                <span>Ván đấu này sẽ KHÔNG ghi vào lịch sử (LocalStorage & Neon DB).</span>
+              </div>
+            )}
           </div>
 
           {/* SYSTEM AUTO SAVE STATE STATUS CARD */}

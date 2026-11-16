@@ -26,6 +26,7 @@ export default function NightRoleAction({
   setSelectedSeerTarget,
   onSaveAction,
   onAssignRole,
+  onAssignRoleToMultiple,
   isWolfPlayer,
   showConfirm
 }) {
@@ -109,6 +110,7 @@ export default function NightRoleAction({
       canWolvesKillTeammates={canWolvesKillTeammates}
       onSaveAction={onSaveAction}
       onAssignRole={onAssignRole}
+      onAssignRoleToMultiple={onAssignRoleToMultiple}
       isWolfPlayer={isWolfPlayer}
     />
   );

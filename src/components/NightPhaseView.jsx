@@ -967,6 +967,7 @@ export default function NightPhaseView({
               setSelectedSeerTarget={setSelectedSeerTarget}
               onSaveAction={onSaveAction}
               onAssignRole={onAssignRole}
+              onAssignRoleToMultiple={onAssignRoleToMultiple}
               isWolfPlayer={isWolfPlayer}
               showConfirm={showConfirm}
             />

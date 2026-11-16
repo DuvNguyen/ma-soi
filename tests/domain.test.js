@@ -1404,6 +1404,27 @@ console.log('🧪 Starting Phase 1 Domain Model & Strategy Tests...\n');
 
     console.log('✅ Test 66: Role Transformation Graph Model & Visual Flow verified.');
 
-    console.log('\n🎉 ALL 66 DOMAIN ENGINE TESTS PASSED PERFECTLY!\n');
+    // --- TEST 67: Test Mode Toggle, Direct Sister/Brother Picker, and Structured Match Chronicle ---
+    const settingsContent = fs.readFileSync('src/components/GameSettingsModal.jsx', 'utf8');
+    assert.ok(settingsContent.includes('Chế Độ Thử Nghiệm (Test Mode)'), 'Settings must contain Test Mode toggle card');
+    assert.ok(settingsContent.includes('isTestMode'), 'Settings must accept isTestMode prop');
+    assert.ok(settingsContent.includes('onToggleTestMode'), 'Settings must support onToggleTestMode callback');
+
+    const appContent = fs.readFileSync('src/App.jsx', 'utf8');
+    assert.ok(appContent.includes('isTestMode'), 'App must maintain isTestMode state');
+    assert.ok(appContent.includes('[Test Mode] Game ended, match record is NOT saved'), 'evaluateGameEnd must bypass saving when Test Mode is active');
+    assert.ok(appContent.includes('nightEvents'), 'App must generate structured nightEvents for each phase');
+
+    const specialRolesContent = fs.readFileSync('src/components/night/NightSpecialRolesStep.jsx', 'utf8');
+    assert.ok(specialRolesContent.includes('PlayerSeatPicker') && specialRolesContent.includes('hai-chi-em'), 'NightSpecialRolesStep must render PlayerSeatPicker for Two Sisters');
+    assert.ok(specialRolesContent.includes('PlayerSeatPicker') && specialRolesContent.includes('ba-anh-em'), 'NightSpecialRolesStep must render PlayerSeatPicker for Three Brothers');
+
+    const matchHistoryContent = fs.readFileSync('src/components/MatchHistoryModal.jsx', 'utf8');
+    assert.ok(matchHistoryContent.includes('chapter.events'), 'MatchHistoryModal must render structured events if available');
+    assert.ok(matchHistoryContent.includes('getEventBadgeColor'), 'MatchHistoryModal must compute distinct tag badge colors');
+
+    console.log('✅ Test 67: Test Mode Toggle, Direct Sister/Brother Picker, and Structured Match Chronicle verified.');
+
+    console.log('\n🎉 ALL 67 DOMAIN ENGINE TESTS PASSED PERFECTLY!\n');
   });
 }
