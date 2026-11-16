@@ -501,8 +501,11 @@ export function resolveNightPhase(players, nightActions, roundNumber) {
               deathReasons[burnedWolf.id] = 'Bị ngọn lửa của Kẻ Đốt Nhà thiêu chết do tấn công nhầm ngôi nhà bị phóng hỏa';
               logs.push(`🔥🐺 SÓI BỊ THIÊU CHẾT: Ma Sói ${burnedWolf.name} (#${burnedWolf.id}) ngồi bên phải ngôi nhà phóng hỏa đã bị ngọn lửa bùng lên thiêu chết tại chỗ!`);
             }
-            // Nạn nhân bị sói tấn công được ngọn lửa cứu mạng
-            if (killedPlayerIds.has(pyroTarget.id)) {
+            // Nạn nhân bị sói tấn công được ngọn lửa cứu mạng (trừ khi bị Phù Thủy đầu độc)
+            if (witchPoisonTargetId === pyroTarget.id) {
+              deathReasons[pyroTarget.id] = 'Bị Phù Thủy đầu độc chết trong đêm';
+              logs.push(`⚠️ Nạn nhân ${pyroTarget.name} (#${pyroTarget.id}) thoát khỏi nanh vuốt Sói nhờ ngọn lửa nhưng vẫn tử vong do trúng độc Phù Thủy!`);
+            } else if (killedPlayerIds.has(pyroTarget.id)) {
               killedPlayerIds.delete(pyroTarget.id);
               delete deathReasons[pyroTarget.id];
               logs.push(`🛡️ NẠN NHÂN THOÁT CHẾT: ${pyroTarget.name} (#${pyroTarget.id}) may mắn sống sót do bầy Sói bị ngọn lửa đẩy lùi!`);
@@ -518,6 +521,9 @@ export function resolveNightPhase(players, nightActions, roundNumber) {
   if (apothecaryCurePoison && witchPoisonTargetId) {
     killedPlayerIds.delete(witchPoisonTargetId);
     delete deathReasons[witchPoisonTargetId];
+    if (elderKilledByWitch) {
+      elderKilledByWitch = false;
+    }
     const curedP = updatedPlayers.find(p => p.id === witchPoisonTargetId);
     logs.push(`🧪 DƯỢC SĨ GIẢI ĐỘC: Dược Sĩ đã kịp thời dùng Bình Hồi Phục giải độc cho ${curedP?.name || `#${witchPoisonTargetId}`} thoát chết khỏi độc dược Phù Thủy!`);
   }

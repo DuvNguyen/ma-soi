@@ -1476,6 +1476,54 @@ console.log('🧪 Starting Phase 1 Domain Model & Strategy Tests...\n');
 
     console.log('✅ Test 70: Game Master Operational Mistake Recovery & Full Audit verified.');
 
-    console.log('\n🎉 ALL 70 DOMAIN ENGINE TESTS PASSED PERFECTLY!\n');
+    // --- TEST 71: Role Conflict Logic: Apothecary Poison Cure vs Elder Curse & Pyromaniac vs Witch Poison ---
+    // Conflict 1: Witch poisons Elder, but Apothecary cures poison on the same night
+    const elder = new Player({ id: 101, name: 'Già Làng Cụ', currentRoleId: 'gia-lang', originalRoleId: 'gia-lang', elderLives: 2 });
+    const wolf = new Player({ id: 102, name: 'Sói Đen', currentRoleId: 'soi-thuong', originalRoleId: 'soi-thuong' });
+    const villagersList = [
+      elder,
+      wolf,
+      new Player({ id: 103, name: 'Dân 1', currentRoleId: 'dan-lang' }),
+      new Player({ id: 104, name: 'Dân 2', currentRoleId: 'dan-lang' })
+    ];
+
+    const nightResultCured = resolveNightPhase(
+      villagersList.map(p => p.toJSON()),
+      {
+        wolfTargetId: 103,
+        witchPoisonTargetId: 101,
+        apothecaryCurePoison: true // Dược Sĩ giải độc kịp thời
+      },
+      1
+    );
+
+    assert.strictEqual(nightResultCured.elderKilledByWitch, false, 'Elder must NOT trigger village curse if cured by Apothecary');
+    assert.strictEqual(nightResultCured.killedPlayerIds.includes(101), false, 'Elder must survive when poison is cured');
+
+    // Conflict 2: Pyromaniac house fire repels wolf bite, but target is ALSO poisoned by Witch
+    const pyroTarget = new Player({ id: 201, name: 'Nạn Nhân Kép', currentRoleId: 'dan-lang' });
+    const wolfRight = new Player({ id: 202, name: 'Sói Bên Phải', currentRoleId: 'soi-thuong' });
+    const pyroVillagers = [
+      pyroTarget,
+      wolfRight,
+      new Player({ id: 203, name: 'Dân 3', currentRoleId: 'dan-lang' })
+    ];
+
+    const nightResultPyroPoison = resolveNightPhase(
+      pyroVillagers.map(p => p.toJSON()),
+      {
+        wolfTargetId: 201, // Sói cắn 201
+        pyroTargetId: 201, // Đốt nhà 201 -> cháy Sói 202
+        witchPoisonTargetId: 201 // Phù Thủy cũng đầu độc 201
+      },
+      1
+    );
+
+    assert.strictEqual(nightResultPyroPoison.killedPlayerIds.includes(202), true, 'Wolf to the right of burning house must burn');
+    assert.strictEqual(nightResultPyroPoison.killedPlayerIds.includes(201), true, 'Victim must still die from Witch poison despite fire repelling wolves');
+
+    console.log('✅ Test 71: Role Conflict Logic (Apothecary vs Elder & Pyro vs Witch Poison) verified.');
+
+    console.log('\n🎉 ALL 71 DOMAIN ENGINE TESTS PASSED PERFECTLY!\n');
   });
 }
