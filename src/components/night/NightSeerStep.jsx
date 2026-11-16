@@ -32,7 +32,7 @@ export default function NightSeerStep({
           : Player.fromJSON(livePlayer);
         const isUnassigned = !targetPlayerModel.currentRoleId && !targetPlayerModel.roleId;
         const targetRole = targetPlayerModel.getRole();
-        const isTargetWolf = !isUnassigned && targetPlayerModel.getSeerAffiliation(nightState) === 'WOLF';
+        const isTargetWolf = !isUnassigned && targetPlayerModel.getSeerAffiliation({ ...nightState, players }) === 'WOLF';
         
         // Bán Sói (Nửa Người Nửa Sói) nếu đã bị bầy Sói cắn trong đêm nay
         const isBittenHalfWolfTonight = (livePlayer?.currentRoleId === 'nua-nguoi-nua-soi' || livePlayer?.roleId === 'nua-nguoi-nua-soi') &&

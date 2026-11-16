@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Flame, Ghost, Wand2, Eye, Skull, MoonStar, Crosshair, Users, Search, Swords, Theater, RefreshCw, Sparkles, Shield, Zap } from 'lucide-react';
+import { Flame, Ghost, Wand2, Eye, EyeOff, Check, Skull, MoonStar, Crosshair, Users, Search, Swords, Theater, RefreshCw, Sparkles, Shield, Zap } from 'lucide-react';
 import PlayerSeatPicker from '../PlayerSeatPicker';
 import WolfIcon from '../ui/WolfIcon';
 import { getPlayerRole, matchesSearch, removeVietnameseTones } from '../../utils/roleUtils';
@@ -442,35 +442,76 @@ export default function NightSpecialRolesStep({
 
   // 5. CÁO (THE FOX)
   if (currentRole.id === 'cao') {
-    const foxCenterPlayer = players.find(p => p.id === nightState.foxTargetId);
-    let triplet = [];
-    let tripletHasWolf = false;
-    if (foxCenterPlayer && alivePlayers.length >= 3) {
-      const sortedAlive = [...alivePlayers].sort((a, b) => a.id - b.id);
-      const idx = sortedAlive.findIndex(p => p.id === foxCenterPlayer.id);
-      if (idx !== -1) {
-        const left = sortedAlive[(idx - 1 + sortedAlive.length) % sortedAlive.length];
-        const right = sortedAlive[(idx + 1) % sortedAlive.length];
-        triplet = [left, foxCenterPlayer, right];
-        tripletHasWolf = triplet.some(isWolfPlayer);
-      }
+    const isLostPower = Boolean(nightState.foxLostPower);
+    const isFoundWolf = nightState.foxFoundWolf === true;
+    const isNotFoundWolf = nightState.foxFoundWolf === false;
+    const isSkipped = Boolean(nightState.foxSkipped);
+
+    if (isLostPower) {
+      return (
+        <div className="space-y-4">
+          <div className="p-4 rounded-2xl bg-gradient-to-r from-[#180a14] via-[#120710] to-[#0a050a] border border-amber-900/60 shadow-lg space-y-3">
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-amber-950/80 border border-amber-700/60 flex items-center justify-center text-amber-400 shrink-0">
+                  <EyeOff className="w-5 h-5 text-amber-400" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h4 className="font-bold text-amber-200 text-sm font-cinzel">
+                      CÁO (ĐÃ MẤT NĂNG LỰC)
+                    </h4>
+                    <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-md bg-amber-950/90 text-amber-300 border border-amber-700/80">
+                      Gọi cho có
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-400 mt-0.5">
+                    Gọi Cáo thức dậy để che giấu thân phận trước làng. Cáo không còn quyền đánh hơi.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="p-3 rounded-xl bg-black/40 border border-amber-900/40 text-xs text-amber-200/90 font-mono">
+              Quản trò hô: &ldquo;Cáo thức dậy.&rdquo; ➔ Đợi 3 giây ➔ &ldquo;Cáo nhắm mắt lại.&rdquo;
+            </div>
+
+            <div className="pt-1 flex items-center justify-between border-t border-amber-950/60">
+              <span className="text-xs font-semibold text-emerald-400 flex items-center gap-1.5">
+                <Check className="w-4 h-4 text-emerald-400" />
+                Đã sẵn sàng chuyển bước
+              </span>
+
+              <button
+                type="button"
+                onClick={() => onSaveAction('fox', null, { foxLostPower: false, foxSkipped: false, foxCheckedThisNight: false, foxFoundWolf: null })}
+                className="text-[11px] text-slate-500 hover:text-amber-300 underline cursor-pointer transition-colors"
+              >
+                Phục hồi năng lực (Nếu bấm nhầm)
+              </button>
+            </div>
+          </div>
+        </div>
+      );
     }
 
     return (
       <div className="space-y-4">
-        <div className="flex items-center justify-between">
+        {/* Header bar */}
+        <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2">
             <Eye className="w-5 h-5 text-amber-400" />
             <h4 className="font-bold text-sm text-amber-200 font-cinzel">
-              Đánh hơi của Cáo
+              ĐÁNH HƠI CỦA CÁO
             </h4>
           </div>
+
           <button
             type="button"
-            onClick={() => onSaveAction('fox', null, { foxSkipped: true, foxLostPower: false })}
+            onClick={() => onSaveAction('fox', null, { foxSkipped: true, foxLostPower: false, foxFoundWolf: null })}
             className={`text-xs px-3 py-1 rounded-xl border transition-all font-bold cursor-pointer ${
-              nightState.foxSkipped
-                ? 'bg-amber-950 border-amber-500 text-amber-200 shadow-md'
+              isSkipped
+                ? 'bg-amber-950 border-amber-500 text-amber-200 shadow-md ring-1 ring-amber-400'
                 : 'bg-slate-900 hover:bg-slate-800 border-slate-700 text-slate-300'
             }`}
           >
@@ -478,43 +519,96 @@ export default function NightSpecialRolesStep({
           </button>
         </div>
 
-        <p className="text-xs text-slate-400">
-          Kiểm tra tâm điểm và 2 người ngồi kề cận. Có Sói: giữ phép; Không có Sói: mất phép.
-        </p>
+        {/* 2 Primary Decision Case Buttons */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {/* Case 1: Soi ra Sói */}
+          <button
+            type="button"
+            onClick={() => onSaveAction('fox', null, { foxLostPower: false, foxSkipped: false, foxCheckedThisNight: true, foxFoundWolf: true })}
+            className={`p-4 rounded-2xl border text-left transition-all duration-200 flex flex-col justify-between gap-2 cursor-pointer ${
+              isFoundWolf && !isSkipped
+                ? 'bg-gradient-to-r from-emerald-950/90 via-[#07271b] to-emerald-950/90 border-emerald-500 text-emerald-100 shadow-[0_0_25px_rgba(16,185,129,0.4)] ring-1 ring-emerald-400'
+                : 'bg-[#0e161a] hover:bg-[#132225] border-emerald-900/60 hover:border-emerald-600/80 text-slate-200'
+            }`}
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-xl bg-emerald-950 border border-emerald-600/60 flex items-center justify-center text-emerald-400 shrink-0">
+                  <WolfIcon className="w-4 h-4 text-emerald-300" />
+                </div>
+                <span className="font-black text-sm sm:text-base font-cinzel text-emerald-200">
+                  SOI RA SÓI
+                </span>
+              </div>
+              <span className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-md border ${
+                isFoundWolf && !isSkipped
+                  ? 'bg-emerald-900 text-emerald-200 border-emerald-400 shadow-sm'
+                  : 'bg-emerald-950/60 text-emerald-400 border-emerald-800'
+              }`}>
+                Giữ năng lực
+              </span>
+            </div>
 
-        {foxCenterPlayer && triplet.length === 3 && (
-          <div className={`p-3.5 rounded-2xl border text-center space-y-1 backdrop-blur-md animate-fade-in ${
-            tripletHasWolf
-              ? 'bg-gradient-to-r from-emerald-950/90 via-[#062419] to-emerald-950/90 border-emerald-500 text-emerald-100 shadow-[0_0_20px_rgba(168,85,129,0.3)]'
-              : 'bg-gradient-to-r from-rose-950/90 via-[#26080e] to-rose-950/90 border-rose-500 text-rose-100 shadow-[0_0_20px_rgba(225,29,72,0.3)]'
-          }`}>
-            <div className="text-xs uppercase tracking-wider font-bold">
-              Nhóm 3 người: #{triplet[0].id} {triplet[0].name} — <strong className="underline">#{triplet[1].id} {triplet[1].name}</strong> — #{triplet[2].id} {triplet[2].name}
+            <div className="text-xs text-emerald-300/80 mt-1">
+              Có ít nhất 1 Ma Sói trong nhóm 3 người. Đêm sau Cáo vẫn đánh hơi bình thường.
             </div>
-            <div className="text-base font-black font-cinzel">
-              {tripletHasWolf ? '✓ CÓ MA SÓI (Giữ năng lực)' : '✗ KHÔNG CÓ MA SÓI (Mất năng lực)'}
+
+            {isFoundWolf && !isSkipped && (
+              <div className="text-xs font-bold text-emerald-400 flex items-center gap-1 mt-1 pt-1 border-t border-emerald-800/60">
+                <Check className="w-3.5 h-3.5 text-emerald-400" />
+                <span>Đã chọn: Có Sói (Đêm sau soi tiếp)</span>
+              </div>
+            )}
+          </button>
+
+          {/* Case 2: Không ra Sói */}
+          <button
+            type="button"
+            onClick={() => onSaveAction('fox', null, { foxLostPower: true, foxSkipped: false, foxCheckedThisNight: true, foxFoundWolf: false })}
+            className={`p-4 rounded-2xl border text-left transition-all duration-200 flex flex-col justify-between gap-2 cursor-pointer ${
+              isNotFoundWolf && !isSkipped
+                ? 'bg-gradient-to-r from-rose-950/90 via-[#26080e] to-rose-950/90 border-rose-500 text-rose-100 shadow-[0_0_25px_rgba(244,63,94,0.4)] ring-1 ring-rose-400'
+                : 'bg-[#180e14] hover:bg-[#25121b] border-rose-900/60 hover:border-rose-600/80 text-slate-200'
+            }`}
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-xl bg-rose-950 border border-rose-600/60 flex items-center justify-center text-rose-400 shrink-0 font-bold text-sm">
+                  ✕
+                </div>
+                <span className="font-black text-sm sm:text-base font-cinzel text-rose-200">
+                  KHÔNG RA SÓI
+                </span>
+              </div>
+              <span className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-md border ${
+                isNotFoundWolf && !isSkipped
+                  ? 'bg-rose-900 text-rose-200 border-rose-400 shadow-sm'
+                  : 'bg-rose-950/60 text-rose-400 border-rose-800'
+              }`}>
+                Mất năng lực
+              </span>
             </div>
+
+            <div className="text-xs text-rose-300/80 mt-1">
+              Không có Ma Sói nào trong nhóm. Cáo mất phép vĩnh viễn (đêm sau gọi cho có).
+            </div>
+
+            {isNotFoundWolf && !isSkipped && (
+              <div className="text-xs font-bold text-rose-400 flex items-center gap-1 mt-1 pt-1 border-t border-rose-800/60">
+                <Check className="w-3.5 h-3.5 text-rose-400" />
+                <span>Đã chọn: Không có Sói (Đêm sau gọi cho có)</span>
+              </div>
+            )}
+          </button>
+        </div>
+
+        {/* Status bar */}
+        {isSkipped && (
+          <div className="p-2.5 rounded-xl bg-amber-950/60 border border-amber-600/60 text-amber-200 text-xs flex items-center justify-between">
+            <span>Đã chọn: Bỏ qua không đánh hơi trong đêm nay.</span>
+            <span className="text-[10px] font-mono text-amber-300">Đêm sau vẫn giữ năng lực</span>
           </div>
         )}
-
-        <PlayerSeatPicker
-          players={alivePlayers}
-          selectedIds={nightState.foxTargetId && !nightState.foxSkipped ? [nightState.foxTargetId] : []}
-          onSelect={(centerId) => {
-            const sortedAlive = [...alivePlayers].sort((a, b) => a.id - b.id);
-            const idx = sortedAlive.findIndex(p => p.id === centerId);
-            let hasWolf = false;
-            if (idx !== -1) {
-              const left = sortedAlive[(idx - 1 + sortedAlive.length) % sortedAlive.length];
-              const right = sortedAlive[(idx + 1) % sortedAlive.length];
-              const center = sortedAlive[idx];
-              hasWolf = [left, center, right].some(isWolfPlayer);
-            }
-            onSaveAction('fox', centerId, { foxLostPower: !hasWolf, foxSkipped: false });
-          }}
-          variant="seer"
-          actionLabel="Chọn tâm điểm"
-        />
       </div>
     );
   }
@@ -990,6 +1084,205 @@ export default function NightSpecialRolesStep({
             )}
           </div>
         </div>
+
+        {dogHolders.length === 0 && typeof onAssignRole === 'function' && (
+          <div className="pt-2 border-t border-slate-800 space-y-2">
+            <span className="text-xs font-bold text-amber-300">Gán vai Chó Sói / Sói Lai:</span>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+              {alivePlayers.map(p => (
+                <button
+                  key={p.id}
+                  type="button"
+                  onClick={() => onAssignRole(p.id, 'cho-soi-soi-lai')}
+                  className="p-2 rounded-xl border border-slate-800 bg-[#101424] hover:border-amber-500 text-xs text-left text-slate-200 cursor-pointer"
+                >
+                  #{p.id} {p.name}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // 12.1 THẨM PHÁN LẮP BẮP (ĐÊM 1 THỐNG NHẤT ÁM HIỆU)
+  if (currentRole.id === 'tham-phan-lap-bap') {
+    const judgeHolders = players.filter(p => (p.currentRoleId || p.roleId) === 'tham-phan-lap-bap' || getPlayerRole(p)?.id === 'tham-phan-lap-bap');
+    const currentSignal = nightState.stutteringJudgeSignal || 'Gãi tai';
+    const SIGNALS = ['Gãi tai', 'Chớp mắt hai lần', 'Vỗ tay nhẹ', 'Xoa cằm'];
+    return (
+      <div className="p-4 rounded-2xl bg-[#14121e] border border-blue-500/30 text-blue-100 space-y-3">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 rounded-xl bg-blue-950/60 border border-blue-600/40 text-blue-300 shrink-0">
+              <Sparkles className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="font-bold text-blue-200 text-sm">Thẩm Phán Lắp Bắp — Thống Nhất Ám Hiệu</div>
+              <div className="text-xs text-slate-400 mt-0.5">
+                Thống nhất một ký hiệu bí mật để kích hoạt vòng biểu quyết lần 2 vào ban ngày
+              </div>
+            </div>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            {judgeHolders.length > 0 ? (
+              judgeHolders.map(j => (
+                <span key={j.id} className="text-xs font-semibold px-2.5 py-1 rounded-lg bg-blue-950/80 border border-blue-600 text-blue-200">
+                  #{j.id} {j.name}
+                </span>
+              ))
+            ) : (
+              <span className="text-xs px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-700 text-slate-400">
+                Chưa gán vai
+              </span>
+            )}
+          </div>
+        </div>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-2">
+          {SIGNALS.map(sig => (
+            <button
+              key={sig}
+              type="button"
+              onClick={() => onSaveAction('stuttering_judge_signal', sig)}
+              className={`p-2.5 rounded-xl border text-xs font-bold transition-all cursor-pointer text-center ${
+                currentSignal === sig
+                  ? 'bg-blue-950 border-blue-500 text-blue-200 shadow-md'
+                  : 'bg-[#101424] border-slate-800 text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              {sig}
+            </button>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  // 12.2 ANH EM SÓI (ĐÊM 1 NHẬN DIỆN & PHÂN VAI)
+  if (currentRole.id === 'anh-em-soi') {
+    const brothers = players.filter(p => (p.currentRoleId || p.roleId) === 'anh-em-soi' || getPlayerRole(p)?.id === 'anh-em-soi');
+    const bigBroId = nightState.wolfBigBrotherId || brothers.find(b => !b.isLittleBrother)?.id;
+    const littleBroId = nightState.wolfLittleBrotherId || brothers.find(b => b.isLittleBrother)?.id;
+    return (
+      <div className="p-4 rounded-2xl bg-[#14121e] border border-rose-500/30 text-rose-100 space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 rounded-xl bg-rose-950/60 border border-rose-600/40 text-rose-300 shrink-0">
+              <WolfIcon className="w-5 h-5 text-rose-400" />
+            </div>
+            <div>
+              <div className="font-bold text-rose-200 text-sm">Anh Em Sói — Nhận Diện & Phân Vai</div>
+              <div className="text-xs text-slate-400 mt-0.5">
+                Đêm 1 thức dậy nhận mặt nhau. Sói Em soi ra Dân Làng cho đến khi Sói Anh ngã xuống!
+              </div>
+            </div>
+          </div>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {brothers.map(b => {
+            const isBig = bigBroId === b.id;
+            const isLittle = littleBroId === b.id;
+            return (
+              <div key={b.id} className="p-3 rounded-2xl bg-[#0e101c] border border-slate-800 flex items-center justify-between gap-2">
+                <div>
+                  <div className="text-xs font-bold text-slate-200">#{b.id} {b.name}</div>
+                  <div className="text-[10px] text-slate-400">
+                    {isLittle ? 'Sói Em (Tiên Tri soi ra Dân)' : isBig ? 'Sói Anh (Đi săn cùng bầy)' : 'Chưa phân vai'}
+                  </div>
+                </div>
+                <div className="flex items-center gap-1">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const otherBro = brothers.find(x => x.id !== b.id);
+                      onSaveAction('wolf_brothers_designate', { bigBrotherId: b.id, littleBrotherId: otherBro?.id || null });
+                    }}
+                    className={`px-2 py-1 rounded-lg text-xs font-bold border transition-all cursor-pointer ${
+                      isBig ? 'bg-rose-950 border-rose-500 text-rose-200' : 'bg-slate-900 border-slate-700 text-slate-400'
+                    }`}
+                  >
+                    Sói Anh
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const otherBro = brothers.find(x => x.id !== b.id);
+                      onSaveAction('wolf_brothers_designate', { bigBrotherId: otherBro?.id || null, littleBrotherId: b.id });
+                    }}
+                    className={`px-2 py-1 rounded-lg text-xs font-bold border transition-all cursor-pointer ${
+                      isLittle ? 'bg-indigo-950 border-indigo-500 text-indigo-200' : 'bg-slate-900 border-slate-700 text-slate-400'
+                    }`}
+                  >
+                    Sói Em
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  }
+
+  // 12.3 SÓI LỬA (CÁO LỬA - THIÊU RỤI NĂNG LỰC)
+  if (currentRole.id === 'soi-lua') {
+    const fireTargetId = nightState.fireWolfTargetId;
+    const fireTarget = players.find(p => p.id === fireTargetId);
+    const isSkipped = nightState.fireWolfSkipped;
+    return (
+      <div className="space-y-4">
+        <div className="p-3.5 rounded-2xl bg-[#14121e] border border-rose-900/60 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 rounded-xl bg-rose-950/60 border border-rose-600/40 text-rose-300 shrink-0">
+              <Flame className="w-5 h-5 text-rose-400" />
+            </div>
+            <div>
+              <div className="font-bold text-rose-200 text-sm font-cinzel">Sói Lửa (Thiêu Rụi Năng Lực)</div>
+              <div className="text-xs text-slate-400 mt-0.5">
+                Chọn 1 người để tước đoạt vĩnh viễn năng lực đặc biệt
+              </div>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            {fireTarget ? (
+              <span className="text-xs font-bold px-2.5 py-1 rounded-xl bg-rose-950/80 border border-rose-500 text-rose-200">
+                Thiêu rụi: #{fireTarget.id} {fireTarget.name}
+              </span>
+            ) : isSkipped ? (
+              <span className="text-xs font-semibold px-2.5 py-1 rounded-xl bg-slate-900 border border-slate-700 text-slate-400">
+                Bỏ qua đêm nay
+              </span>
+            ) : (
+              <span className="text-xs font-semibold px-2.5 py-1 rounded-xl bg-slate-900 border border-slate-700 text-slate-400">
+                Chưa chọn
+              </span>
+            )}
+          </div>
+        </div>
+        <PlayerSeatPicker
+          players={alivePlayers.filter(p => !isWolfPlayer(p))}
+          selectedIds={fireTargetId ? [fireTargetId] : []}
+          onSelect={(id) => {
+            const nextId = fireTargetId === id ? null : id;
+            onSaveAction('fire_wolf', nextId, { fireWolfSkipped: false });
+          }}
+          variant="wolf"
+          actionLabel="Thiêu rụi"
+        />
+        <div className="flex justify-end">
+          <button
+            type="button"
+            onClick={() => onSaveAction('fire_wolf', null, { fireWolfSkipped: true })}
+            className={`px-3 py-1.5 rounded-xl border text-xs font-bold transition-all cursor-pointer ${
+              isSkipped
+                ? 'bg-rose-950 border-rose-500 text-rose-200'
+                : 'bg-[#121422] border-slate-800 text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            🚫 Bỏ Qua Đêm Nay
+          </button>
+        </div>
       </div>
     );
   }
@@ -1139,8 +1432,22 @@ export default function NightSpecialRolesStep({
     const chosenRoleId = nightState.thiefChosenRoleId;
     const chosenRole = chosenRoleId ? ROLES.find(r => r.id === chosenRoleId) : null;
 
-    const assignedRoleIds = players.map(p => p.currentRoleId || p.roleId).filter(Boolean);
-    const unassignedDeckRoles = deckRoleIds.filter(rid => !assignedRoleIds.includes(rid));
+    const assignedCounts = {};
+    players.forEach(p => {
+      const rid = p.currentRoleId || p.roleId;
+      if (rid) assignedCounts[rid] = (assignedCounts[rid] || 0) + 1;
+    });
+    const unassignedDeckRoles = [];
+    const deckCounts = {};
+    (deckRoleIds || []).forEach(rid => {
+      deckCounts[rid] = (deckCounts[rid] || 0) + 1;
+    });
+    Object.entries(deckCounts).forEach(([rid, count]) => {
+      const left = Math.max(0, count - (assignedCounts[rid] || 0));
+      for (let i = 0; i < left; i++) {
+        unassignedDeckRoles.push(rid);
+      }
+    });
     const candidateRoleIds = unassignedDeckRoles.length >= 2 
       ? unassignedDeckRoles.slice(0, 2) 
       : (deckRoleIds.length >= 2 ? deckRoleIds.slice(0, 2) : ['soi-thuong', 'dan-lang']);
@@ -1239,8 +1546,22 @@ export default function NightSpecialRolesStep({
     const chosenRoleId = nightState.actorChosenRoleId;
     const chosenRole = chosenRoleId ? ROLES.find(r => r.id === chosenRoleId) : null;
 
-    const assignedRoleIds = players.map(p => p.currentRoleId || p.roleId).filter(Boolean);
-    const unassignedDeckRoles = deckRoleIds.filter(rid => !assignedRoleIds.includes(rid));
+    const assignedCounts = {};
+    players.forEach(p => {
+      const rid = p.currentRoleId || p.roleId;
+      if (rid) assignedCounts[rid] = (assignedCounts[rid] || 0) + 1;
+    });
+    const unassignedDeckRoles = [];
+    const deckCounts = {};
+    (deckRoleIds || []).forEach(rid => {
+      deckCounts[rid] = (deckCounts[rid] || 0) + 1;
+    });
+    Object.entries(deckCounts).forEach(([rid, count]) => {
+      const left = Math.max(0, count - (assignedCounts[rid] || 0));
+      for (let i = 0; i < left; i++) {
+        unassignedDeckRoles.push(rid);
+      }
+    });
     const candidateRoleIds = unassignedDeckRoles.length >= 3 
       ? unassignedDeckRoles.slice(0, 3) 
       : (deckRoleIds.length >= 3 ? deckRoleIds.slice(0, 3) : ['bao-ve', 'phu-thuy', 'tho-san']);
@@ -1318,6 +1639,8 @@ export default function NightSpecialRolesStep({
     const curePoison = !!nightState.apothecaryCurePoison;
     const sleepTargetPlayer = players.find(p => p.id === sleepTargetId);
     const isSkipped = nightState.apothecarySkipped;
+    const hasSleep = nightState.apothecaryHasSleep !== false;
+    const hasAntidote = nightState.apothecaryHasAntidote !== false;
 
     return (
       <div className="space-y-4">
@@ -1339,71 +1662,102 @@ export default function NightSpecialRolesStep({
             )}
             {curePoison && (
               <span className="text-xs font-bold px-2.5 py-1 rounded-xl bg-emerald-950/80 border border-emerald-500 text-emerald-200">
-                Hồi Phục: Đã kích hoạt
+                Hồi Phục: Đang kích hoạt
+              </span>
+            )}
+            {!hasSleep && !hasAntidote && (
+              <span className="text-xs font-bold px-2.5 py-1 rounded-xl bg-slate-900 border border-slate-700 text-slate-400">
+                Đã hết 2 bình
               </span>
             )}
           </div>
         </div>
 
-        {/* Bình Hồi Phục */}
-        <div className="p-3 rounded-2xl bg-[#121422] border border-slate-800 flex items-center justify-between">
-          <div>
-            <div className="font-bold text-sm text-slate-200">Bình Hồi Phục (Cứu Độc Phù Thủy)</div>
-            <div className="text-xs text-slate-400">Hóa giải bình thuốc độc của Phù Thủy trong đêm nay</div>
+        {!hasSleep && !hasAntidote ? (
+          <div className="p-4 rounded-2xl bg-teal-950/40 border border-teal-700/60 text-teal-200 text-center space-y-2">
+            <div className="text-xl">🧪✨</div>
+            <div className="font-bold text-sm">Đã Dùng Hết 2 Bình Thuốc</div>
+            <div className="text-xs text-slate-400">
+              Dược Sĩ đã sử dụng cả Bình Thuốc Mê và Bình Hồi Phục trong ván đấu.
+            </div>
           </div>
-          <button
-            type="button"
-            onClick={() => {
-              onSaveAction('apothecary', null, {
-                sleepTargetId,
-                curePoison: !curePoison,
-                apothecarySkipped: false
-              });
-            }}
-            className={`px-3 py-1.5 rounded-xl border text-xs font-bold transition-all cursor-pointer ${
-              curePoison
-                ? 'bg-emerald-600 border-emerald-400 text-white shadow-[0_0_12px_rgba(16,185,129,0.4)]'
-                : 'bg-slate-900 border-slate-700 text-slate-400 hover:text-slate-200'
-            }`}
-          >
-            {curePoison ? '✓ Đang Dùng Cứu' : 'Dùng Bình'}
-          </button>
-        </div>
+        ) : (
+          <>
+            {/* Bình Hồi Phục */}
+            <div className="p-3 rounded-2xl bg-[#121422] border border-slate-800 flex items-center justify-between">
+              <div>
+                <div className="font-bold text-sm text-slate-200">Bình Hồi Phục (Cứu Độc Phù Thủy)</div>
+                <div className="text-xs text-slate-400">
+                  {hasAntidote ? 'Hóa giải bình thuốc độc của Phù Thủy trong đêm nay (1 lần/ván)' : 'Đã sử dụng trong các đêm trước'}
+                </div>
+              </div>
+              {hasAntidote ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    onSaveAction('apothecary', null, {
+                      sleepTargetId,
+                      curePoison: !curePoison,
+                      apothecarySkipped: false
+                    });
+                  }}
+                  className={`px-3 py-1.5 rounded-xl border text-xs font-bold transition-all cursor-pointer ${
+                    curePoison
+                      ? 'bg-emerald-600 border-emerald-400 text-white shadow-[0_0_12px_rgba(16,185,129,0.4)]'
+                      : 'bg-slate-900 border-slate-700 text-slate-400 hover:text-slate-200'
+                  }`}
+                >
+                  {curePoison ? '✓ Đang Dùng Cứu' : 'Dùng Bình'}
+                </button>
+              ) : (
+                <span className="text-xs px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-800 text-slate-500 font-bold">
+                  Đã sử dụng
+                </span>
+              )}
+            </div>
 
-        {/* Bình Thuốc Mê */}
-        <div className="space-y-2">
-          <div className="text-xs font-bold text-teal-300 uppercase tracking-wider">
-            Bình Thuốc Mê (Cấm Nói & Cấm Biểu Quyết Ngày Mai):
-          </div>
-          <PlayerSeatPicker
-            players={alivePlayers}
-            selectedIds={sleepTargetId ? [sleepTargetId] : []}
-            onSelect={(id) => {
-              const nextSleepId = sleepTargetId === id ? null : id;
-              onSaveAction('apothecary', null, {
-                sleepTargetId: nextSleepId,
-                curePoison,
-                apothecarySkipped: false
-              });
-            }}
-            variant="seer"
-            actionLabel="Gây mê"
-          />
-        </div>
+            {/* Bình Thuốc Mê */}
+            {hasSleep ? (
+              <div className="space-y-2">
+                <div className="text-xs font-bold text-teal-300 uppercase tracking-wider">
+                  Bình Thuốc Mê (Cấm Nói & Cấm Biểu Quyết Ngày Mai — 1 lần/ván):
+                </div>
+                <PlayerSeatPicker
+                  players={alivePlayers}
+                  selectedIds={sleepTargetId ? [sleepTargetId] : []}
+                  onSelect={(id) => {
+                    const nextSleepId = sleepTargetId === id ? null : id;
+                    onSaveAction('apothecary', null, {
+                      sleepTargetId: nextSleepId,
+                      curePoison,
+                      apothecarySkipped: false
+                    });
+                  }}
+                  variant="seer"
+                  actionLabel="Gây mê"
+                />
+              </div>
+            ) : (
+              <div className="p-3 rounded-xl bg-slate-900/60 border border-slate-800 text-xs text-slate-400">
+                💤 Bình Thuốc Mê: Đã sử dụng trong các đêm trước.
+              </div>
+            )}
 
-        <div className="flex justify-end">
-          <button
-            type="button"
-            onClick={() => onSaveAction('apothecary', null, { sleepTargetId: null, curePoison: false, apothecarySkipped: true })}
-            className={`px-3 py-1.5 rounded-xl border text-xs font-bold transition-all cursor-pointer ${
-              isSkipped
-                ? 'bg-teal-950 border-teal-500 text-teal-200'
-                : 'bg-[#121422] border-slate-800 text-slate-400 hover:text-slate-200'
-            }`}
-          >
-            🚫 Không Dùng Thuốc Đêm Nay
-          </button>
-        </div>
+            <div className="flex justify-end">
+              <button
+                type="button"
+                onClick={() => onSaveAction('apothecary', null, { sleepTargetId: null, curePoison: false, apothecarySkipped: true })}
+                className={`px-3 py-1.5 rounded-xl border text-xs font-bold transition-all cursor-pointer ${
+                  isSkipped
+                    ? 'bg-teal-950 border-teal-500 text-teal-200'
+                    : 'bg-[#121422] border-slate-800 text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                🚫 Không Dùng Thuốc Đêm Nay
+              </button>
+            </div>
+          </>
+        )}
       </div>
     );
   }
@@ -1414,6 +1768,7 @@ export default function NightSpecialRolesStep({
     const targetId = nightState.puppeteerTargetId;
     const targetPlayer = players.find(p => p.id === targetId);
     const isSkipped = nightState.puppeteerSkipped;
+    const isAlreadyUsed = nightState.puppeteerUsed && !targetId;
 
     return (
       <div className="space-y-4">
@@ -1432,6 +1787,10 @@ export default function NightSpecialRolesStep({
               <span className="text-xs font-bold px-2.5 py-1 rounded-xl bg-indigo-950/80 border border-indigo-500 text-indigo-200">
                 Rối điều khiển: #{targetPlayer.id} {targetPlayer.name}
               </span>
+            ) : isAlreadyUsed ? (
+              <span className="text-xs font-bold px-2.5 py-1 rounded-xl bg-slate-900 border border-slate-700 text-slate-400">
+                Đã dùng 1 lần/ván
+              </span>
             ) : isSkipped ? (
               <span className="text-xs font-semibold px-2.5 py-1 rounded-xl bg-slate-900 border border-slate-700 text-slate-400">
                 Bỏ qua đêm nay
@@ -1444,33 +1803,45 @@ export default function NightSpecialRolesStep({
           </div>
         </div>
 
-        <PlayerSeatPicker
-          players={alivePlayers}
-          selectedIds={targetId ? [targetId] : []}
-          onSelect={(id) => {
-            if (targetId === id) {
-              onSaveAction('puppeteer', null, { puppeteerSkipped: false });
-            } else {
-              onSaveAction('puppeteer', id, { puppeteerSkipped: false });
-            }
-          }}
-          variant="wolf"
-          actionLabel="Thao túng"
-        />
+        {isAlreadyUsed ? (
+          <div className="p-4 rounded-2xl bg-indigo-950/40 border border-indigo-700/60 text-indigo-200 text-center space-y-2">
+            <div className="text-xl">🎭✨</div>
+            <div className="font-bold text-sm">Đã Sử Dụng Quyền Năng Múa Rối</div>
+            <div className="text-xs text-slate-400">
+              Người Múa Rối đã kích hoạt năng lực thao túng bầy Sói trước đó (chỉ sử dụng 1 lần duy nhất trong cả ván).
+            </div>
+          </div>
+        ) : (
+          <>
+            <PlayerSeatPicker
+              players={alivePlayers}
+              selectedIds={targetId ? [targetId] : []}
+              onSelect={(id) => {
+                if (targetId === id) {
+                  onSaveAction('puppeteer', null, { puppeteerSkipped: false });
+                } else {
+                  onSaveAction('puppeteer', id, { puppeteerSkipped: false });
+                }
+              }}
+              variant="wolf"
+              actionLabel="Thao túng"
+            />
 
-        <div className="flex justify-end">
-          <button
-            type="button"
-            onClick={() => onSaveAction('puppeteer', null, { puppeteerSkipped: true })}
-            className={`px-3 py-1.5 rounded-xl border text-xs font-bold transition-all cursor-pointer ${
-              isSkipped
-                ? 'bg-indigo-950 border-indigo-500 text-indigo-200'
-                : 'bg-[#121422] border-slate-800 text-slate-400 hover:text-slate-200'
-            }`}
-          >
-            🚫 Không Can Thiệp Đêm Nay
-          </button>
-        </div>
+            <div className="flex justify-end">
+              <button
+                type="button"
+                onClick={() => onSaveAction('puppeteer', null, { puppeteerSkipped: true })}
+                className={`px-3 py-1.5 rounded-xl border text-xs font-bold transition-all cursor-pointer ${
+                  isSkipped
+                    ? 'bg-indigo-950 border-indigo-500 text-indigo-200'
+                    : 'bg-[#121422] border-slate-800 text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                🚫 Không Can Thiệp Đêm Nay
+              </button>
+            </div>
+          </>
+        )}
       </div>
     );
   }
@@ -1482,6 +1853,7 @@ export default function NightSpecialRolesStep({
     const selectedQuestion = nightState.soothsayerQuestion || 'Có ít nhất 1 Ma Sói ngồi cạnh người này không?';
     const soothsayerCount = nightState.soothsayerCount || 0;
     const isSkipped = nightState.soothsayerSkipped;
+    const isExhausted = soothsayerCount >= 5;
 
     const QUESTIONS = [
       'Có ít nhất 1 Ma Sói ngồi cạnh người này không?',
@@ -1498,7 +1870,7 @@ export default function NightSpecialRolesStep({
               <Eye className="w-5 h-5" />
             </div>
             <div>
-              <div className="font-bold text-blue-200 text-sm font-cinzel">Bà Đồng — Linh Cảm Tâm Linh ({soothsayerCount}/5 lần)</div>
+              <div className="font-bold text-blue-200 text-sm font-cinzel">Bà Đồng — Linh Cảm Tâm Linh ({Math.min(soothsayerCount, 5)}/5 lần)</div>
               <div className="text-xs text-slate-400 mt-0.5">Đặt câu hỏi tâm linh cho 1 người chơi trả lời sáng mai</div>
             </div>
           </div>
@@ -1506,6 +1878,10 @@ export default function NightSpecialRolesStep({
             {targetPlayer ? (
               <span className="text-xs font-bold px-2.5 py-1 rounded-xl bg-blue-950/80 border border-blue-500 text-blue-200">
                 Chỉ định: #{targetPlayer.id} {targetPlayer.name}
+              </span>
+            ) : isExhausted ? (
+              <span className="text-xs font-bold px-2.5 py-1 rounded-xl bg-slate-900 border border-slate-700 text-slate-400">
+                Đã hết 5 lượt
               </span>
             ) : isSkipped ? (
               <span className="text-xs font-semibold px-2.5 py-1 rounded-xl bg-slate-900 border border-slate-700 text-slate-400">
@@ -1519,50 +1895,62 @@ export default function NightSpecialRolesStep({
           </div>
         </div>
 
-        <div className="space-y-1.5">
-          <div className="text-xs font-bold text-blue-300 uppercase tracking-wider">Chọn Câu Hỏi Tâm Linh:</div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-            {QUESTIONS.map((q) => (
+        {isExhausted ? (
+          <div className="p-4 rounded-2xl bg-blue-950/40 border border-blue-700/60 text-blue-200 text-center space-y-2">
+            <div className="text-xl">🔮✨</div>
+            <div className="font-bold text-sm">Đã Dùng Hết 5 Lượt Hỏi Tâm Linh</div>
+            <div className="text-xs text-slate-400">
+              Bà Đồng đã hoàn thành tối đa 5 lần gọi hồn trong ván đấu.
+            </div>
+          </div>
+        ) : (
+          <>
+            <div className="space-y-1.5">
+              <div className="text-xs font-bold text-blue-300 uppercase tracking-wider">Chọn Câu Hỏi Tâm Linh:</div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {QUESTIONS.map((q) => (
+                  <button
+                    key={q}
+                    type="button"
+                    onClick={() => onSaveAction('soothsayer', targetId, { question: q, soothsayerSkipped: false })}
+                    className={`p-2.5 rounded-xl border text-xs text-left transition-all cursor-pointer ${
+                      selectedQuestion === q
+                        ? 'bg-blue-950/70 border-blue-500 text-blue-200 font-bold'
+                        : 'bg-[#121422] border-slate-800 text-slate-400 hover:text-slate-200'
+                    }`}
+                  >
+                    {q}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <PlayerSeatPicker
+              players={alivePlayers}
+              selectedIds={targetId ? [targetId] : []}
+              onSelect={(id) => {
+                const nextTarget = targetId === id ? null : id;
+                onSaveAction('soothsayer', nextTarget, { question: selectedQuestion, soothsayerSkipped: false });
+              }}
+              variant="seer"
+              actionLabel="Chỉ định"
+            />
+
+            <div className="flex justify-end">
               <button
-                key={q}
                 type="button"
-                onClick={() => onSaveAction('soothsayer', targetId, { question: q, soothsayerSkipped: false })}
-                className={`p-2.5 rounded-xl border text-xs text-left transition-all cursor-pointer ${
-                  selectedQuestion === q
-                    ? 'bg-blue-950/70 border-blue-500 text-blue-200 font-bold'
+                onClick={() => onSaveAction('soothsayer', null, { question: selectedQuestion, soothsayerSkipped: true })}
+                className={`px-3 py-1.5 rounded-xl border text-xs font-bold transition-all cursor-pointer ${
+                  isSkipped
+                    ? 'bg-blue-950 border-blue-500 text-blue-200'
                     : 'bg-[#121422] border-slate-800 text-slate-400 hover:text-slate-200'
                 }`}
               >
-                {q}
+                🚫 Bỏ Qua Đêm Nay
               </button>
-            ))}
-          </div>
-        </div>
-
-        <PlayerSeatPicker
-          players={alivePlayers}
-          selectedIds={targetId ? [targetId] : []}
-          onSelect={(id) => {
-            const nextTarget = targetId === id ? null : id;
-            onSaveAction('soothsayer', nextTarget, { question: selectedQuestion, soothsayerSkipped: false });
-          }}
-          variant="seer"
-          actionLabel="Chỉ định"
-        />
-
-        <div className="flex justify-end">
-          <button
-            type="button"
-            onClick={() => onSaveAction('soothsayer', null, { question: selectedQuestion, soothsayerSkipped: true })}
-            className={`px-3 py-1.5 rounded-xl border text-xs font-bold transition-all cursor-pointer ${
-              isSkipped
-                ? 'bg-blue-950 border-blue-500 text-blue-200'
-                : 'bg-[#121422] border-slate-800 text-slate-400 hover:text-slate-200'
-            }`}
-          >
-            🚫 Bỏ Qua Đêm Nay
-          </button>
-        </div>
+            </div>
+          </>
+        )}
       </div>
     );
   }

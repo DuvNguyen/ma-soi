@@ -2,7 +2,7 @@ import React from 'react';
 import { Clock, Play, Pause, Bell, Volume2 } from 'lucide-react';
 import GothicButton from '../ui/GothicButton';
 import triggerHaptic from '../../utils/haptics';
-import { isWolfPlayer, getPlayerRole } from '../../utils/roleUtils';
+import { isWolfPlayer, getPlayerRole, isHostileThirdParty } from '../../utils/roleUtils';
 
 export default function DayDiscussionTimer({
   timeLeft,
@@ -36,6 +36,9 @@ export default function DayDiscussionTimer({
   // Living Devoted Servant (Người Đầy Tớ Tận Tụy)
   const livingServants = players.filter(p => p.isAlive && ((p.currentRoleId || p.roleId) === 'nguoi-day-to-tan-tuy' || getPlayerRole(p)?.id === 'nguoi-day-to-tan-tuy'));
 
+  const aliveWolvesCount = players.filter(p => p.isAlive && isWolfPlayer(p)).length;
+  const aliveThirdPartyCount = players.filter(p => p.isAlive && isHostileThirdParty(p)).length;
+
   if (bearTamer && alivePlayers.length > 2) {
     const sortedAlive = [...alivePlayers].sort((a, b) => a.id - b.id);
     const idx = sortedAlive.findIndex(p => p.id === bearTamer.id);
@@ -50,6 +53,28 @@ export default function DayDiscussionTimer({
 
   return (
     <div className="space-y-4">
+      {/* Cảnh báo Sói đã chết sạch nhưng còn Phe Thứ 3 */}
+      {aliveWolvesCount === 0 && aliveThirdPartyCount > 0 && (
+        <div className="p-3.5 rounded-2xl bg-gradient-to-r from-purple-950/90 via-[#1c0828] to-purple-950/90 border border-purple-500/80 text-purple-200 shadow-[0_0_20px_rgba(168,85,247,0.35)] flex items-center justify-between gap-3 animate-fade-in">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-purple-900 border border-purple-500 flex items-center justify-center text-purple-300 text-lg shrink-0">
+              ⚔️
+            </div>
+            <div>
+              <h4 className="font-bold text-purple-100 text-sm font-cinzel">
+                Ma Sói Đã Chết Hết — Chưa Thể Tuyên Bố Chiến Thắng
+              </h4>
+              <p className="text-xs text-purple-300/80 mt-0.5">
+                Vẫn còn thế lực Phe Thứ 3 độc lập đang ẩn náu. Dân Làng phải tìm ra và biểu quyết loại bỏ Phe Thứ 3 để giành chiến thắng chung cuộc.
+              </p>
+            </div>
+          </div>
+          <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-purple-950 text-purple-300 border border-purple-600 shrink-0">
+            Còn Phe Thứ 3
+          </span>
+        </div>
+      )}
+
       {/* Silenced Player Warning Banner (Nguyệt Nữ) */}
       {silencedPlayer && silencedPlayer.isAlive && (
         <div className="p-3.5 rounded-2xl bg-gradient-to-r from-purple-950/80 via-[#1c1228] to-purple-950/80 border border-purple-600/80 text-purple-200 shadow-[0_0_20px_rgba(168,85,247,0.3)] flex items-center justify-between gap-3 animate-fade-in">
@@ -115,6 +140,32 @@ export default function DayDiscussionTimer({
           </span>
         </div>
       )}
+
+      {/* Spiritualist Ghost Suspicion Banner (Người Gọi Hồn) */}
+      {nightState?.spiritualistSuspectId && !nightState?.spiritualistSkipped && (() => {
+        const suspect = players.find(p => p.id === nightState.spiritualistSuspectId);
+        if (!suspect) return null;
+        return (
+          <div className="p-3.5 rounded-2xl bg-gradient-to-r from-cyan-950/80 via-[#071922] to-cyan-950/80 border border-cyan-600/80 text-cyan-200 shadow-[0_0_20px_rgba(6,182,212,0.3)] flex items-center justify-between gap-3 animate-fade-in">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-cyan-900 border border-cyan-500 flex items-center justify-center text-cyan-300 text-lg shrink-0">
+                👻
+              </div>
+              <div>
+                <h4 className="font-bold text-cyan-100 text-sm font-cinzel">
+                  Hồn Ma Chỉ Điểm: #{suspect.id} {suspect.name}
+                </h4>
+                <p className="text-xs text-cyan-300/80 mt-0.5">
+                  Linh hồn người vừa chết trong làng đã bí mật chỉ tay vào người này trước sự chứng kiến của Người Gọi Hồn.
+                </p>
+              </div>
+            </div>
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-cyan-950 text-cyan-300 border border-cyan-700 shrink-0">
+              Người Gọi Hồn
+            </span>
+          </div>
+        );
+      })()}
 
       {/* Transformed Wild Child (Con Hoang hóa Sói) Notification Banner */}
       {transformedWildChildren.map(wc => {

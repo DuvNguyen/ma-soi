@@ -5,8 +5,8 @@ import { ROLES } from '../src/data/roles.js';
 import { Player } from '../src/domain/models/Player.js';
 import { getRoleStrategy } from '../src/domain/strategies/RoleStrategies.js';
 import { getRoleCapacity } from '../src/utils/deckUtils.js';
-import { checkGameEnd } from '../src/utils/gameLogic.js';
-import { matchesSearch, removeVietnameseTones } from '../src/utils/roleUtils.js';
+import { checkGameEnd, resolveNightPhase } from '../src/utils/gameLogic.js';
+import { matchesSearch, removeVietnameseTones, FACTION_TYPES, getPlayerFactionType, getPlayerFaction, isHostileThirdParty, isNeutralObjective } from '../src/utils/roleUtils.js';
 
 console.log('🧪 Starting Phase 1 Domain Model & Strategy Tests...\n');
 
@@ -975,6 +975,298 @@ console.log('🧪 Starting Phase 1 Domain Model & Strategy Tests...\n');
     assert.strictEqual(cultEnd50.winner, 'Cult Leader');
     console.log('✅ Test 50: Thành Viên Giáo Phái solo victory condition verified.');
 
-    console.log('\n🎉 ALL 50 DOMAIN ENGINE TESTS PASSED PERFECTLY!\n');
+    // --- TEST 51: Wolf Brothers (Anh Em Sói) Seer camouflage & Sói Anh death rage ---
+    const bigBrother51 = new Player({ id: 141, name: 'Sói Anh', currentRoleId: 'anh-em-soi', roleId: 'anh-em-soi', isLittleBrother: false, isAlive: true });
+    const littleBrother51 = new Player({ id: 142, name: 'Sói Em', currentRoleId: 'anh-em-soi', roleId: 'anh-em-soi', isLittleBrother: true, isAlive: true });
+    const seer51 = new Player({ id: 143, name: 'Tiên Tri', currentRoleId: 'tien-tri', roleId: 'tien-tri', isAlive: true });
+
+    // Khi Sói Anh còn sống, Sói Em được Tiên Tri nhìn thấy là Dân Làng (VILLAGER)
+    assert.strictEqual(littleBrother51.getSeerAffiliation({ players: [bigBrother51, littleBrother51, seer51] }), 'VILLAGER');
+    // Sói Anh luôn hiện là Ma Sói (WOLF)
+    assert.strictEqual(bigBrother51.getSeerAffiliation({ players: [bigBrother51, littleBrother51, seer51] }), 'WOLF');
+
+    // Khi Sói Anh chết trên giàn treo cổ, Sói Em lộ diện là Sói và bầy Sói được cuồng nộ cắn 2 người
+    const wbGame51 = new WerewolfGame({
+      roundNumber: 1,
+      isNight: false,
+      players: [bigBrother51, littleBrother51, seer51]
+    });
+    const lynchBigBroRes51 = wbGame51.lynchPlayer(141);
+    assert.strictEqual(lynchBigBroRes51.wolfCanKillDouble, true);
+    const updatedLittleBro51 = lynchBigBroRes51.game.getPlayer(142);
+    assert.strictEqual(updatedLittleBro51.getSeerAffiliation({ players: lynchBigBroRes51.game.players }), 'WOLF');
+    console.log('✅ Test 51: Wolf Brothers Seer camouflage & Sói Anh death rage verified.');
+
+    // --- TEST 52: Kẻ Báo Thù (Avenger) retaliation against opposite faction & cascade ---
+    const avenger52 = new Player({ id: 151, name: 'Báo Thù', currentRoleId: 'ke-bao-thu', roleId: 'ke-bao-thu', isAlive: true, avengerFaction: 'V' });
+    const wolf52 = new Player({ id: 152, name: 'Sói Độc', currentRoleId: 'soi-thuong', roleId: 'soi-thuong', isAlive: true });
+    const villager52 = new Player({ id: 153, name: 'Dân Chăm', currentRoleId: 'dan-lang', roleId: 'dan-lang', isAlive: true });
+
+    const avengerGame52 = new WerewolfGame({
+      roundNumber: 1,
+      isNight: false,
+      players: [avenger52, wolf52, villager52]
+    });
+
+    // Avenger lynch triggers avengerTrigger
+    const lynchAvengerRes52 = avengerGame52.lynchPlayer(151);
+    assert.ok(lynchAvengerRes52.avengerTrigger);
+    assert.strictEqual(lynchAvengerRes52.avengerTrigger.id, 151);
+
+    // Retaliate against same faction (Villager 153): Harmless (isOpposite = false)
+    const harmlessRetRes = lynchAvengerRes52.game.avengerRetaliate(151, 153);
+    assert.strictEqual(harmlessRetRes.isOpposite, false);
+    assert.strictEqual(harmlessRetRes.game.getPlayer(153).isAlive, true);
+
+    // Retaliate against opposite faction (Wolf 152): Lethal (isOpposite = true)
+    const lethalRetRes = lynchAvengerRes52.game.avengerRetaliate(151, 152);
+    assert.strictEqual(lethalRetRes.isOpposite, true);
+    assert.strictEqual(lethalRetRes.game.getPlayer(152).isAlive, false);
+    console.log('✅ Test 52: Kẻ Báo Thù retaliation against opposite faction & safety for same faction verified.');
+
+    // --- TEST 53: Sói Lửa (Fire Werewolf) power burning ---
+    const fireWolf53 = new Player({ id: 161, name: 'Sói Lửa', currentRoleId: 'soi-lua', roleId: 'soi-lua', isAlive: true });
+    const seer53 = new Player({ id: 162, name: 'Tiên Tri 162', currentRoleId: 'tien-tri', roleId: 'tien-tri', isAlive: true });
+
+    const fireGame53 = new WerewolfGame({
+      roundNumber: 1,
+      isNight: true,
+      players: [fireWolf53, seer53]
+    });
+
+    const fireRes53 = fireGame53.resolveNight({
+      fireWolfTargetId: 162
+    });
+
+    assert.strictEqual(fireRes53.game.getPlayer(162).isPowerBurned, true);
+    console.log('✅ Test 53: Sói Lửa power burning verified.');
+
+    // --- TEST 54: Cô Bé (Little Girl) caught peeking elimination ---
+    const littleGirl54 = new Player({ id: 171, name: 'Cô Bé 171', currentRoleId: 'co-be', roleId: 'co-be', isAlive: true });
+    const wolf54 = new Player({ id: 172, name: 'Sói 172', currentRoleId: 'soi-thuong', roleId: 'soi-thuong', isAlive: true });
+
+    const littleGirlGame54 = new WerewolfGame({
+      roundNumber: 1,
+      isNight: true,
+      players: [littleGirl54, wolf54]
+    });
+
+    const littleGirlRes54 = littleGirlGame54.resolveNight({
+      littleGirlCaughtId: 171
+    });
+
+    assert.strictEqual(littleGirlRes54.game.getPlayer(171).isAlive, false);
+    assert.strictEqual(littleGirlRes54.game.getPlayer(171).deathReason, 'Bị bầy Ma Sói bắt quả tang khi đang hé mắt nhìn trộm trong đêm');
+    console.log('✅ Test 54: Cô Bé caught peeking elimination verified.');
+
+    // --- TEST 55: Undo Lynch restoration for Avenger retaliation chain ---
+    const avenger55 = new Player({ id: 181, name: 'Báo Thù 55', currentRoleId: 'ke-bao-thu', roleId: 'ke-bao-thu', isAlive: true, avengerFaction: 'V' });
+    const wolf55 = new Player({ id: 182, name: 'Sói 182', currentRoleId: 'soi-thuong', roleId: 'soi-thuong', isAlive: true });
+    const villager55 = new Player({ id: 183, name: 'Dân 183', currentRoleId: 'dan-lang', roleId: 'dan-lang', isAlive: true });
+
+    const game55 = new WerewolfGame({
+      roundNumber: 1,
+      isNight: false,
+      players: [avenger55, wolf55, villager55]
+    });
+
+    const lynchRes55 = game55.lynchPlayer(181);
+    const retRes55 = lynchRes55.game.avengerRetaliate(181, 182);
+    assert.strictEqual(retRes55.game.getPlayer(182).isAlive, false);
+
+    // Hoàn tác vụ treo cổ: Kẻ Báo Thù và cả nạn nhân bị trả thù (Sói 182) đều được sống lại
+    const restoredGame55 = retRes55.game.undoLynch(181);
+    assert.strictEqual(restoredGame55.getPlayer(181).isAlive, true);
+    assert.strictEqual(restoredGame55.getPlayer(182).isAlive, true);
+    console.log('✅ Test 55: Undo Lynch restoration for Avenger retaliation chain verified.');
+
+    // --- TEST 56: Fox (Cáo) UI cases & "gọi cho có" in subsequent nights ---
+    const nightViewSource = fs.readFileSync('src/components/NightPhaseView.jsx', 'utf8');
+    const nightSpecialSource = fs.readFileSync('src/components/night/NightSpecialRolesStep.jsx', 'utf8');
+
+    // 1. Cáo không bị loại khỏi activeRoles khi foxLostPower = true (đêm sau vẫn gọi cho có)
+    assert.strictEqual(
+      nightViewSource.includes("if (r.id === 'cao' && nightState?.foxLostPower) {\n        return false;\n      }"),
+      false,
+      'Cáo không bị loại trừ khỏi activeRoles sau khi mất phép'
+    );
+    assert.ok(
+      nightViewSource.includes("isPowerLost: true") && nightViewSource.includes("Gọi thức dậy cho có"),
+      'Cáo có thông báo gọi thức dậy cho có khi mất năng lực'
+    );
+
+    // 2. NightSpecialRolesStep có 2 nút case rõ ràng: SOI RA SÓI vs KHÔNG RA SÓI
+    assert.ok(nightSpecialSource.includes('SOI RA SÓI'), 'Có nút Soi ra Sói');
+    assert.ok(nightSpecialSource.includes('KHÔNG RA SÓI'), 'Có nút Không ra Sói');
+    assert.ok(nightSpecialSource.includes('Gọi cho có'), 'Có giao diện gọi cho có khi mất phép');
+    console.log('✅ Test 56: Cáo UI UX cases ("Soi ra Sói", "Không ra Sói") & "gọi cho có" đêm sau verified.');
+
+    // --- TEST 57: Bà Đồng (Village Soothsayer) 5-use limit and resolveNight consumption ---
+    const soothsayerPlayer = new Player({ id: 191, name: 'Bà Đồng 191', currentRoleId: 'ba-dong', roleId: 'ba-dong', isAlive: true });
+    const villager57 = new Player({ id: 192, name: 'Dân 192', currentRoleId: 'dan-lang', roleId: 'dan-lang', isAlive: true });
+    const game57 = new WerewolfGame({
+      roundNumber: 1,
+      isNight: true,
+      players: [soothsayerPlayer, villager57],
+      nightState: { soothsayerCount: 0 }
+    });
+
+    // 1. Khi Bà Đồng chỉ định người trong đêm -> resolveNight tăng soothsayerCount lên 1
+    const res57_1 = game57.resolveNight({
+      soothsayerTargetId: 192,
+      soothsayerSkipped: false
+    });
+    assert.strictEqual(res57_1.game.nightState.soothsayerCount, 1);
+
+    // 2. Khi Bà Đồng bấm Bỏ Qua -> soothsayerCount không tăng
+    const res57_2 = game57.resolveNight({
+      soothsayerTargetId: null,
+      soothsayerSkipped: true
+    });
+    assert.strictEqual(res57_2.game.nightState.soothsayerCount, 0);
+
+    // 3. UI/UX: Khi đạt 5 lần thì đánh dấu hết lượt trong NightPhaseView và NightSpecialRolesStep
+    assert.ok(nightViewSource.includes("if (r.id === 'ba-dong' && (nightState?.soothsayerCount || 0) >= 5)"), 'NightPhaseView kiểm tra giới hạn 5 lần của Bà Đồng');
+    assert.ok(nightSpecialSource.includes('Đã Dùng Hết 5 Lượt Hỏi Tâm Linh'), 'NightSpecialRolesStep có thông báo hết 5 lượt của Bà Đồng');
+    console.log('✅ Test 57: Bà Đồng (ba-dong) 5-use limit & resolveNight consumption verified.');
+
+    // --- TEST 58: Người Múa Rối (Puppeteer) 1-time power consumption ---
+    const puppeteerPlayer = new Player({ id: 201, name: 'Múa Rối 201', currentRoleId: 'nguoi-mua-roi', roleId: 'nguoi-mua-roi', isAlive: true });
+    const wolf58 = new Player({ id: 202, name: 'Sói 202', currentRoleId: 'soi-thuong', roleId: 'soi-thuong', isAlive: true });
+    const villager58 = new Player({ id: 203, name: 'Dân 203', currentRoleId: 'dan-lang', roleId: 'dan-lang', isAlive: true });
+
+    const game58 = new WerewolfGame({
+      roundNumber: 1,
+      isNight: true,
+      players: [puppeteerPlayer, wolf58, villager58],
+      nightState: { puppeteerUsed: false }
+    });
+
+    // Khi chỉ định mục tiêu thao túng -> resolveNight đánh dấu puppeteerUsed = true
+    const res58 = game58.resolveNight({
+      puppeteerTargetId: 202,
+      puppeteerSkipped: false,
+      wolfTargetId: 203
+    });
+    assert.strictEqual(res58.game.nightState.puppeteerUsed, true);
+    assert.ok(nightViewSource.includes("if (r.id === 'nguoi-mua-roi' && nightState?.puppeteerUsed)"), 'NightPhaseView kiểm tra Người Múa Rối đã dùng quyền năng');
+    assert.ok(nightSpecialSource.includes('Đã Sử Dụng Quyền Năng Múa Rối'), 'NightSpecialRolesStep hiển thị thông báo đã dùng');
+    console.log('✅ Test 58: Người Múa Rối (nguoi-mua-roi) 1-time power consumption verified.');
+
+    // --- TEST 59: Dược Sĩ (Apothecary) 2 single-use potions consumption ---
+    const apothecaryPlayer = new Player({ id: 211, name: 'Dược Sĩ 211', currentRoleId: 'duoc-si', roleId: 'duoc-si', isAlive: true });
+    const villager59 = new Player({ id: 212, name: 'Dân 212', currentRoleId: 'dan-lang', roleId: 'dan-lang', isAlive: true });
+
+    const game59 = new WerewolfGame({
+      roundNumber: 1,
+      isNight: true,
+      players: [apothecaryPlayer, villager59],
+      nightState: { apothecaryHasSleep: true, apothecaryHasAntidote: true }
+    });
+
+    const res59 = game59.resolveNight({
+      apothecarySleepTargetId: 212,
+      apothecaryCurePoison: true,
+      apothecarySkipped: false
+    });
+    assert.strictEqual(res59.game.nightState.apothecaryHasSleep, false);
+    assert.strictEqual(res59.game.nightState.apothecaryHasAntidote, false);
+    assert.ok(nightViewSource.includes("if (r.id === 'duoc-si' && nightState?.apothecaryHasSleep === false && nightState?.apothecaryHasAntidote === false)"), 'NightPhaseView kiểm tra Dược Sĩ hết 2 bình');
+    assert.ok(nightSpecialSource.includes('Đã Dùng Hết 2 Bình Thuốc'), 'NightSpecialRolesStep có thông báo hết 2 bình thuốc');
+    console.log('✅ Test 59: Dược Sĩ (duoc-si) 2 single-use potions consumption verified.');
+
+    // --- TEST 60: Người Gọi Hồn (nguoi-goi-hon) Night 1 / cemetery empty exclusion ---
+    assert.ok(
+      nightViewSource.includes("if (r.id === 'nguoi-goi-hon' && (roundNumber === 1 || players.filter(p => !p.isAlive).length === 0))"),
+      'Người Gọi Hồn không thức dậy ở Đêm 1 hoặc khi chưa có người chết'
+    );
+    assert.ok(nightViewSource.includes("case 'nguoi-goi-hon':"), 'NightPhaseView có validation gatekeeper cho Người Gọi Hồn');
+    console.log('✅ Test 60: Người Gọi Hồn (nguoi-goi-hon) cemetery empty exclusion verified.');
+
+    // --- TEST 61: Nguyệt Nữ (nguyet-nu) Moon Priestess silence step seal & validation bypass ---
+    assert.ok(nightViewSource.includes("const isCurrentRoleSilencedByMoon = !isWolfStep && roleHolders.some(p => p.id === nightState?.silencedPlayerId && !nightState?.moonPriestessSkipped);"), 'NightPhaseView tính toán nhân vật bị phong ấn bởi Nguyệt Nữ');
+    assert.ok(nightViewSource.includes("if (isCurrentRoleSilencedByMoon) {\n      return {\n        isValid: true,\n        message: 'Người giữ vai này đã bị Nguyệt Nữ phong ấn năng lực đêm nay',"), 'Tự động mở khóa validation bước đêm khi nhân vật bị Nguyệt Nữ phong ấn');
+    const headerSource = fs.readFileSync('src/components/night/NightStepHeader.jsx', 'utf8');
+    assert.ok(headerSource.includes('BỊ NGUYỆT NỮ PHONG ẤN NĂNG LỰC ĐÊM NAY'), 'NightStepHeader hiển thị banner phong ấn của Nguyệt Nữ');
+    console.log('✅ Test 61: Nguyệt Nữ (nguyet-nu) Moon Priestess silence step seal & validation bypass verified.');
+
+    // --- TEST 62: All Wolves Dead vs Hostile 3rd Party vs Non-Hostile 3rd Party (Thằng Ngốc / Thiên Sứ) ---
+    // Part A: Hostile 3rd Party (sat-thu) keeps game alive when wolves are dead
+    const deadWolf = new Player({ id: 301, name: 'Sói Đã Chết', currentRoleId: 'soi-thuong', roleId: 'soi-thuong', isAlive: false });
+    const livingVillager = new Player({ id: 302, name: 'Dân Làng 302', currentRoleId: 'dan-lang', roleId: 'dan-lang', isAlive: true });
+    const livingAssassin = new Player({ id: 303, name: 'Sát Thủ 303', currentRoleId: 'sat-thu', roleId: 'sat-thu', isAlive: true });
+
+    const endCheckHostile = checkGameEnd([deadWolf, livingVillager, livingAssassin]);
+    assert.strictEqual(endCheckHostile.isEnded, false, 'Khi sói chết hết nhưng Sát Thủ còn sống, game CHƯA được kết thúc');
+    assert.strictEqual(endCheckHostile.waitingForThirdPartyElimination, true, 'waitingForThirdPartyElimination phải là true để UI hiển thị thông báo');
+
+    // Sau khi Sát Thủ bị treo cổ
+    livingAssassin.isAlive = false;
+    const endCheckVillageWins = checkGameEnd([deadWolf, livingVillager, livingAssassin]);
+    assert.strictEqual(endCheckVillageWins.isEnded, true, 'Khi Sát Thủ bị loại, Làng thắng');
+    assert.strictEqual(endCheckVillageWins.winner, 'Villagers', 'Phe Dân Làng chiến thắng');
+
+    // Part B: Non-hostile 3rd party (thang-ngoc / thien-su) does NOT block village victory when wolves die
+    const livingIdiot = new Player({ id: 304, name: 'Thằng Ngốc 304', currentRoleId: 'thang-ngoc', roleId: 'thang-ngoc', isAlive: true });
+    const livingVillagerB = new Player({ id: 305, name: 'Dân Làng 305', currentRoleId: 'dan-lang', roleId: 'dan-lang', isAlive: true });
+    const deadWolfB = new Player({ id: 306, name: 'Sói Đã Chết B', currentRoleId: 'soi-thuong', roleId: 'soi-thuong', isAlive: false });
+
+    const endCheckIdiot = checkGameEnd([deadWolfB, livingVillagerB, livingIdiot]);
+    assert.strictEqual(endCheckIdiot.isEnded, true, 'Thằng Ngốc không cản trở Dân Làng chiến thắng khi toàn bộ Sói đã chết');
+    assert.strictEqual(endCheckIdiot.winner, 'Villagers', 'Phe Dân Làng chiến thắng');
+
+    // Part C: Ghost wolves cannot bite when living wolves count is 0
+    const targetVillager = new Player({ id: 307, name: 'Nạn Nhân 307', currentRoleId: 'dan-lang', roleId: 'dan-lang', isAlive: true });
+    const playersBeforeBite = [deadWolf, targetVillager];
+    const nightResolution = resolveNightPhase(playersBeforeBite, { wolfTargetId: 307 }, 2);
+    assert.strictEqual(nightResolution.killedPlayerIds.includes(307), false, 'Sói đã chết hết thì bầy sói không thể cắn chết người');
+    const targetAfterNight = nightResolution.updatedPlayers.find(p => p.id === 307);
+    assert.strictEqual(targetAfterNight.isAlive, true, 'Nạn nhân vẫn còn sống vì không có con sói sống nào đi săn');
+
+    console.log('✅ Test 62: All Wolves Dead vs Hostile 3rd Party vs Non-Hostile 3rd Party (Thằng Ngốc / Thiên Sứ) verified.');
+
+    // --- TEST 63: Multi-Faction Architecture & Classification (FACTION_TYPES) ---
+    const foolPlayer63 = new Player({ id: 401, name: 'Thằng Ngốc 401', currentRoleId: 'thang-ngoc' });
+    const angelPlayer63 = new Player({ id: 402, name: 'Thiên Sứ 402', currentRoleId: 'thien-su' });
+    const assassinPlayer63 = new Player({ id: 403, name: 'Sát Thủ 403', currentRoleId: 'sat-thu' });
+    const piperPlayer63 = new Player({ id: 404, name: 'Thổi Sáo 404', currentRoleId: 'nguoi-thoi-sao' });
+    const whiteWolfPlayer63 = new Player({ id: 405, name: 'Sói Trắng 405', currentRoleId: 'soi-trang' });
+    const villagerPlayer63 = new Player({ id: 406, name: 'Dân Làng 406', currentRoleId: 'dan-lang' });
+    const wolfPlayer63 = new Player({ id: 407, name: 'Sói 407', currentRoleId: 'soi-thuong' });
+
+    // Faction IDs
+    assert.strictEqual(foolPlayer63.getFaction(), 'thang-ngo', 'Thằng Ngốc có faction là thang-ngo');
+    assert.strictEqual(assassinPlayer63.getFaction(), 'sat-thu', 'Sát Thủ có faction là sat-thu');
+    assert.strictEqual(piperPlayer63.getFaction(), 'nguoi-thoi-sao', 'Người Thổi Sáo có faction là nguoi-thoi-sao');
+    assert.strictEqual(whiteWolfPlayer63.getFaction(), 'soi-trang', 'Sói Trắng có faction là soi-trang');
+    assert.strictEqual(wolfPlayer63.getFaction(), 'werewolf', 'Sói Thường có faction là werewolf');
+    assert.strictEqual(villagerPlayer63.getFaction(), 'village', 'Dân Làng có faction là village');
+
+    // Faction Types
+    assert.strictEqual(foolPlayer63.getFactionType(), FACTION_TYPES.NEUTRAL_OBJECTIVE, 'Thằng Ngốc là neutral_objective');
+    assert.strictEqual(foolPlayer63.isNeutralObjective(), true, 'isNeutralObjective trả về true');
+    assert.strictEqual(foolPlayer63.isHostileThirdParty(), false, 'Thằng Ngốc KHÔNG phải phe thù địch');
+
+    // Thiên Sứ: Ngày 1 là neutral_objective, sau ngày 1 là village
+    assert.strictEqual(angelPlayer63.getFactionType(1), FACTION_TYPES.NEUTRAL_OBJECTIVE, 'Thiên Sứ ở Ngày 1 là neutral_objective');
+    assert.strictEqual(angelPlayer63.getFactionType(2), FACTION_TYPES.VILLAGE, 'Thiên Sứ sau Ngày 1 trở thành village');
+    assert.strictEqual(angelPlayer63.getFaction(2), 'village', 'Thiên Sứ sau Ngày 1 nhận faction village');
+
+    // Hostile Third Parties
+    assert.strictEqual(assassinPlayer63.isHostileThirdParty(), true, 'Sát Thủ là phe thù địch');
+    assert.strictEqual(piperPlayer63.isHostileThirdParty(), true, 'Người Thổi Sáo là phe thù địch');
+    assert.strictEqual(whiteWolfPlayer63.isHostileThirdParty(), true, 'Sói Trắng là phe thù địch');
+
+    // Sói & Dân
+    assert.strictEqual(wolfPlayer63.getFactionType(), FACTION_TYPES.WEREWOLF, 'Sói Thường là werewolf');
+    assert.strictEqual(villagerPlayer63.getFactionType(), FACTION_TYPES.VILLAGE, 'Dân Làng là village');
+
+    // Solo survival without lynching does NOT trigger Fool win
+    const soloFoolCheck = checkGameEnd([foolPlayer63]);
+    assert.notStrictEqual(soloFoolCheck.winner, 'Idiot', 'Thằng Ngốc sống sót một mình không được coi là thắng vì chưa bị treo cổ');
+
+    console.log('✅ Test 63: Multi-Faction Architecture & Classification (FACTION_TYPES) verified.');
+
+    console.log('\n🎉 ALL 63 DOMAIN ENGINE TESTS PASSED PERFECTLY!\n');
   });
 }

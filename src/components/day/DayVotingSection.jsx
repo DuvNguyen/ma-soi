@@ -38,6 +38,11 @@ export default function DayVotingSection({
             <Flame className="w-5 h-5 text-orange-400" />
             BIỂU QUYẾT TREO CỔ
           </h3>
+          {hasStutteringJudge && nightState?.stutteringJudgeSignal && (
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-lg bg-amber-950/60 border border-amber-600/50 text-amber-300 shrink-0" title="Dấu hiệu bí mật Thẩm Phán Lắp Bắp">
+              ⚖️ Dấu hiệu Thẩm Phán: {nightState.stutteringJudgeSignal}
+            </span>
+          )}
           {!hasLynchedToday && (
             <div className="relative sm:hidden">
               <Search className="w-3 h-3 text-slate-400 absolute left-2 top-1/2 -translate-y-1/2 pointer-events-none" />
@@ -117,14 +122,21 @@ export default function DayVotingSection({
             )}
 
             {hasStutteringJudge && (
-              <GothicButton
-                variant="witch"
-                size="sm"
-                icon={Gavel}
-                onClick={() => setExtraLynchAllowed(true)}
-              >
-                Thẩm Phán (Vote Thêm)
-              </GothicButton>
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <GothicButton
+                  variant="witch"
+                  size="sm"
+                  icon={Gavel}
+                  onClick={() => setExtraLynchAllowed(true)}
+                >
+                  Thẩm Phán (Vote Thêm)
+                </GothicButton>
+                {nightState?.stutteringJudgeSignal && (
+                  <span className="text-[10px] font-bold px-2 py-1 rounded-xl bg-amber-950/80 border border-amber-600/70 text-amber-300">
+                    Dấu hiệu: {nightState.stutteringJudgeSignal}
+                  </span>
+                )}
+              </div>
             )}
           </div>
         </div>

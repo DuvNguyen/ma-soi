@@ -13,6 +13,7 @@ export default function NightStepHeader({
   isSkipped,
   isRoleCursedOut,
   cursedHolder,
+  isSilencedByMoon = false,
   stepValidation,
   roleHolders,
   isVillageCursed,
@@ -174,6 +175,22 @@ export default function NightStepHeader({
             <span className="text-base shrink-0 mt-0.5">🕯️</span>
             <div className="leading-relaxed">
               <strong>Quản trò:</strong> Đọc to <em>"{currentRole.gmCall}"</em> và dừng 3-5 giây để giữ bí mật danh tính.
+            </div>
+          </div>
+        </div>
+      ) : isSilencedByMoon ? (
+        <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-purple-950/90 via-[#230933] to-[#140620] border-2 border-purple-500/80 text-purple-200 shadow-[0_0_25px_rgba(168,85,247,0.3)] space-y-3 animate-fade-in">
+          <div className="flex items-center gap-2.5 font-cinzel font-black text-sm sm:text-base text-purple-100">
+            <span className="text-xl">🔇⚡</span>
+            <span>BỊ NGUYỆT NỮ PHONG ẤN NĂNG LỰC ĐÊM NAY</span>
+          </div>
+          <div className="text-xs sm:text-sm text-purple-200/90 leading-relaxed">
+            Người nắm giữ vai trò <strong className="text-white">{currentRole.name}</strong> ({roleHolders.map(p => `#${p.id} ${p.name}`).join(', ')}) đã bị Nguyệt Nữ phong ấn ở đầu đêm. Toàn bộ năng lực đêm nay bị vô hiệu hóa!
+          </div>
+          <div className="p-3 rounded-xl bg-purple-950/90 border border-purple-700/60 text-xs text-amber-200 flex items-start gap-2.5">
+            <span className="text-base shrink-0 mt-0.5">🕯️</span>
+            <div className="leading-relaxed">
+              <strong>Quản trò:</strong> Đọc to <em>"{currentRole.gmCall}"</em> và dừng 3-5 giây để giữ bí mật danh tính (không cho thực hiện hiệu ứng).
             </div>
           </div>
         </div>

@@ -2,19 +2,20 @@ import React, { useState } from 'react';
 import { Heart, Skull, Shield, Eye, UserCheck, AlertCircle, Sparkles, Star, Edit3, Users, Scale, History } from 'lucide-react';
 import GothicBadge from './ui/GothicBadge';
 import WolfIcon from './ui/WolfIcon';
-import { isWolfPlayer, getPlayerRole, getPlayerOriginalRole } from '../utils/roleUtils';
+import { isWolfPlayer, getPlayerRole, getPlayerOriginalRole, isHostileThirdParty } from '../utils/roleUtils';
 import PlayerJourneyModal from './PlayerJourneyModal';
 
 export default function PlayersGridView({ players, onOpenAssignRole, onOpenRosters, scapegoatBannedVoterIds = [], nightState = {} }) {
   const [journeyPlayer, setJourneyPlayer] = useState(null);
   const aliveCount = players.filter(p => p.isAlive).length;
   const wolfCount = players.filter(p => p.isAlive && isWolfPlayer(p)).length;
-  const villagerCount = players.filter(p => p.isAlive && !isWolfPlayer(p) && getPlayerRole(p)?.teamCode === 'V').length;
+  const villagerCount = players.filter(p => p.isAlive && !isWolfPlayer(p) && !isHostileThirdParty(p)).length;
+  const thirdPartyCount = players.filter(p => p.isAlive && isHostileThirdParty(p)).length;
 
   return (
     <div className="space-y-4 sm:space-y-6 max-w-5xl mx-auto">
       {/* Overview Stat Badges - Compact Gothic Style */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
+      <div className={`grid gap-2 sm:gap-3 ${thirdPartyCount > 0 ? 'grid-cols-2 sm:grid-cols-5' : 'grid-cols-2 sm:grid-cols-4'}`}>
         <div className="p-2.5 sm:p-3 rounded-xl bg-[#0f111a] border border-slate-800 flex items-center gap-2.5 shadow-sm">
           <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg bg-slate-900 border border-slate-700 flex items-center justify-center text-emerald-400 shrink-0">
             <Heart className="w-4 h-4 fill-emerald-500/20" />
@@ -45,6 +46,18 @@ export default function PlayersGridView({ players, onOpenAssignRole, onOpenRoste
             <div className="text-xs sm:text-sm font-black text-blue-200 truncate">{villagerCount} người sống</div>
           </div>
         </div>
+
+        {thirdPartyCount > 0 && (
+          <div className="p-2.5 sm:p-3 rounded-xl bg-[#1b0a2a] border border-purple-600/90 shadow-[0_0_12px_rgba(168,85,247,0.3)] flex items-center gap-2.5">
+            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg bg-purple-950 border border-purple-500 flex items-center justify-center text-purple-300 text-base sm:text-lg shrink-0 select-none">
+              ⚔️
+            </div>
+            <div className="min-w-0">
+              <div className="text-[10px] uppercase font-bold tracking-wider text-purple-300">Phe Thứ 3</div>
+              <div className="text-xs sm:text-sm font-black text-purple-200 truncate">{thirdPartyCount} người sống</div>
+            </div>
+          </div>
+        )}
 
         <div className="p-2.5 sm:p-3 rounded-xl bg-[#170826] border border-purple-900/60 flex items-center gap-2.5">
           <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg bg-purple-950 border border-purple-800 flex items-center justify-center text-purple-300 shrink-0">

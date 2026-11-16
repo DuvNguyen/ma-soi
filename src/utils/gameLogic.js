@@ -2,9 +2,9 @@
  * Game logic engine for Werewolf GM
  */
 
-import { getRole, getPlayerRole, getPlayerOriginalRole, isWolfPlayer } from './roleUtils.js';
+import { getRole, getPlayerRole, getPlayerOriginalRole, isWolfPlayer, getPlayerFactionType, isHostileThirdParty, FACTION_TYPES } from './roleUtils.js';
 
-export function checkGameEnd(players, extraRules = {}) {
+export function checkGameEnd(players, extraRules = {}, roundNumber = 1) {
   const alivePlayers = players.filter(p => p.isAlive);
   
   // 0. Special case: All players died simultaneously (Draw / Tie)
@@ -44,15 +44,13 @@ export function checkGameEnd(players, extraRules = {}) {
       }
     }
 
-    const role = getPlayerRole(p);
-    if (isWolfPlayer(p)) {
+    const factionType = getPlayerFactionType(p, roundNumber);
+    if (factionType === FACTION_TYPES.WEREWOLF) {
       aliveWolves++;
-    } else if (role?.teamCode === 'V') {
-      aliveVillagers++;
-    } else if (role?.teamCode === '3') {
+    } else if (factionType === FACTION_TYPES.HOSTILE_THIRD_PARTY) {
       aliveThirdParty++;
     } else {
-      // Biến đổi / chưa lộ vai ('?')
+      // village hoặc neutral_objective (không cản trở Làng thắng khi Sói chết)
       aliveVillagers++;
     }
   });
@@ -99,17 +97,19 @@ export function checkGameEnd(players, extraRules = {}) {
     };
   }
 
-  // 3.1. Special 3rd party: Bất kỳ người chơi Phe Thứ Ba nào là người duy nhất sống sót (Sát Thủ, v.v.)
+  // 3.1. Special 3rd party: Bất kỳ người chơi Phe Thứ Ba Thù Địch nào là người duy nhất sống sót (Sát Thủ, v.v.)
   if (alivePlayers.length === 1 && aliveThirdParty === 1) {
     const solo = alivePlayers[0];
-    const soloRole = getPlayerRole(solo);
-    return {
-      isEnded: true,
-      winner: soloRole?.name || 'Third Party',
-      winnerTitle: `${soloRole?.name || 'Phe Thứ 3'} Đơn Độc Chiến Thắng! 👑`,
-      teamCode: '3',
-      description: `${solo.name} (${soloRole?.name || 'Phe Thứ 3'}) là kẻ duy nhất sống sót vượt qua mọi thế lực trong làng!`
-    };
+    if (isHostileThirdParty(solo, roundNumber)) {
+      const soloRole = getPlayerRole(solo);
+      return {
+        isEnded: true,
+        winner: soloRole?.name || 'Third Party',
+        winnerTitle: `${soloRole?.name || 'Phe Thứ 3'} Đơn Độc Chiến Thắng! 👑`,
+        teamCode: '3',
+        description: `${solo.name} (${soloRole?.name || 'Phe Thứ 3'}) là kẻ duy nhất sống sót vượt qua mọi thế lực trong làng!`
+      };
+    }
   }
 
   // 3.2. Special 3rd party: Cult Leader (Thành Viên Giáo Phái)
@@ -158,9 +158,9 @@ export function checkGameEnd(players, extraRules = {}) {
     return {
       isEnded: true,
       winner: 'Villagers',
-      winnerTitle: 'Phe Dân Làng Chiến Thắng!',
+      winnerTitle: 'Phe Dân Làng Chiến Thắng! 🏆',
       teamCode: 'V',
-      description: 'Toàn bộ Ma Sói độc ác đã bị thanh trừng sạch!'
+      description: 'Toàn bộ Ma Sói độc ác và các thế lực thù địch đã bị thanh trừng sạch!'
     };
   }
 
@@ -170,7 +170,8 @@ export function checkGameEnd(players, extraRules = {}) {
     aliveWolves,
     aliveVillagers,
     aliveThirdParty,
-    totalAlive: alivePlayers.length
+    totalAlive: alivePlayers.length,
+    waitingForThirdPartyElimination: aliveWolves === 0 && aliveThirdParty > 0
   };
 }
 
@@ -196,6 +197,8 @@ export function resolveNightPhase(players, nightActions, roundNumber) {
     isCursedInfect,
     lastCursedVictimId,
     hypnotistTargetId,
+    fireWolfTargetId,
+    littleGirlCaughtId,
     isVillageCursed = false
   } = nightActions;
 
@@ -218,8 +221,32 @@ export function resolveNightPhase(players, nightActions, roundNumber) {
     }
   });
 
+  // 0.2 Process Fire Werewolf (Sói Lửa) Burn
+  if (fireWolfTargetId) {
+    const burnedTarget = updatedPlayers.find(p => p.id === fireWolfTargetId);
+    if (burnedTarget) {
+      burnedTarget.isPowerBurned = true;
+      const bRole = getPlayerRole(burnedTarget);
+      logs.push(`🔥 SÓI LỬA THIÊU RỤI: ${burnedTarget.name} (#${burnedTarget.id}, vai ${bRole?.name || 'Chưa rõ'}) đã bị Sói Lửa thiêu rụi vĩnh viễn năng lực đặc biệt!`);
+    }
+  }
+
+  // 0.3 Process Little Girl (Cô Bé) Caught Peeking
+  if (littleGirlCaughtId) {
+    const littleGirl = updatedPlayers.find(p => p.id === littleGirlCaughtId && p.isAlive);
+    if (littleGirl) {
+      killedPlayerIds.add(littleGirl.id);
+      deathReasons[littleGirl.id] = 'Bị bầy Ma Sói bắt quả tang khi đang hé mắt nhìn trộm trong đêm';
+      logs.push(`👀💀 CÔ BÉ BỊ BẮT QUẢ TANG: Cô Bé (${littleGirl.name} #${littleGirl.id}) đã bị bầy Ma Sói phát hiện khi đang nhìn trộm và bị xé xác tại chỗ!`);
+    }
+  }
+
   // Helper to process wolf bite on a target
   const processWolfBite = (targetId, isSecondTarget = false) => {
+    // Không còn con Ma Sói nào sống sót -> Bầy Sói không thể cắn người
+    const livingWolves = updatedPlayers.filter(p => p.isAlive && isWolfPlayer(p));
+    if (livingWolves.length === 0) return;
+
     const target = updatedPlayers.find(p => p.id === targetId);
     if (!target || !target.isAlive) return;
 

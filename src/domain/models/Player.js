@@ -1,4 +1,4 @@
-import { getRole, WOLF_ROLE_IDS } from '../../utils/roleUtils.js';
+import { getRole, WOLF_ROLE_IDS, getPlayerFactionType, getPlayerFaction, isHostileThirdParty, isNeutralObjective, FACTION_TYPES } from '../../utils/roleUtils.js';
 import { getRoleStrategy } from '../strategies/RoleStrategies.js';
 
 export const DEFAULT_PLAYER_PROPS = {
@@ -23,6 +23,8 @@ export const DEFAULT_PLAYER_PROPS = {
   isAsleepByApothecary: false,
   avengerFaction: null,
   cultGroup: null,
+  isLittleBrother: false,
+  isPowerBurned: false,
   roleHistory: []
 };
 
@@ -55,6 +57,8 @@ export class Player {
     this.isAsleepByApothecary = Boolean(data.isAsleepByApothecary);
     this.avengerFaction = data.avengerFaction ?? null;
     this.cultGroup = data.cultGroup ?? null;
+    this.isLittleBrother = Boolean(data.isLittleBrother);
+    this.isPowerBurned = Boolean(data.isPowerBurned);
     this.roleHistory = Array.isArray(data.roleHistory) ? data.roleHistory : [];
   }
 
@@ -83,6 +87,42 @@ export class Player {
     const orig = this.getOriginalRole();
     if (!orig) return false;
     return orig.teamCode === 'W' || WOLF_ROLE_IDS.includes(orig.id);
+  }
+
+  /**
+   * Lấy loại phe (Faction Type) của người chơi trong ván đấu
+   * @param {number} roundNumber
+   * @returns {'werewolf' | 'village' | 'hostile_third_party' | 'neutral_objective' | 'dynamic'}
+   */
+  getFactionType(roundNumber = 1) {
+    return getPlayerFactionType(this, roundNumber);
+  }
+
+  /**
+   * Lấy định danh phe (Faction ID) của người chơi
+   * @param {number} roundNumber
+   * @returns {string}
+   */
+  getFaction(roundNumber = 1) {
+    return getPlayerFaction(this, roundNumber);
+  }
+
+  /**
+   * Kiểm tra xem người chơi có thuộc Phe Thứ 3 Thù Địch cản trở Làng thắng hay không
+   * @param {number} roundNumber
+   * @returns {boolean}
+   */
+  isHostileThirdParty(roundNumber = 1) {
+    return isHostileThirdParty(this, roundNumber);
+  }
+
+  /**
+   * Kiểm tra xem người chơi có thuộc Phe Độc Lập Mục Tiêu (Thằng Ngốc, Thiên Sứ) hay không
+   * @param {number} roundNumber
+   * @returns {boolean}
+   */
+  isNeutralObjective(roundNumber = 1) {
+    return isNeutralObjective(this, roundNumber);
   }
 
   /**
@@ -302,6 +342,8 @@ export class Player {
       isAsleepByApothecary: this.isAsleepByApothecary,
       avengerFaction: this.avengerFaction,
       cultGroup: this.cultGroup,
+      isLittleBrother: this.isLittleBrother,
+      isPowerBurned: this.isPowerBurned,
       roleHistory: this.roleHistory || []
     };
   }

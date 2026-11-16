@@ -54,6 +54,7 @@ export const DEFAULT_NIGHT_STATE = {
   foxCheckedThisNight: false,
   foxSkipped: false,
   foxLostPower: false,
+  foxFoundWolf: null,
   ravenTargetId: null,
   ravenSkipped: false,
   silencedPlayerId: null,
@@ -87,6 +88,14 @@ export const DEFAULT_NIGHT_STATE = {
   spiritualistSkipped: false,
   avengerChosenFaction: null,
   cultGroupMap: {},
+  littleGirlCaughtId: null,
+  fireWolfTargetId: null,
+  fireWolfSkipped: false,
+  fireWolfActive: false,
+  fireWolfBurnCount: 0,
+  stutteringJudgeSignal: null,
+  wolfBigBrotherId: null,
+  wolfLittleBrotherId: null,
   skippedRoles: []
 };
 
@@ -197,6 +206,7 @@ export default function App() {
   const [isVillageCursed, setIsVillageCursed] = useState(() => savedInitial?.isVillageCursed || false);
   const [wolfCanKillDouble, setWolfCanKillDouble] = useState(() => savedInitial?.wolfCanKillDouble || false);
   const [pendingHunterShot, setPendingHunterShot] = useState(() => savedInitial?.pendingHunterShot || null);
+  const [pendingAvengerShot, setPendingAvengerShot] = useState(() => savedInitial?.pendingAvengerShot || null);
   const [scapegoatBannedVoterIds, setScapegoatBannedVoterIds] = useState(() => savedInitial?.scapegoatBannedVoterIds || []);
   const [scapegoatBannedRound, setScapegoatBannedRound] = useState(() => savedInitial?.scapegoatBannedRound ?? null);
   const [preLynchSnapshot, setPreLynchSnapshot] = useState(() => savedInitial?.preLynchSnapshot || null);
@@ -296,6 +306,7 @@ export default function App() {
         isVillageCursed,
         wolfCanKillDouble,
         pendingHunterShot,
+        pendingAvengerShot,
         scapegoatBannedVoterIds,
         scapegoatBannedRound,
         preLynchSnapshot,
@@ -315,7 +326,7 @@ export default function App() {
       // 2. Cloud DB sync (Neon)
       syncGameStateApi(stateToSave);
     }
-  }, [roundNumber, isNight, activeTab, players, deckRoleIds, rolesInGame, nightState, lynchedTodayPlayerId, gameEndResult, isVillageCursed, wolfCanKillDouble, pendingHunterShot, scapegoatBannedVoterIds, scapegoatBannedRound, preLynchSnapshot, selectedTemplateId, currentNightStepIdx, gameDiary, canWolvesKillTeammates]);
+  }, [roundNumber, isNight, activeTab, players, deckRoleIds, rolesInGame, nightState, lynchedTodayPlayerId, gameEndResult, isVillageCursed, wolfCanKillDouble, pendingHunterShot, pendingAvengerShot, scapegoatBannedVoterIds, scapegoatBannedRound, preLynchSnapshot, selectedTemplateId, currentNightStepIdx, gameDiary, canWolvesKillTeammates]);
 
   // Helper canonical diary chronologist: merges & sorts chapters strictly by round number and phase (Night before Day)
   const appendToDiary = (prevDiary, newEntry) => {
@@ -853,14 +864,14 @@ export default function App() {
           setPlayers(current => current.map(p => {
             if (p.id === victimId) {
               const origId = p.originalRoleId || null;
-              return {
-                ...p,
+              const restoredProps = {
                 currentRoleId: origId,
                 roleId: origId,
                 originalRoleId: null,
                 isCursedWolf: false,
                 curseNight: undefined
               };
+              return p instanceof Player ? p.clone(restoredProps) : { ...p, ...restoredProps };
             }
             return p;
           }));
@@ -873,8 +884,9 @@ export default function App() {
       } else if (type === 'cupid') {
         next.cupidChosenIds = payload;
         setPlayers(current => current.map(p => {
-          if (p.id === payload[0]) return { ...p, loverId: payload[1] };
-          if (p.id === payload[1]) return { ...p, loverId: payload[0] };
+          if (p.id === payload[0]) return p instanceof Player ? p.clone({ loverId: payload[1] }) : { ...p, loverId: payload[1] };
+          if (p.id === payload[1]) return p instanceof Player ? p.clone({ loverId: payload[0] }) : { ...p, loverId: payload[0] };
+          if (p.loverId && !payload.includes(p.id)) return p instanceof Player ? p.clone({ loverId: null }) : { ...p, loverId: null };
           return p;
         }));
       } else if (type === 'wildChild') {
@@ -889,7 +901,7 @@ export default function App() {
         next.shadowHostId = payload;
         setPlayers(current => current.map(p => {
           if ((p.currentRoleId || p.roleId) === 'anh-tu' || getPlayerRole(p)?.id === 'anh-tu') {
-            return { ...p, shadowHostId: payload };
+            return p instanceof Player ? p.clone({ shadowHostId: payload }) : { ...p, shadowHostId: payload };
           }
           return p;
         }));
@@ -897,7 +909,7 @@ export default function App() {
         next.piperChosenIds = payload;
         setPlayers(current => current.map(p => {
           if (Array.isArray(payload) && payload.includes(p.id)) {
-            return { ...p, isHypnotized: true };
+            return p instanceof Player ? p.clone({ isHypnotized: true }) : { ...p, isHypnotized: true };
           }
           return p;
         }));
@@ -907,7 +919,9 @@ export default function App() {
       } else if (type === 'fox') {
         next.foxTargetId = payload;
         next.foxLostPower = !!extra.foxLostPower;
-        next.foxCheckedThisNight = true;
+        next.foxCheckedThisNight = !extra.foxSkipped;
+        next.foxSkipped = !!extra.foxSkipped;
+        next.foxFoundWolf = extra.foxFoundWolf ?? (extra.foxLostPower ? false : true);
       } else if (type === 'whiteWolf') {
         next.whiteWolfVictimId = payload;
         next.whiteWolfSkipped = !!extra.whiteWolfSkipped;
@@ -1013,12 +1027,12 @@ export default function App() {
         next.apothecarySkipped = !!extra.apothecarySkipped;
       } else if (type === 'puppeteer') {
         next.puppeteerTargetId = payload;
-        next.puppeteerUsed = true;
+        next.puppeteerUsed = prev.puppeteerUsed || !!payload;
         next.puppeteerSkipped = !!extra.puppeteerSkipped;
       } else if (type === 'soothsayer') {
         next.soothsayerTargetId = payload;
         next.soothsayerQuestion = extra.question || null;
-        next.soothsayerCount = (prev.soothsayerCount || 0) + 1;
+        next.soothsayerCount = prev.soothsayerCount || 0;
         next.soothsayerSkipped = !!extra.soothsayerSkipped;
       } else if (type === 'spiritualist') {
         next.spiritualistSuspectId = payload;
@@ -1036,6 +1050,29 @@ export default function App() {
         setPlayers(current => current.map(p => {
           return p instanceof Player ? p.clone({ cultGroup: payload[p.id] || null }) : { ...p, cultGroup: payload[p.id] || null };
         }));
+      } else if (type === 'fire_wolf') {
+        next.fireWolfTargetId = payload;
+        next.fireWolfSkipped = !!extra.fireWolfSkipped;
+        if (payload) {
+          next.fireWolfBurnCount = (prev.fireWolfBurnCount || 0) + 1;
+        }
+        next.fireWolfActive = false;
+      } else if (type === 'wolf_brothers_designate') {
+        next.wolfBigBrotherId = payload.bigBrotherId;
+        next.wolfLittleBrotherId = payload.littleBrotherId;
+        setPlayers(current => current.map(p => {
+          if (p.id === payload.littleBrotherId) {
+            return p instanceof Player ? p.clone({ isLittleBrother: true }) : { ...p, isLittleBrother: true };
+          }
+          if (p.id === payload.bigBrotherId) {
+            return p instanceof Player ? p.clone({ isLittleBrother: false }) : { ...p, isLittleBrother: false };
+          }
+          return p;
+        }));
+      } else if (type === 'stuttering_judge_signal') {
+        next.stutteringJudgeSignal = payload;
+      } else if (type === 'little_girl_caught') {
+        next.littleGirlCaughtId = payload;
       } else if (type === 'hunter') {
         const shotPlayer = players.find(p => p.id === payload);
         const shotRole = getPlayerRole(shotPlayer);
@@ -1149,6 +1186,78 @@ export default function App() {
         showAlert({
           title: 'THỢ SĂN BỎ QUA',
           message: 'Thợ Săn không sử dụng phát súng cuối cùng.',
+          variant: 'info',
+          confirmText: 'Đã Rõ'
+        });
+      } else if (type === 'avenger_retaliate') {
+        const avengerId = pendingAvengerShot?.avengerId;
+        if (avengerId) {
+          const game = new WerewolfGame({
+            roundNumber,
+            isNight,
+            players,
+            deckRoleIds,
+            rolesInGameIds: rolesInGame.map(r => r.id),
+            nightState,
+            nightLogs,
+            gameDiary,
+            isVillageCursed,
+            wolfCanKillDouble,
+            gameEndResult
+          });
+
+          const retRes = game.avengerRetaliate(avengerId, payload);
+          if (retRes.success) {
+            setPlayers(retRes.game.players);
+            if (retRes.logs && retRes.logs.length > 0) {
+              setNightLogs(prev => [...(prev || []), ...retRes.logs]);
+            }
+            if (retRes.wolfCanKillDouble) {
+              setWolfCanKillDouble(true);
+            }
+            if (retRes.deadSheriff) {
+              handleOpenSheriffModal(retRes.deadSheriff, false);
+            }
+            if (retRes.hunterTrigger) {
+              setPendingHunterShot({
+                hunterId: retRes.hunterTrigger.id,
+                hunterName: retRes.hunterTrigger.name
+              });
+              setActionModal({
+                isOpen: true,
+                actionType: 'hunter',
+                role: retRes.hunterTrigger.getRole(),
+                player: retRes.hunterTrigger
+              });
+            }
+            if (retRes.gameEndResult) {
+              setGameEndResult(retRes.gameEndResult);
+            }
+            if (retRes.isOpposite) {
+              triggerHaptic('shot');
+              showAlert({
+                title: '🗡️ BÁO THÙ THÀNH CÔNG!',
+                message: `Kẻ Báo Thù đã chỉ định chính xác kẻ thù (${retRes.target.name} #${retRes.target.id})!\n\nNạn nhân thuộc phe đối nghịch nên đã bị trừng phạt gục chết tại chỗ!`,
+                variant: 'blood',
+                confirmText: 'Đã Rõ 🗡️'
+              });
+            } else {
+              triggerHaptic('info');
+              showAlert({
+                title: '🛡️ BÁO THÙ BẤT THÀNH!',
+                message: `Kẻ Báo Thù đã chỉ điểm ${retRes.target.name} (#${retRes.target.id}), nhưng người này cùng phe tôn thờ nên được an toàn!`,
+                variant: 'info',
+                confirmText: 'Đã Rõ'
+              });
+            }
+          }
+        }
+        setPendingAvengerShot(null);
+      } else if (type === 'skip_avenger') {
+        setPendingAvengerShot(null);
+        showAlert({
+          title: 'KẺ BÁO THÙ BỎ QUA',
+          message: 'Kẻ Báo Thù không thực hiện quyền năng báo thù.',
           variant: 'info',
           confirmText: 'Đã Rõ'
         });
@@ -1479,9 +1588,9 @@ export default function App() {
   const handleToggleSheriff = (playerId) => {
     setPlayers(prev => prev.map(p => {
       if (p.id === playerId) {
-        return { ...p, isSheriff: !p.isSheriff };
+        return p instanceof Player ? p.clone({ isSheriff: !p.isSheriff }) : { ...p, isSheriff: !p.isSheriff };
       }
-      return { ...p, isSheriff: false };
+      return p instanceof Player ? p.clone({ isSheriff: false }) : { ...p, isSheriff: false };
     }));
   };
 
@@ -1501,7 +1610,7 @@ export default function App() {
     });
 
     const result = game.resolveNight(nightState);
-    const { game: nextGame, deadSheriff, hunterTrigger, elderKilledByWitch, transformedShadows, transformedWildChildren, logs, gameEndResult: endResult } = result;
+    const { game: nextGame, deadSheriff, hunterTrigger, avengerTrigger, elderKilledByWitch, transformedShadows, transformedWildChildren, logs, gameEndResult: endResult } = result;
 
     setPlayers(nextGame.players);
     setNightLogs(logs);
@@ -1586,6 +1695,20 @@ export default function App() {
       });
     }
 
+    if (avengerTrigger) {
+      setPendingAvengerShot({
+        avengerId: avengerTrigger.id,
+        avengerName: avengerTrigger.name,
+        avengerFaction: avengerTrigger.avengerFaction
+      });
+      setActionModal({
+        isOpen: true,
+        actionType: 'avenger',
+        role: avengerTrigger.getRole(),
+        player: avengerTrigger
+      });
+    }
+
     if (result.isScapegoatLynch) {
       setActionModal({
         isOpen: true,
@@ -1634,6 +1757,7 @@ export default function App() {
       deadSheriff,
       loverPartnerDied,
       hunterTrigger,
+      avengerTrigger,
       gameEndResult: endResult
     } = result;
 
@@ -1657,9 +1781,12 @@ export default function App() {
 
     if (wolfPupKilled) {
       setWolfCanKillDouble(true);
+      const isBigBro = (target.currentRoleId === 'anh-em-soi' || target.roleId === 'anh-em-soi' || target.getRole()?.id === 'anh-em-soi') && !target.isLittleBrother;
       showAlert({
-        title: 'SÓI CON BỊ TREO CỔ! 🐺',
-        message: `Sói Con (${target.name}) đã bị dân làng xử tử!\n\nBầy Ma Sói nổi cơn cuồng nộ: Đêm tiếp theo bầy Sói được quyền cắn 2 người chơi!`,
+        title: isBigBro ? 'SÓI ANH BỊ TREO CỔ! 🐺' : 'SÓI CON BỊ TREO CỔ! 🐺',
+        message: isBigBro
+          ? `Sói Anh (${target.name}) đã bị dân làng xử tử!\n\nSói Em căm phẫn thức tỉnh bản năng cuồng sát: Đêm tiếp theo bầy Sói được cắn 2 người!`
+          : `Sói Con (${target.name}) đã bị dân làng xử tử!\n\nBầy Ma Sói nổi cơn cuồng nộ: Đêm tiếp theo bầy Sói được quyền cắn 2 người chơi!`,
         variant: 'warning',
         confirmText: 'Ghi Nhận Cuồng Nộ 🔥'
       });
@@ -1759,6 +1886,20 @@ export default function App() {
       });
     }
 
+    if (avengerTrigger) {
+      setPendingAvengerShot({
+        avengerId: avengerTrigger.id,
+        avengerName: avengerTrigger.name,
+        avengerFaction: avengerTrigger.avengerFaction
+      });
+      setActionModal({
+        isOpen: true,
+        actionType: 'avenger',
+        role: avengerTrigger.getRole(),
+        player: avengerTrigger
+      });
+    }
+
     if (result.isScapegoatLynch) {
       setActionModal({
         isOpen: true,
@@ -1835,7 +1976,7 @@ export default function App() {
     const result = game.knightDuel(knightId, targetId);
     if (!result.success) return;
 
-    const { game: nextGame, knight, target, isWolf, deadSheriff, transformedShadows, transformedWildChildren, hunterTrigger, wolfCanKillDouble: nextWolfDouble, logs, gameEndResult: endResult } = result;
+    const { game: nextGame, knight, target, isWolf, deadSheriff, transformedShadows, transformedWildChildren, hunterTrigger, avengerTrigger, wolfCanKillDouble: nextWolfDouble, logs, gameEndResult: endResult } = result;
 
     if (nextWolfDouble) {
       setWolfCanKillDouble(true);
@@ -1900,6 +2041,20 @@ export default function App() {
         player: hunterTrigger
       });
     }
+
+    if (avengerTrigger) {
+      setPendingAvengerShot({
+        avengerId: avengerTrigger.id,
+        avengerName: avengerTrigger.name,
+        avengerFaction: avengerTrigger.avengerFaction
+      });
+      setActionModal({
+        isOpen: true,
+        actionType: 'avenger',
+        role: avengerTrigger.getRole(),
+        player: avengerTrigger
+      });
+    }
     if (endResult) {
       setGameEndResult(endResult);
     }
@@ -1914,6 +2069,7 @@ export default function App() {
       setGameEndResult(preLynchSnapshot.gameEndResult || null);
       setLynchedTodayPlayerId(preLynchSnapshot.lynchedTodayPlayerId || null);
       setPendingHunterShot(null);
+      setPendingAvengerShot(null);
       setScapegoatBannedVoterIds([]);
       setScapegoatBannedRound(null);
       setPreLynchSnapshot(null);
@@ -1941,6 +2097,7 @@ export default function App() {
     setLynchedTodayPlayerId(null);
     setGameEndResult(nextGame.gameEndResult);
     setPendingHunterShot(null);
+    setPendingAvengerShot(null);
     setScapegoatBannedVoterIds([]);
     setScapegoatBannedRound(null);
     setPreLynchSnapshot(null);
@@ -1950,6 +2107,25 @@ export default function App() {
   const handleSkipHunterShot = () => {
     setPendingHunterShot(null);
     setActionModal(prev => ({ ...prev, isOpen: false }));
+  };
+
+  const handleSkipAvengerShot = () => {
+    setPendingAvengerShot(null);
+    setActionModal(prev => ({ ...prev, isOpen: false }));
+  };
+
+  const handleOpenAvengerModal = () => {
+    if (pendingAvengerShot) {
+      const avenger = players.find(p => p.id === pendingAvengerShot.avengerId);
+      if (avenger) {
+        setActionModal({
+          isOpen: true,
+          actionType: 'avenger',
+          role: getPlayerRole(avenger),
+          player: avenger
+        });
+      }
+    }
   };
 
   const handleAdvanceToNight = () => {
@@ -1973,6 +2149,18 @@ export default function App() {
       return;
     }
 
+    // Chặn nếu Kẻ Báo Thù đã ngã xuống nhưng chưa chỉ điểm
+    if (pendingAvengerShot) {
+      triggerHaptic('error');
+      showAlert({
+        title: 'KẺ BÁO THÙ CHƯA CHỈ ĐIỂM!',
+        message: `Kẻ Báo Thù (${pendingAvengerShot.avengerName}) đã ngã xuống nhưng chưa thực hiện quyền năng báo thù.\n\nVui lòng giải quyết chỉ điểm hoặc bấm Bỏ Qua trước khi kết thúc ngày.`,
+        variant: 'warning'
+      });
+      handleOpenAvengerModal();
+      return;
+    }
+
     // Chặn nếu Cảnh Sát Trưởng đã hy sinh mà chưa chỉ định người kế nhiệm
     const sheriff = players.find(p => p.isSheriff);
     const sheriffDead = sheriff && !sheriff.isAlive;
@@ -1985,6 +2173,7 @@ export default function App() {
     // Reset lynch snapshot & pending actions khi chuyển sang đêm mới
     setPreLynchSnapshot(null);
     setPendingHunterShot(null);
+    setPendingAvengerShot(null);
 
     // Ghi nhận nhật ký Ban Ngày vừa qua vào quyển nhật ký
     const lynchedP = players.find(p => p.id === lynchedTodayPlayerId);
@@ -2081,6 +2270,7 @@ export default function App() {
       foxCheckedThisNight: false,
       foxSkipped: false,
       foxLostPower: prev.foxLostPower || false,
+      foxFoundWolf: null,
       ravenTargetId: null,
       ravenSkipped: false,
       silencedPlayerId: null,
@@ -2100,8 +2290,8 @@ export default function App() {
       actorSkipped: false,
       apothecarySleepTargetId: null,
       apothecaryCurePoison: false,
-      apothecaryHasSleep: prev.apothecaryHasSleep,
-      apothecaryHasAntidote: prev.apothecaryHasAntidote,
+      apothecaryHasSleep: prev.apothecaryHasSleep !== false,
+      apothecaryHasAntidote: prev.apothecaryHasAntidote !== false,
       apothecarySkipped: false,
       puppeteerTargetId: null,
       puppeteerUsed: prev.puppeteerUsed || false,
@@ -2114,6 +2304,14 @@ export default function App() {
       spiritualistSkipped: false,
       avengerChosenFaction: prev.avengerChosenFaction,
       cultGroupMap: prev.cultGroupMap || {},
+      littleGirlCaughtId: null,
+      fireWolfTargetId: null,
+      fireWolfSkipped: false,
+      fireWolfActive: false,
+      fireWolfBurnCount: prev.fireWolfBurnCount || 0,
+      stutteringJudgeSignal: prev.stutteringJudgeSignal || null,
+      wolfBigBrotherId: prev.wolfBigBrotherId || null,
+      wolfLittleBrotherId: prev.wolfLittleBrotherId || null,
       skippedRoles: []
     }));
   };
@@ -2416,6 +2614,9 @@ export default function App() {
               }
             }}
             onSkipHunterShot={handleSkipHunterShot}
+            pendingAvengerShot={pendingAvengerShot}
+            onOpenAvengerModal={handleOpenAvengerModal}
+            onSkipAvengerShot={handleSkipAvengerShot}
             onOpenAssignRole={(p) => {
               setActionModal({
                 isOpen: true,

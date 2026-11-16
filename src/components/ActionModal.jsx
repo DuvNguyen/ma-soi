@@ -613,6 +613,121 @@ export default function ActionModal({
         );
       }
 
+      // ================= KẺ BÁO THÙ TRẢ THÙ =================
+      case 'avenger': {
+        const avengerPlayer = player || players.find(p => p.currentRoleId === 'ke-bao-thu' || p.roleId === 'ke-bao-thu' || p.originalRoleId === 'ke-bao-thu');
+        const validTargets = alivePlayers.filter(p => !avengerPlayer || p.id !== avengerPlayer.id);
+        const filteredTargets = validTargets.filter(p => {
+          if (!hunterSearchQuery) return true;
+          const q = removeVietnameseTones(hunterSearchQuery);
+          return matchesSearch(p.name, q) || String(p.id).includes(q);
+        });
+        const factionLabel = avengerPlayer?.avengerFaction === 'V' ? 'Phe Dân Làng' : avengerPlayer?.avengerFaction === 'W' ? 'Phe Ma Sói' : 'Chưa rõ';
+
+        return (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between gap-3 p-3.5 bg-gradient-to-r from-rose-950 via-[#26050a] to-black border border-rose-700/80 rounded-2xl shadow-[0_0_20px_rgba(244,63,94,0.35)]">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-10 h-10 rounded-xl bg-rose-950/90 border border-rose-600/60 flex items-center justify-center text-rose-400 shrink-0">
+                  <Swords className="w-5 h-5" />
+                </div>
+                <div className="min-w-0">
+                  <div className="text-[10px] uppercase font-black tracking-widest text-rose-400/80">
+                    Báo Thù Hấp Hối
+                  </div>
+                  <h4 className="font-bold text-rose-100 text-sm sm:text-base font-cinzel truncate">
+                    KẺ BÁO THÙ CHỈ ĐIỂM
+                  </h4>
+                </div>
+              </div>
+
+              {avengerPlayer && (
+                <div className="shrink-0 text-right">
+                  <span className="text-[10px] text-rose-400/80 uppercase font-bold block mb-0.5">
+                    Tôn thờ: {factionLabel}
+                  </span>
+                  <span className="text-xs sm:text-sm font-bold text-rose-200 px-2.5 py-1 rounded-xl bg-black/60 border border-rose-600/70 inline-flex items-center gap-1.5 shadow-sm">
+                    <span className="font-mono text-rose-400">#{avengerPlayer.id}</span>
+                    <span className="truncate max-w-[120px]">{avengerPlayer.name}</span>
+                  </span>
+                </div>
+              )}
+            </div>
+
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-xs text-rose-200/80">
+                Chỉ định 1 người chơi để trả thù (chỉ chết nếu thuộc phe đối lập):
+              </span>
+              <div className="relative w-36">
+                <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                <input
+                  type="text"
+                  value={hunterSearchQuery}
+                  onChange={(e) => setHunterSearchQuery(e.target.value)}
+                  placeholder="Tìm người..."
+                  className="w-full text-xs py-1 pl-8 pr-2 rounded-xl bg-slate-900 border border-slate-700 text-slate-200 placeholder:text-slate-500 focus:outline-none focus:border-rose-500"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2 max-h-[46vh] overflow-y-auto pr-1">
+              {filteredTargets.map(p => {
+                const isWolf = isWolfPlayer(p);
+                const pRole = getPlayerRole(p);
+                return (
+                  <button
+                    key={p.id}
+                    type="button"
+                    onClick={() => {
+                      onSaveAction('avenger_retaliate', p.id);
+                      onClose();
+                    }}
+                    className="w-full flex items-center justify-between p-3 rounded-2xl border text-left transition-all duration-200 bg-[#111320] hover:bg-[#1f0b12] border-slate-800 hover:border-rose-600/70 text-slate-300 cursor-pointer"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center font-bold text-xs border ${
+                        isWolf ? 'bg-rose-950/80 text-rose-300 border-rose-700' : 'bg-slate-900 text-slate-300 border-slate-800'
+                      }`}>
+                        {p.id}
+                      </div>
+                      <div>
+                        <div className="font-bold text-sm flex items-center gap-2">
+                          <span className={isWolf ? 'text-rose-200 font-black' : 'text-slate-100'}>{p.name}</span>
+                          {isWolf && (
+                            <span className="text-[10px] px-2 py-0.2 rounded-md font-bold uppercase bg-rose-950 text-rose-300 border border-rose-600 flex items-center gap-1">
+                              <WolfIcon className="w-3 h-3" /> Phe Sói
+                            </span>
+                          )}
+                        </div>
+                        <div className="text-xs text-slate-400 mt-0.5">
+                          Vai: <span className="text-slate-300 font-medium">{pRole?.name || 'Chưa lộ vai'}</span>
+                        </div>
+                      </div>
+                    </div>
+                    <span className="text-xs text-rose-300 font-bold px-3 py-1.5 rounded-xl bg-rose-950/80 border border-rose-800 hover:bg-rose-600 hover:text-white transition-colors shrink-0">
+                      Báo thù 🗡️
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+
+            <div className="pt-2 border-t border-slate-800 flex justify-end">
+              <button
+                type="button"
+                onClick={() => {
+                  onSaveAction('skip_avenger');
+                  onClose();
+                }}
+                className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:text-slate-200 border border-slate-800 hover:border-slate-700 transition-colors cursor-pointer"
+              >
+                Bỏ qua
+              </button>
+            </div>
+          </div>
+        );
+      }
+
       // ================= DI NGÔN NGƯỜI THẾ THÂN =================
       case 'scapegoat_decree': {
         const toggleBan = (id) => {

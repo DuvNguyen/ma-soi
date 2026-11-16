@@ -37,31 +37,35 @@ export default function NightPhaseView({
   // Sort roles according to canonical night wake-up order
   const getOrderedNightRoles = () => {
     const orderPriority = {
-      'nguyet-nu': 0.5,
+      'nguyet-nu': 0.2,
+      'thanh-vien-giao-phai': 0.3,
+      'anh-tu': 0.4,
+      'dien-vien': 0.5,
+      'ke-bao-thu': 0.6,
       'cho-soi-soi-lai': 0.8,
       'an-trom': 1,
       'cupid': 2,
       'hai-chi-em': 2.1,
       'ba-anh-em': 2.2,
-      'anh-tu': 2.5,
+      'tham-phan-lap-bap': 2.3,
       'dua-tre-hoang-da': 3,
-      'nua-nguoi-nua-soi': 3.1,
-      'thang-ngoc': 3.2,
       'tho-san': 3.3,
       'ki-si': 3.4,
-      'dien-vien': 3.5,
-      'ba-dong': 3.6,
+      'ba-dong': 3.5,
+      'nguoi-goi-hon': 3.8,
       'bao-ve': 4,
+      'cao': 4.1,
       'nguoi-mua-roi': 4.8,
       'nguoi-cha-cua-soi': 4.9,
       'soi-quy': 4.9,
+      'anh-em-soi': 4.95,
       'soi-thuong': 5,
       'soi-con': 5.1,
       'soi-lon-xau-xa': 5.2,
       'soi-trang': 5.3,
+      'soi-lua': 5.4,
       'cao-lua': 5.4,
       'tien-tri': 6,
-      'cao': 6.1,
       'thay-thoi-mien': 6.5,
       'phu-thuy': 7,
       'duoc-si': 7.5,
@@ -69,25 +73,24 @@ export default function NightPhaseView({
       'nguoi-thoi-sao': 8,
       'ke-dot-nha': 8.1,
       'con-qua': 9,
-      'con-qua-plus': 9.1,
-      'nguoi-goi-hon': 10
+      'con-qua-plus': 9.1
     };
 
     const activeRoles = rolesInGame.filter(r => {
-      if (['cupid', 'dua-tre-hoang-da', 'anh-tu', 'an-trom', 'ke-bao-thu', 'soi-lai', 'cho-soi-soi-lai', 'ba-anh-em', 'hai-chi-em', 'tham-phan-lap-bap', 'nua-nguoi-nua-soi', 'thang-ngoc', 'tho-san', 'anh-em-soi', 'ki-si'].includes(r.id) && roundNumber > 1) {
+      if (['cupid', 'dua-tre-hoang-da', 'anh-tu', 'an-trom', 'ke-bao-thu', 'soi-lai', 'cho-soi-soi-lai', 'ba-anh-em', 'hai-chi-em', 'tham-phan-lap-bap', 'tho-san', 'anh-em-soi', 'ki-si', 'thanh-vien-giao-phai'].includes(r.id) && roundNumber > 1) {
         return false;
       }
       if (r.id === 'dien-vien' && roundNumber > 3) {
         return false;
       }
-      if (r.id === 'cao' && nightState?.foxLostPower) {
+      if (r.id === 'nguoi-goi-hon' && (roundNumber === 1 || players.filter(p => !p.isAlive).length === 0)) {
         return false;
       }
       if ([
         'dan-lang', 'dan-thuong', 'gia-lang', 'canh-sat-truong', 
         'nguoi-the-than', 'oan-nhan', 'nguoi-day-to-tan-tuy', 'hiep-si-gia', 
         'thien-su', 'thien-than', 'bo-lao', 'thang-mo', 'nguoi-thuan-phuc-gau', 'than-gau',
-        'co-be', 'canh-sat-characters', 'thanh-vien-giao-phai', 'hiep-si-kiem-gi'
+        'co-be', 'canh-sat-characters', 'hiep-si-kiem-gi', 'nua-nguoi-nua-soi', 'thang-ngoc'
       ].includes(r.id)) {
         return false;
       }
@@ -113,8 +116,59 @@ export default function NightPhaseView({
           gmCall: 'Kị Sĩ thức dậy nhận diện Quản Trò.'
         };
       }
+      if (r.id === 'cao' && nightState?.foxLostPower) {
+        return {
+          ...r,
+          isPowerLost: true,
+          shortDesc: 'Cáo đã mất năng lực đánh hơi. Gọi thức dậy cho có để bảo toàn bí mật thân phận.',
+          gmCall: 'Cáo thức dậy. (Quản trò gọi giả vờ để không làm lộ Cáo đã mất phép). Cáo nhắm mắt lại.'
+        };
+      }
+      if (r.id === 'ba-dong' && (nightState?.soothsayerCount || 0) >= 5) {
+        return {
+          ...r,
+          isPowerLost: true,
+          powerLostReason: 'Đã sử dụng hết 5 lượt linh cảm tâm linh trong ván',
+          shortDesc: 'Đã hết 5 lượt trong ván. Quản trò gọi cho có để bảo toàn bí mật thân phận.',
+          gmCall: 'Bà Đồng thức dậy. (Quản trò gọi cho có). Bà Đồng nhắm mắt lại.'
+        };
+      }
+      if (r.id === 'nguoi-mua-roi' && nightState?.puppeteerUsed) {
+        return {
+          ...r,
+          isPowerLost: true,
+          powerLostReason: 'Đã sử dụng quyền năng thao túng bầy Sói (chỉ dùng 1 lần/ván)',
+          shortDesc: 'Đã dùng quyền năng thao túng bầy Sói trong ván.',
+          gmCall: 'Người Múa Rối thức dậy. (Quản trò gọi cho có). Người Múa Rối nhắm mắt lại.'
+        };
+      }
+      if (r.id === 'duoc-si' && nightState?.apothecaryHasSleep === false && nightState?.apothecaryHasAntidote === false) {
+        return {
+          ...r,
+          isPowerLost: true,
+          powerLostReason: 'Đã sử dụng hết cả 2 bình thuốc trong ván (Thuốc Mê & Hồi Phục)',
+          shortDesc: 'Đã dùng hết cả 2 bình thuốc trong ván.',
+          gmCall: 'Dược Sĩ thức dậy. (Quản trò gọi cho có). Dược Sĩ nhắm mắt lại.'
+        };
+      }
       return r;
     });
+
+    // Anh Em Sói Đêm 1: Nhận diện riêng trước khi vào lượt cắn chung
+    if (rolesInGame.some(r => r.id === 'anh-em-soi') && roundNumber === 1) {
+      finalRoles.push({
+        id: 'anh-em-soi',
+        name: 'Anh Em Sói (Đêm 1 Nhận Diện)',
+        enName: 'Wolf Brothers',
+        teamCode: 'W',
+        team: 'Phe Sói',
+        shortDesc: 'Sói Anh và Sói Em thức dậy nhận diện nhau. Phân định rõ Sói Anh và Sói Em.',
+        gmCall: 'Hai Anh Em Sói thức dậy nhận biết nhau. Quản trò phân định Sói Anh và Sói Em.',
+        image: '/cards/anh_em_soi.png'
+      });
+    }
+
+    const livingWolvesCount = players.filter(p => p.isAlive && isWolfPlayer(p)).length;
     if (hasAnyWolves) {
       finalRoles.push({
         id: 'soi-thuong',
@@ -122,9 +176,34 @@ export default function NightPhaseView({
         enName: 'Werewolf Pack',
         teamCode: 'W',
         team: 'Phe Sói',
-        shortDesc: 'Toàn bộ bầy Sói mở mắt nhận diện nhau và thống nhất cắn người.',
-        gmCall: 'Ma Sói thức dậy. Hãy nhận diện đồng bọn và chọn con mồi đêm nay.',
+        isPowerLost: livingWolvesCount === 0,
+        powerLostReason: livingWolvesCount === 0 ? 'Toàn bộ Ma Sói đã bị tiêu diệt. Gọi có lệ để giữ bí mật số lượng Sói.' : null,
+        shortDesc: livingWolvesCount === 0 
+          ? 'Toàn bộ Ma Sói đã bị tiêu diệt. Gọi thức dậy có lệ để giữ bí mật thông tin.' 
+          : 'Toàn bộ bầy Sói mở mắt nhận diện nhau và thống nhất cắn người.',
+        gmCall: livingWolvesCount === 0
+          ? 'Ma Sói thức dậy. (Quản trò gọi có lệ). Ma Sói nhắm mắt lại.'
+          : 'Ma Sói thức dậy. Hãy nhận diện đồng bọn và chọn con mồi đêm nay.',
         image: '/cards/la-bai-ma-soi.jpg'
+      });
+    }
+
+    // Sói Lửa thức dậy khi có đồng bọn hy sinh
+    const fireWolfPlayer = players.find(p => p.isAlive && ((p.currentRoleId || p.roleId) === 'soi-lua' || getPlayerRole(p)?.id === 'soi-lua'));
+    const deadWolvesCount = players.filter(p => !p.isAlive && isWolfPlayer(p)).length;
+    const maxBurns = deadWolvesCount >= 2 ? 2 : 1;
+    const canFireWolfWake = fireWolfPlayer && deadWolvesCount > 0 && (nightState?.fireWolfBurnCount || 0) < maxBurns;
+
+    if (rolesInGame.some(r => r.id === 'soi-lua') && (canFireWolfWake || nightState?.fireWolfActive)) {
+      finalRoles.push({
+        id: 'soi-lua',
+        name: 'Sói Lửa (Thiêu Rụi Kỹ Năng)',
+        enName: 'Fire Werewolf',
+        teamCode: 'W',
+        team: 'Phe Sói',
+        shortDesc: 'Đồng bọn tử trận kích hoạt ngọn lửa hận thù. Sói Lửa thức dậy thiêu rụi vĩnh viễn năng lực của 1 người.',
+        gmCall: 'Sói Lửa thức dậy một mình. Hãy chọn người bạn muốn thiêu rụi năng lực vĩnh viễn.',
+        image: '/cards/Cao_lua.png'
       });
     }
 
@@ -231,6 +310,7 @@ export default function NightPhaseView({
 
   const cursedHolder = !isWolfStep && players.find(p => p.isCursedWolf && p.originalRoleId === currentRole?.id);
   const isRoleCursedOut = Boolean(cursedHolder) && !hasHolders;
+  const isCurrentRoleSilencedByMoon = !isWolfStep && roleHolders.some(p => p.id === nightState?.silencedPlayerId && !nightState?.moonPriestessSkipped);
 
   const maxWolves = deckRoleIds.filter(id => WOLF_ROLE_IDS.includes(id)).length || 2;
   const currentWolves = players.filter(isWolfPlayer);
@@ -250,6 +330,14 @@ export default function NightPhaseView({
     const shortRoleName = (currentRole.name || '').split(' (')[0].split('/')[0].trim();
 
     if (isWolfStep) {
+      const livingWolves = currentWolves.filter(p => p.isAlive);
+      if (livingWolves.length === 0) {
+        return {
+          isValid: true,
+          message: 'Toàn bộ Ma Sói đã bị tiêu diệt (Gọi thức dậy có lệ)',
+          shortMessage: 'Sói đã chết hết ✓'
+        };
+      }
       if (currentWolves.length < maxWolves) {
         return {
           isValid: false,
@@ -313,6 +401,14 @@ export default function NightPhaseView({
         isValid: true,
         message: currentRole.powerLostReason || 'Năng lực của vai trò này đã mất',
         shortMessage: 'Đã mất năng lực'
+      };
+    }
+
+    if (isCurrentRoleSilencedByMoon) {
+      return {
+        isValid: true,
+        message: 'Người giữ vai này đã bị Nguyệt Nữ phong ấn năng lực đêm nay',
+        shortMessage: 'Bị phong ấn ✓'
       };
     }
 
@@ -465,17 +561,24 @@ export default function NightPhaseView({
       }
 
       case 'cao': {
-        if (!nightState.foxCheckedThisNight && !nightState.foxSkipped) {
+        if (nightState?.foxLostPower) {
+          return {
+            isValid: true,
+            message: 'Cáo đã mất năng lực (Gọi thức dậy cho có để bảo toàn bí mật)',
+            shortMessage: 'Gọi cho có ✓'
+          };
+        }
+        if (!nightState?.foxCheckedThisNight && !nightState?.foxSkipped) {
           return { 
             isValid: false, 
-            message: 'Cáo phải chọn 1 tâm điểm kiểm tra hoặc bấm Bỏ qua',
-            shortMessage: 'Chưa chọn tâm điểm'
+            message: 'Cáo: Chọn kết quả "Soi ra Sói" hoặc "Không ra Sói" (hoặc Bỏ qua)',
+            shortMessage: 'Chưa chọn kết quả'
           };
         }
         return { 
           isValid: true, 
-          message: 'Cáo đã kiểm tra nhóm 3 người',
-          shortMessage: 'Đã quét xong ✓'
+          message: 'Cáo đã thực hiện đánh hơi',
+          shortMessage: 'Đã đánh hơi ✓'
         };
       }
 
@@ -545,6 +648,139 @@ export default function NightPhaseView({
           message: 'Thợ Săn đã nhận diện Quản Trò',
           shortMessage: 'Đã nhận diện ✓'
         };
+      }
+
+      case 'thay-thoi-mien': {
+        if (!nightState.hypnotistTargetId && !nightState.hypnotistSkipped) {
+          return {
+            isValid: false,
+            message: 'Thầy Thôi Miên phải chọn 1 người để thế mạng hoặc bấm Không Mê Hoặc',
+            shortMessage: 'Chưa chọn mục tiêu'
+          };
+        }
+        return { isValid: true, message: 'Đã chọn người thế mạng', shortMessage: 'Đã mê hoặc ✓' };
+      }
+
+      case 'sat-thu': {
+        if (!nightState.assassinTargetId && !nightState.assassinSkipped) {
+          return {
+            isValid: false,
+            message: 'Sát Thủ phải chọn 1 mục tiêu ám sát hoặc bấm Không Ám Sát',
+            shortMessage: 'Chưa chọn mục tiêu'
+          };
+        }
+        return { isValid: true, message: 'Sát Thủ đã chọn mục tiêu', shortMessage: 'Đã chọn ám sát ✓' };
+      }
+
+      case 'ke-dot-nha': {
+        if (!nightState.pyroTargetId && !nightState.pyroSkipped) {
+          return {
+            isValid: false,
+            message: 'Kẻ Đốt Nhà phải chọn 1 ngôi nhà phóng hỏa hoặc bấm Bỏ qua',
+            shortMessage: 'Chưa chọn nhà'
+          };
+        }
+        return { isValid: true, message: 'Đã chọn ngôi nhà phóng hỏa', shortMessage: 'Đã phóng hỏa ✓' };
+      }
+
+      case 'an-trom': {
+        if (!nightState.thiefChosenRoleId) {
+          return {
+            isValid: false,
+            message: 'Ăn Trộm phải chọn 1 vai trò mới hoặc bấm Giữ Nguyên Dân Thường',
+            shortMessage: 'Chưa chọn vai'
+          };
+        }
+        return { isValid: true, message: 'Ăn Trộm đã chọn vai', shortMessage: 'Đã đổi vai ✓' };
+      }
+
+      case 'ba-dong': {
+        if ((nightState.soothsayerCount || 0) >= 5) {
+          return { isValid: true, message: 'Bà Đồng đã sử dụng hết 5 lượt hỏi trong ván', shortMessage: 'Hết 5 lượt ✓' };
+        }
+        if (!nightState.soothsayerTargetId && !nightState.soothsayerSkipped) {
+          return {
+            isValid: false,
+            message: 'Bà Đồng phải chỉ định 1 người trả lời hoặc bấm Bỏ Qua Đêm Nay',
+            shortMessage: 'Chưa chọn người'
+          };
+        }
+        return { isValid: true, message: 'Bà Đồng đã đặt câu hỏi', shortMessage: 'Đã chỉ định ✓' };
+      }
+
+      case 'nguoi-mua-roi': {
+        if (nightState.puppeteerUsed) {
+          return { isValid: true, message: 'Đã sử dụng quyền năng múa rối trong ván', shortMessage: 'Đã dùng 1 lần/ván ✓' };
+        }
+        if (!nightState.puppeteerTargetId && !nightState.puppeteerSkipped) {
+          return {
+            isValid: false,
+            message: 'Người Múa Rối phải chọn 1 người để ép Sói cắn hoặc bấm Không Can Thiệp',
+            shortMessage: 'Chưa chọn mục tiêu'
+          };
+        }
+        return { isValid: true, message: 'Đã chọn mục tiêu thao túng', shortMessage: 'Đã chọn ✓' };
+      }
+
+      case 'duoc-si': {
+        const hasSleep = nightState.apothecaryHasSleep !== false;
+        const hasAntidote = nightState.apothecaryHasAntidote !== false;
+        if (!hasSleep && !hasAntidote) {
+          return { isValid: true, message: 'Dược Sĩ đã dùng hết cả 2 bình thuốc', shortMessage: 'Hết thuốc ✓' };
+        }
+        if (!nightState.apothecarySleepTargetId && !nightState.apothecaryCurePoison && !nightState.apothecarySkipped) {
+          return {
+            isValid: false,
+            message: 'Dược Sĩ phải chọn dùng bình thuốc hoặc bấm Bỏ Qua Đêm Nay',
+            shortMessage: 'Chưa chọn bình'
+          };
+        }
+        return { isValid: true, message: 'Dược Sĩ đã sử dụng thuốc', shortMessage: 'Đã chọn ✓' };
+      }
+
+      case 'nguoi-goi-hon': {
+        if (!nightState.spiritualistSuspectId && !nightState.spiritualistSkipped) {
+          return {
+            isValid: false,
+            message: 'Người Gọi Hồn phải ghi nhận người bị hồn ma nghi ngờ hoặc chọn Bỏ Qua',
+            shortMessage: 'Chưa ghi nhận'
+          };
+        }
+        return { isValid: true, message: 'Người Gọi Hồn đã ghi nhận', shortMessage: 'Đã ghi nhận ✓' };
+      }
+
+      case 'ke-bao-thu': {
+        if (!nightState.avengerChosenFaction) {
+          return {
+            isValid: false,
+            message: 'Kẻ Báo Thù phải chọn phe tôn thờ (Phe Dân Làng hoặc Phe Ma Sói)',
+            shortMessage: 'Chưa chọn phe'
+          };
+        }
+        return { isValid: true, message: 'Kẻ Báo Thù đã chọn phe', shortMessage: 'Đã chọn phe ✓' };
+      }
+
+      case 'anh-em-soi': {
+        const holders = players.filter(p => (p.currentRoleId || p.roleId) === 'anh-em-soi');
+        if (holders.length < 2) {
+          return {
+            isValid: false,
+            message: `Bắt buộc gán đủ đúng 2 người chơi cho vai Anh Em Sói (Hiện có ${holders.length}/2)`,
+            shortMessage: `Chưa đủ 2 Anh Em (${holders.length}/2)`
+          };
+        }
+        return { isValid: true, message: 'Hai Anh Em Sói đã nhận diện nhau', shortMessage: 'Đã nhận diện (2/2) ✓' };
+      }
+
+      case 'soi-lua': {
+        if (!nightState.fireWolfTargetId && !nightState.fireWolfSkipped) {
+          return {
+            isValid: false,
+            message: 'Sói Lửa phải chọn 1 người để thiêu rụi năng lực hoặc bấm Bỏ Qua',
+            shortMessage: 'Chưa chọn mục tiêu'
+          };
+        }
+        return { isValid: true, message: 'Sói Lửa đã đưa ra lựa chọn', shortMessage: 'Đã thiêu rụi ✓' };
       }
 
       default:
@@ -691,6 +927,7 @@ export default function NightPhaseView({
             isSkipped={isSkipped}
             isRoleCursedOut={isRoleCursedOut}
             cursedHolder={cursedHolder}
+            isSilencedByMoon={isCurrentRoleSilencedByMoon}
             stepValidation={stepValidation}
             roleHolders={roleHolders}
             isVillageCursed={isVillageCursed}

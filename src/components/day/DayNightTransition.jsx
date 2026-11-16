@@ -5,9 +5,11 @@ import triggerHaptic from '../../utils/haptics';
 
 export default function DayNightTransition({
   pendingHunterShot,
+  pendingAvengerShot,
   sheriffDead,
   sheriff,
   onOpenHunterModal,
+  onOpenAvengerModal,
   onOpenSheriffModal,
   onAdvanceToNight,
   showAlert
@@ -21,6 +23,17 @@ export default function DayNightTransition({
         variant: 'warning'
       });
       if (onOpenHunterModal) onOpenHunterModal();
+      return;
+    }
+
+    if (pendingAvengerShot) {
+      triggerHaptic('error');
+      showAlert({
+        title: 'KẺ BÁO THÙ CHƯA CHỈ ĐIỂM!',
+        message: `Kẻ Báo Thù (${pendingAvengerShot.avengerName}) đã ngã xuống nhưng chưa kích hoạt chỉ điểm trả thù.\n\nVui lòng giải quyết báo thù hoặc bấm Bỏ Qua trước khi sang đêm.`,
+        variant: 'warning'
+      });
+      if (onOpenAvengerModal) onOpenAvengerModal();
       return;
     }
 

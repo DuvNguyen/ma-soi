@@ -24,6 +24,19 @@ export default function NightWerewolvesStep({
   const target2 = players.find(p => p.id === nightState.wolfTargetId2);
   const hasTarget = (target1 || target2) && !nightState.wolfSkipped;
   const selectedWolfTargets = [nightState.wolfTargetId, nightState.wolfTargetId2].filter(Boolean);
+  const livingWolves = players.filter(p => p.isAlive && isWolfPlayer(p));
+
+  if (livingWolves.length === 0) {
+    return (
+      <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-[#240508] via-[#150204] to-[#240508] border border-rose-800/60 text-rose-200 text-center space-y-2 animate-fade-in">
+        <div className="text-2xl">🐺💀</div>
+        <div className="font-bold text-sm sm:text-base font-cinzel text-rose-300">Toàn Bộ Ma Sói Đã Bị Tiêu Diệt</div>
+        <div className="text-xs text-slate-400">
+          Không còn con Ma Sói nào sống sót để thực hiện cuộc săn đêm nay. Quản trò gọi có lệ theo kịch bản để bảo mật ván đấu.
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4">
@@ -313,6 +326,39 @@ export default function NightWerewolvesStep({
           </div>
         </div>
       )}
+
+      {/* CÔ BÉ (LITTLE GIRL) BỊ PHÁT HIỆN PANEL */}
+      {(() => {
+        const littleGirl = players.find(p => p.isAlive && ((p.currentRoleId || p.roleId) === 'co-be' || p.originalRoleId === 'co-be'));
+        if (!littleGirl) return null;
+        const isCaught = nightState.littleGirlCaughtId === littleGirl.id;
+        return (
+          <div className="p-3 sm:p-3.5 rounded-2xl border transition-all mt-3 bg-gradient-to-r from-amber-950/40 via-[#180a04] to-slate-900/60 border-amber-600/70 shadow-sm flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <span className="text-xl shrink-0">👀</span>
+              <div className="min-w-0">
+                <div className="text-xs font-bold text-amber-200">
+                  Cô Bé Nhìn Trộm: #{littleGirl.id} {littleGirl.name}
+                </div>
+                <div className="text-[10px] text-amber-400/80 truncate">
+                  {isCaught ? 'Bị bầy Sói phát hiện nhìn trộm ➔ Sẽ bị xé xác trong đêm' : 'Bấm nếu Quản trò thấy Cô Bé bị bầy Sói bắt quả tang hé mắt'}
+                </div>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => onSaveAction('little_girl_caught', isCaught ? null : littleGirl.id)}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-all cursor-pointer shrink-0 ${
+                isCaught
+                  ? 'bg-rose-950 border-rose-500 text-rose-200 shadow-md'
+                  : 'bg-black/60 hover:bg-black/80 border-slate-700 text-slate-300'
+              }`}
+            >
+              {isCaught ? 'Đã bắt quả tang ✕' : 'Bắt quả tang 👀'}
+            </button>
+          </div>
+        );
+      })()}
     </div>
   );
 }

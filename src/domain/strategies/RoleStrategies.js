@@ -145,6 +145,29 @@ export class CursedWolfStrategy extends BaseRoleStrategy {
   }
 }
 
+/**
+ * Chiến lược cho Anh Em Sói:
+ * - Sói Em khi Sói Anh còn sống thì Tiên Tri soi ra Dân Làng
+ * - Khi Sói Anh chết, Sói Em thức tỉnh phẫn nộ và gia nhập bầy Sói thực thụ
+ */
+export class WolfBrothersStrategy extends BaseRoleStrategy {
+  getSeerAffiliation(player, nightContext = {}) {
+    if (player.isCursedWolf) return 'WOLF';
+    // Nếu là Sói Em và Sói Anh vẫn còn sống -> Tiên Tri soi ra Dân Làng
+    if (player.isLittleBrother) {
+      if (typeof nightContext.isBigBrotherAlive === 'boolean') {
+        if (nightContext.isBigBrotherAlive) return 'VILLAGER';
+      } else if (Array.isArray(nightContext.players)) {
+        const bigBro = nightContext.players.find(p => (p.currentRoleId === 'anh-em-soi' || p.roleId === 'anh-em-soi' || (typeof p.getRole === 'function' && p.getRole()?.id === 'anh-em-soi')) && !p.isLittleBrother);
+        if (bigBro && bigBro.isAlive) return 'VILLAGER';
+      } else {
+        return 'VILLAGER';
+      }
+    }
+    return 'WOLF';
+  }
+}
+
 // Bảng Strategy Registry
 const STRATEGIES = {
   'nua-nguoi-nua-soi': new HalfWolfStrategy('nua-nguoi-nua-soi'),
@@ -152,7 +175,8 @@ const STRATEGIES = {
   'thang-ngoc': new IdiotStrategy('thang-ngoc'),
   'soi-nguyen': new CursedWolfStrategy('soi-nguyen'),
   'soi-quy': new CursedWolfStrategy('soi-quy'),
-  'nguoi-cha-cua-soi': new CursedWolfStrategy('nguoi-cha-cua-soi')
+  'nguoi-cha-cua-soi': new CursedWolfStrategy('nguoi-cha-cua-soi'),
+  'anh-em-soi': new WolfBrothersStrategy('anh-em-soi')
 };
 
 const DEFAULT_STRATEGY = new BaseRoleStrategy('default');

@@ -8,6 +8,7 @@ import { getPlayerRole } from '../utils/roleUtils';
 import DayCasualtyAnnouncement from './day/DayCasualtyAnnouncement';
 import DaySheriffBanner from './day/DaySheriffBanner';
 import DayHunterBanner from './day/DayHunterBanner';
+import DayAvengerBanner from './day/DayAvengerBanner';
 import DayDiscussionTimer from './day/DayDiscussionTimer';
 import DayKnightDuel from './day/DayKnightDuel';
 import DayVotingSection from './day/DayVotingSection';
@@ -29,6 +30,9 @@ export default function DayPhaseView({
   pendingHunterShot = null,
   onOpenHunterModal,
   onSkipHunterShot,
+  pendingAvengerShot = null,
+  onOpenAvengerModal,
+  onSkipAvengerShot,
   scapegoatBannedVoterIds = [],
   rolesInGame = [],
   deckRoleIds = [],
@@ -112,6 +116,13 @@ export default function DayPhaseView({
         onSkipHunterShot={onSkipHunterShot}
       />
 
+      {/* 3.1 Pending Avenger Retaliation Warning Banner */}
+      <DayAvengerBanner
+        pendingAvengerShot={pendingAvengerShot}
+        onOpenAvengerModal={onOpenAvengerModal}
+        onSkipAvengerShot={onSkipAvengerShot}
+      />
+
       {/* 4. Discussion Timer & Bear Tamer Warning */}
       <DayDiscussionTimer
         timeLeft={timeLeft}
@@ -182,9 +193,11 @@ export default function DayPhaseView({
       {/* 7. Night Transition Footer Button */}
       <DayNightTransition
         pendingHunterShot={pendingHunterShot}
+        pendingAvengerShot={pendingAvengerShot}
         sheriffDead={sheriffDead}
         sheriff={sheriff}
         onOpenHunterModal={onOpenHunterModal}
+        onOpenAvengerModal={onOpenAvengerModal}
         onOpenSheriffModal={onOpenSheriffModal}
         onAdvanceToNight={onAdvanceToNight}
         showAlert={showAlert}
