@@ -147,6 +147,7 @@ export default function PlayersGridView({ players, onOpenAssignRole, onOpenRoste
                   {p.isSheriff && <Star className="w-3 h-3 text-amber-400 fill-amber-400 shrink-0" title="Cảnh Sát Trưởng (x2 phiếu)" />}
                   {partner && <Heart className="w-3 h-3 text-pink-400 fill-pink-500 shrink-0" title="Người yêu" />}
                   {p.isHypnotized && <span className="text-[11px] shrink-0 select-none" title="Bị Người Thổi Sáo thôi miên">🎵</span>}
+                  {p.poisonedByRustySword && <span className="text-[11px] shrink-0 select-none" title="Nhiễm gỉ sét từ Hiệp Sĩ Kiếm Gỉ (sẽ chết ở đêm tiếp theo)">🗡️</span>}
                   {isSilenced && <span className="text-[11px] shrink-0 select-none" title="Bị Nguyệt Nữ cấm lặng hôm nay">🔇</span>}
                   {scapegoatBannedVoterIds?.includes(p.id) && (
                     <Scale className="w-3 h-3 text-rose-400 shrink-0" title="Bị cấm biểu quyết (Di ngôn Người Thế Thân)" />

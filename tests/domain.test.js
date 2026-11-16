@@ -1267,6 +1267,17 @@ console.log('🧪 Starting Phase 1 Domain Model & Strategy Tests...\n');
 
     console.log('✅ Test 63: Multi-Faction Architecture & Classification (FACTION_TYPES) verified.');
 
-    console.log('\n🎉 ALL 63 DOMAIN ENGINE TESTS PASSED PERFECTLY!\n');
+    // --- TEST 64: Hiệp Sĩ Kiếm Gỉ Poison Infection Badge & Angel Win Diary logging ---
+    const wolfStepSource = fs.readFileSync('src/components/night/NightWerewolvesStep.jsx', 'utf8');
+    assert.ok(wolfStepSource.includes('SÓI TRÚNG ĐỘC KIẾM GỈ:'), 'NightWerewolvesStep có banner cảnh báo Sói trúng độc kiếm gỉ');
+    const gridViewSource = fs.readFileSync('src/components/PlayersGridView.jsx', 'utf8');
+    assert.ok(gridViewSource.includes('p.poisonedByRustySword'), 'PlayersGridView hiển thị huy hiệu nhiễm gỉ sét 🗡️');
+
+    const appSource = fs.readFileSync('src/App.jsx', 'utf8');
+    assert.ok(appSource.includes('Thiên Sứ đã hoàn thành tâm nguyện bị treo cổ Ngày 1 và ĐƠN ĐỘC CHIẾN THẮNG TRẬN ĐẤU!'), 'App.jsx ghi nhận nhật ký chiến thắng cho Thiên Sứ');
+
+    console.log('✅ Test 64: Hiệp Sĩ Kiếm Gỉ Poison Infection Badge & Angel Win Diary logging verified.');
+
+    console.log('\n🎉 ALL 64 DOMAIN ENGINE TESTS PASSED PERFECTLY!\n');
   });
 }

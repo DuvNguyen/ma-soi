@@ -1766,6 +1766,16 @@ export default function App() {
 
     if (isAngelWin && endResult) {
       setGameEndResult(endResult);
+      const dayEndEntry = {
+        phase: `Ngày ${roundNumber}`,
+        type: 'day',
+        round: roundNumber,
+        logs: [
+          `Dân làng đã biểu quyết treo cổ ${target.name} (#${target.id}) - Thiên Sứ!`,
+          `Thiên Sứ đã hoàn thành tâm nguyện bị treo cổ Ngày 1 và ĐƠN ĐỘC CHIẾN THẮNG TRẬN ĐẤU! 🪽🎉`
+        ]
+      };
+      setGameDiary(prev => appendToDiary(prev, dayEndEntry));
       return;
     }
 

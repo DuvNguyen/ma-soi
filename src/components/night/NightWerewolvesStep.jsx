@@ -215,6 +215,21 @@ export default function NightWerewolvesStep({
           );
         })()}
 
+        {/* HIỆP SĨ KIẾM GỈ NHIỄM ĐỘC BANNER */}
+        {(() => {
+          const poisonedWolf = players.find(p => p.isAlive && isWolfPlayer(p) && p.poisonedByRustySword);
+          if (!poisonedWolf) return null;
+          return (
+            <div className="p-3 rounded-2xl bg-gradient-to-r from-amber-950/80 via-[#221005] to-[#120803] border border-amber-600/70 text-amber-200 text-xs flex items-center gap-2.5 shadow-sm">
+              <span className="text-xl shrink-0">🗡️</span>
+              <div>
+                <div className="font-bold text-amber-100 uppercase tracking-wider text-[11px]">SÓI TRÚNG ĐỘC KIẾM GỈ: #{poisonedWolf.id} {poisonedWolf.name}</div>
+                <div className="text-[10px] text-amber-300/80">Đã bị nhiễm gỉ sét từ Hiệp Sĩ Kiếm Gỉ và sẽ qua đời sau đêm nay.</div>
+              </div>
+            </div>
+          );
+        })()}
+
         {/* SÓI CẮN ĐỒNG LOẠI BADGE NẾU BẬT RULE */}
         {canWolvesKillTeammates && (
           <div className="p-2 sm:p-2.5 rounded-xl bg-purple-950/60 border border-purple-600 text-purple-200 text-xs flex items-center justify-between gap-2 shadow-sm">
