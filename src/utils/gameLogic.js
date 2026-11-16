@@ -600,10 +600,12 @@ export function resolveNightPhase(players, nightActions, roundNumber) {
       if (killedPlayerIds.has(p.shadowHostId)) {
         const host = updatedPlayers.find(x => x.id === p.shadowHostId);
         if (host) {
-          const inheritRoleId = host.originalRoleId || host.currentRoleId || host.roleId || 'dan-lang';
+          const inheritRoleId = host.currentRoleId || host.roleId || host.originalRoleId || 'dan-lang';
+          const isWolf = isWolfPlayer(host);
           p.originalRoleId = 'anh-tu';
           p.currentRoleId = inheritRoleId;
           p.roleId = inheritRoleId;
+          if (isWolf) p.isCursedWolf = true;
           if (inheritRoleId === 'gia-lang') p.elderLives = 2;
           delete p.role;
           delete p.originalRole;

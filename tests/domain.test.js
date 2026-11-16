@@ -1278,6 +1278,93 @@ console.log('🧪 Starting Phase 1 Domain Model & Strategy Tests...\n');
 
     console.log('✅ Test 64: Hiệp Sĩ Kiếm Gỉ Poison Infection Badge & Angel Win Diary logging verified.');
 
-    console.log('\n🎉 ALL 64 DOMAIN ENGINE TESTS PASSED PERFECTLY!\n');
+    // --- TEST 65: Complex Role Transformation & Cascade Interactions ---
+    // Chain A: 5-Fold Cascade (Knight Duel -> Lover Hunter Heartbreak -> Wild Child Awakening -> Hunter Shot -> Shadow Inherits Awakened Wolf)
+    const p1Knight = new Player({ id: 501, name: 'Kị Sĩ 501', currentRoleId: 'ki-si', roleId: 'ki-si', isAlive: true });
+    const p2Wolf = new Player({ id: 502, name: 'Sói Yêu 502', currentRoleId: 'soi-thuong', roleId: 'soi-thuong', isAlive: true, loverId: 503 });
+    const p3Hunter = new Player({ id: 503, name: 'Thợ Săn 503', currentRoleId: 'tho-san', roleId: 'tho-san', isAlive: true, loverId: 502 });
+    const p4WildChild = new Player({ id: 504, name: 'Đứa Trẻ 504', currentRoleId: 'dua-tre-hoang-da', roleId: 'dua-tre-hoang-da', isAlive: true, idolId: 503 });
+    const p5Shadow = new Player({ id: 505, name: 'Ảnh Tử 505', currentRoleId: 'anh-tu', roleId: 'anh-tu', isAlive: true, shadowHostId: 504 });
+
+    const game65A = new WerewolfGame({
+      roundNumber: 1,
+      isNight: false,
+      players: [p1Knight, p2Wolf, p3Hunter, p4WildChild, p5Shadow]
+    });
+
+    // 1. Kị Sĩ thách đấu Sói
+    const duelRes65 = game65A.knightDuel(501, 502);
+    assert.strictEqual(duelRes65.success, true);
+    assert.strictEqual(duelRes65.game.getPlayer(502).isAlive, false, 'Sói thua đấu kiếm chết');
+    assert.strictEqual(duelRes65.game.getPlayer(503).isAlive, false, 'Thợ Săn chết vì vỡ tim theo người yêu');
+    assert.strictEqual(duelRes65.hunterTrigger?.id, 503, 'Thợ Săn kích hoạt phát súng hấp hối');
+    const wildChildAfterDuel = duelRes65.game.getPlayer(504);
+    assert.strictEqual(wildChildAfterDuel.isWolf(), true, 'Đứa Trẻ Hoang Dã mất thần tượng hóa thành Ma Sói');
+    assert.strictEqual(wildChildAfterDuel.currentRoleId, 'soi-thuong', 'Vai hiện tại là soi-thuong');
+
+    // 2. Thợ Săn bắn chết Đứa Trẻ Hoang Dã (nay đã là Sói)
+    const gameAfterHunterShot = duelRes65.game.clone({
+      players: duelRes65.game.players.map(p => p.id === 504 ? p.kill('Bị Thợ Săn bắn gục', 'Ngày 1') : p)
+    });
+    // 3. Bản thể của Ảnh Tử chết -> Ảnh Tử kế thừa vai trò HIỆN TẠI (Ma Sói)
+    const shadowRes65 = gameAfterHunterShot._checkShadowInheritance(gameAfterHunterShot.players, gameAfterHunterShot.getPlayer(504));
+    const shadowAfter = shadowRes65.updatedPlayers.find(p => p.id === 505);
+    assert.strictEqual(shadowAfter.currentRoleId, 'soi-thuong', 'Ảnh Tử kế thừa vai trò hiện tại (soi-thuong)');
+    assert.strictEqual(shadowAfter.isWolf(), true, 'Ảnh Tử trở thành Ma Sói');
+    assert.strictEqual(shadowAfter.getFactionType(), FACTION_TYPES.WEREWOLF, 'Faction chuyển thành werewolf');
+
+    // Chain B: Multi-level Inheritance (Lynch Assassin -> Devoted Servant inherits -> Wolf kills Servant -> Shadow inherits Assassin)
+    const pAssassin65 = new Player({ id: 510, name: 'Sát Thủ 510', currentRoleId: 'sat-thu', roleId: 'sat-thu', isAlive: true });
+    const pServant65 = new Player({ id: 511, name: 'Đầy Tớ 511', currentRoleId: 'nguoi-day-to-tan-tuy', roleId: 'nguoi-day-to-tan-tuy', isAlive: true });
+    const pShadow65 = new Player({ id: 512, name: 'Ảnh Tử 512', currentRoleId: 'anh-tu', roleId: 'anh-tu', isAlive: true, shadowHostId: 511 });
+    const pWolf65 = new Player({ id: 513, name: 'Sói 513', currentRoleId: 'soi-thuong', roleId: 'soi-thuong', isAlive: true });
+
+    const game65B = new WerewolfGame({
+      roundNumber: 1,
+      isNight: false,
+      players: [pAssassin65, pServant65, pShadow65, pWolf65]
+    });
+
+    const lynchAssassin = game65B.lynchPlayer(510);
+    const inheritAssassin = lynchAssassin.game.inheritServantRole(511, 'sat-thu');
+    const servantAfterInherit = inheritAssassin.game.getPlayer(511);
+    assert.strictEqual(servantAfterInherit.currentRoleId, 'sat-thu');
+    assert.strictEqual(servantAfterInherit.getFactionType(), FACTION_TYPES.HOSTILE_THIRD_PARTY);
+
+    // Đêm tiếp theo: Sói cắn chết Đầy Tớ (nay là Sát Thủ)
+    const nightRes65B = resolveNightPhase(inheritAssassin.game.players, { wolfTargetId: 511 }, 2);
+    const shadowInheritedFromServant = nightRes65B.updatedPlayers.find(p => p.id === 512);
+    assert.strictEqual(shadowInheritedFromServant.currentRoleId, 'sat-thu', 'Ảnh Tử kế thừa vai Sát Thủ của Đầy Tớ');
+    assert.strictEqual(getPlayerFactionType(shadowInheritedFromServant), FACTION_TYPES.HOSTILE_THIRD_PARTY, 'Ảnh Tử nhận faction hostile_third_party');
+
+    // Chain C: Pyromaniac Counter-Burn burns Wolf Pup -> Victim saved & Wolf Cuồng Nộ triggers
+    const pPyro65 = new Player({ id: 521, name: 'Đốt Nhà 521', currentRoleId: 'ke-dot-nha', roleId: 'ke-dot-nha', isAlive: true });
+    const pVictim65 = new Player({ id: 522, name: 'Nạn Nhân 522', currentRoleId: 'dan-lang', roleId: 'dan-lang', isAlive: true });
+    const pWolfPup65 = new Player({ id: 523, name: 'Sói Con 523', currentRoleId: 'soi-con', roleId: 'soi-con', isAlive: true });
+    const pWolf65C = new Player({ id: 524, name: 'Sói Thường 524', currentRoleId: 'soi-thuong', roleId: 'soi-thuong', isAlive: true });
+
+    const game65C = new WerewolfGame({
+      roundNumber: 1,
+      isNight: true,
+      players: [pPyro65, pVictim65, pWolfPup65, pWolf65C]
+    });
+    const res65C = game65C.resolveNight({ wolfTargetId: 522, pyroTargetId: 522 });
+    assert.strictEqual(res65C.game.getPlayer(522).isAlive, true, 'Nạn nhân được cứu sống khỏi cú cắn của Sói nhờ hỏa hoạn');
+    assert.strictEqual(res65C.game.getPlayer(523).isAlive, false, 'Sói Con bị thiêu chết');
+    assert.strictEqual(res65C.wolfCanKillDouble, true, 'Sói Con chết kích hoạt Sói cuồng nộ đêm sau');
+
+    // Chain D: Sói Lửa incinerates Hunter's weapon -> Hunter death shot disabled
+    const pHunterBurned = new Player({ id: 531, name: 'Thợ Săn 531', currentRoleId: 'tho-san', roleId: 'tho-san', isAlive: true, isPowerBurned: true });
+    const game65D = new WerewolfGame({
+      roundNumber: 2,
+      isNight: false,
+      players: [pHunterBurned]
+    });
+    const lynchBurnedHunter = game65D.lynchPlayer(531);
+    assert.strictEqual(lynchBurnedHunter.hunterTrigger, null, 'Thợ Săn bị Sói Lửa thiêu rụi năng lực thì khi chết KHÔNG được bắn');
+
+    console.log('✅ Test 65: Complex Role Transformation & Cascade Interactions verified.');
+
+    console.log('\n🎉 ALL 65 DOMAIN ENGINE TESTS PASSED PERFECTLY!\n');
   });
 }

@@ -182,6 +182,8 @@ export class WerewolfGame {
       const isPoisoned = rawResult.poisonedPlayerIds?.includes(deadHunter.id) || deadHunter.deathReason?.includes('độc');
       if (isVillageCursed) {
         logs.push(`⚡ Thợ Săn ${deadHunter.name} tử trận nhưng không thể nổ súng do LỜI NGUYỀN GIÀ LÀNG (phe Dân đã mất sạch kỹ năng)!`);
+      } else if (deadHunter.isPowerBurned) {
+        logs.push(`🔥 Thợ Săn ${deadHunter.name} tử trận nhưng không thể nổ súng do đã bị SÓI LỬA thiêu rụi vũ khí!`);
       } else if (isPoisoned) {
         logs.push(`☠️ Thợ Săn ${deadHunter.name} bị Phù Thủy đầu độc trong lúc ngủ nên bị tê liệt, không thể rút súng bắn!`);
       } else {
@@ -337,7 +339,7 @@ export class WerewolfGame {
     let avengerTrigger = null;
 
     if (targetRole?.id === 'tho-san') {
-      if (isVillageCursed) {
+      if (isVillageCursed || deadTarget.isPowerBurned) {
         hunterTrigger = null;
       } else {
         hunterTrigger = deadTarget;
@@ -358,7 +360,7 @@ export class WerewolfGame {
         if (deadPartner.isSheriff) deadSheriff = deadPartner;
 
         // Luật Ma Sói chuẩn: Nếu người yêu chết theo là Thợ Săn và chưa mất phép -> Kích hoạt phát súng hấp hối
-        if (deadPartner.getRole()?.id === 'tho-san' && !isVillageCursed) {
+        if (deadPartner.getRole()?.id === 'tho-san' && !isVillageCursed && !deadPartner.isPowerBurned) {
           hunterTrigger = deadPartner;
         }
 
@@ -560,12 +562,14 @@ export class WerewolfGame {
     const transformedShadows = [];
     const updatedPlayers = playerList.map(p => {
       if (p.isAlive && (p.currentRoleId === 'anh-tu' || p.roleId === 'anh-tu') && p.shadowHostId === deadPlayer.id) {
-        const inheritRoleId = deadPlayer.originalRoleId || deadPlayer.currentRoleId || deadPlayer.roleId || 'dan-lang';
+        const inheritRoleId = deadPlayer.currentRoleId || deadPlayer.roleId || deadPlayer.originalRoleId || 'dan-lang';
         const roleObj = getRole(inheritRoleId);
+        const isWolf = isWolfPlayer(deadPlayer) || roleObj?.teamCode === 'W' || (WOLF_ROLE_IDS && WOLF_ROLE_IDS.includes(inheritRoleId));
         const updated = p.clone({
           originalRoleId: 'anh-tu',
           currentRoleId: inheritRoleId,
           roleId: inheritRoleId,
+          isCursedWolf: isWolf ? true : p.isCursedWolf,
           elderLives: inheritRoleId === 'gia-lang' ? 2 : p.elderLives
         });
         const recorded = updated.recordHistory ? updated.recordHistory({
@@ -682,7 +686,7 @@ export class WerewolfGame {
         wolfCanKillDouble = true;
         logs.push(`🐺 SÓI CON (${deadP.name}) ĐÃ CHẾT! Bầy Ma Sói cuồng nộ: Đêm tiếp theo bầy Sói được cắn 2 người!`);
       }
-      if (deadP.getRole()?.id === 'tho-san' && !this.isVillageCursed) {
+      if (deadP.getRole()?.id === 'tho-san' && !this.isVillageCursed && !deadP.isPowerBurned) {
         hunterTrigger = deadP;
       }
       if ((deadP.currentRoleId === 'ke-bao-thu' || deadP.roleId === 'ke-bao-thu' || deadP.getRole()?.id === 'ke-bao-thu') && deadP.avengerFaction) {
