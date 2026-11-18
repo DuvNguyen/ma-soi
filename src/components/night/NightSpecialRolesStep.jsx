@@ -69,40 +69,13 @@ export default function NightSpecialRolesStep({
           </div>
         </div>
 
-        {/* 1. ASSIGN CON HOANG (TARZAN) IF NOT YET ASSIGNED */}
-        {!wildChildPlayer && typeof onAssignRole === 'function' && (
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-amber-300 uppercase tracking-wider">
-                1. Chọn Người Giữ Vai Con Hoang (Tarzan):
-              </span>
-            </div>
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
-              {alivePlayers.map(p => (
-                <button
-                  key={p.id}
-                  type="button"
-                  onClick={() => onAssignRole(p.id, currentRole.id)}
-                  className="p-2.5 rounded-xl border border-slate-800 bg-[#121422] hover:bg-[#1a1c30] hover:border-amber-500/50 text-slate-200 text-left flex items-center justify-between transition-all cursor-pointer"
-                >
-                  <div className="truncate">
-                    <span className="font-bold text-xs">#{p.id} {p.name}</span>
-                    <span className="text-[10px] text-slate-400 block truncate">
-                      {getPlayerRole(p)?.name || 'Chưa gán'}
-                    </span>
-                  </div>
-                  <span className="text-[10px] text-amber-400 font-bold shrink-0">Chọn vai</span>
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
+        {/* Gán vai đã được tập trung tại RoleHolderBanner ở trên: Chọn Người Giữ Vai Con Hoang (Tarzan) */}
 
-        {/* 2. CHỌN MẸ (THẦN TƯỢNG) */}
+        {/* CHỌN MẸ (THẦN TƯỢNG) */}
         <div className="space-y-2">
           <div className="flex items-center justify-between gap-2 flex-wrap">
             <span className="text-xs font-bold text-amber-300 uppercase tracking-wider">
-              {wildChildPlayer ? `2. Chọn Mẹ Của #${wildChildPlayer.id}:` : '2. Chọn Mẹ (Thần Tượng):'}
+              {wildChildPlayer ? `Chọn Mẹ Của #${wildChildPlayer.id}:` : 'Chọn Mẹ (Thần Tượng):'}
             </span>
 
             <div className="flex items-center gap-2">
@@ -233,40 +206,13 @@ export default function NightSpecialRolesStep({
           </div>
         </div>
 
-        {/* 1. ASSIGN ANH TU IF NOT YET ASSIGNED */}
-        {!shadowPlayer && typeof onAssignRole === 'function' && (
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-purple-300 uppercase tracking-wider">
-                1. Chọn Người Giữ Vai Ảnh Tử (Doppelganger):
-              </span>
-            </div>
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
-              {alivePlayers.map(p => (
-                <button
-                  key={p.id}
-                  type="button"
-                  onClick={() => onAssignRole(p.id, currentRole.id)}
-                  className="p-2.5 rounded-xl border border-slate-800 bg-[#121422] hover:bg-[#1a1c30] hover:border-purple-500/50 text-slate-200 text-left flex items-center justify-between transition-all cursor-pointer"
-                >
-                  <div className="truncate">
-                    <span className="font-bold text-xs">#{p.id} {p.name}</span>
-                    <span className="text-[10px] text-slate-400 block truncate">
-                      {getPlayerRole(p)?.name || 'Chưa gán'}
-                    </span>
-                  </div>
-                  <span className="text-[10px] text-purple-400 font-bold shrink-0">Chọn vai</span>
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
+        {/* Đã đồng bộ gán vai lên RoleHolderBanner ở trên: Chọn Người Giữ Vai Ảnh Tử (Doppelganger) */}
 
-        {/* 2. CHỌN BẢN THỂ LIÊN KẾT */}
+        {/* CHỌN BẢN THỂ LIÊN KẾT */}
         <div className="space-y-2">
           <div className="flex items-center justify-between gap-2 flex-wrap">
             <span className="text-xs font-bold text-purple-300 uppercase tracking-wider">
-              {shadowPlayer ? `2. Chọn Bản Thể Cho #${shadowPlayer.id}:` : '2. Chọn Bản Thể Liên Kết:'}
+              {shadowPlayer ? `Chọn Bản Thể Cho #${shadowPlayer.id}:` : 'Chọn Bản Thể Liên Kết:'}
             </span>
 
             <div className="flex items-center gap-2">
@@ -927,32 +873,6 @@ export default function NightSpecialRolesStep({
             )}
           </div>
         </div>
-
-        {!hunterPlayer && typeof onAssignRole === 'function' && (
-          <div className="space-y-2">
-            <span className="text-xs font-bold text-amber-300 uppercase tracking-wider">
-              Chỉ định người giữ vai Thợ Săn:
-            </span>
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
-              {alivePlayers.map(p => (
-                <button
-                  key={p.id}
-                  type="button"
-                  onClick={() => onAssignRole(p.id, currentRole)}
-                  className="p-2.5 rounded-xl border border-slate-800 bg-[#121422] hover:bg-[#1a1c30] hover:border-amber-500/50 text-slate-200 text-left flex items-center justify-between transition-all cursor-pointer"
-                >
-                  <div className="truncate">
-                    <span className="font-bold text-xs">#{p.id} {p.name}</span>
-                    <span className="text-[10px] text-slate-400 block truncate">
-                      {getPlayerRole(p)?.name || 'Chưa gán'}
-                    </span>
-                  </div>
-                  <span className="text-[10px] text-amber-400 font-bold shrink-0">Chọn vai</span>
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
       </div>
     );
   }
@@ -987,38 +907,6 @@ export default function NightSpecialRolesStep({
             )}
           </div>
         </div>
-
-        {!knightPlayer && typeof onAssignRole === 'function' && (
-          <div className="space-y-2">
-            <span className="text-xs font-bold text-blue-300 uppercase tracking-wider">
-              Chỉ định người giữ vai Kị Sĩ:
-            </span>
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
-              {alivePlayers.map(p => {
-                const pRole = getPlayerRole(p);
-                const hasOther = Boolean(pRole && pRole.id !== 'ki-si');
-                return (
-                  <button
-                    key={p.id}
-                    type="button"
-                    disabled={hasOther}
-                    onClick={() => onAssignRole(p.id, currentRole)}
-                    className={`p-2 rounded-xl border text-left transition-all ${
-                      hasOther
-                        ? 'opacity-30 cursor-not-allowed bg-black/40 border-slate-900 text-slate-600'
-                        : 'bg-[#101424] hover:bg-blue-950/60 border-slate-800 hover:border-blue-500 text-slate-200 cursor-pointer active:scale-95'
-                    }`}
-                  >
-                    <div className="font-bold text-xs truncate">#{p.id} {p.name}</div>
-                    <div className="text-[10px] text-slate-400 truncate">
-                      {hasOther ? pRole.name : 'Chưa có vai'}
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        )}
       </div>
     );
   }
@@ -1233,24 +1121,6 @@ export default function NightSpecialRolesStep({
             )}
           </div>
         </div>
-
-        {dogHolders.length === 0 && typeof onAssignRole === 'function' && (
-          <div className="pt-2 border-t border-slate-800 space-y-2">
-            <span className="text-xs font-bold text-amber-300">Gán vai Chó Sói / Sói Lai:</span>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-              {alivePlayers.map(p => (
-                <button
-                  key={p.id}
-                  type="button"
-                  onClick={() => onAssignRole(p.id, 'cho-soi-soi-lai')}
-                  className="p-2 rounded-xl border border-slate-800 bg-[#101424] hover:border-amber-500 text-xs text-left text-slate-200 cursor-pointer"
-                >
-                  #{p.id} {p.name}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
       </div>
     );
   }
