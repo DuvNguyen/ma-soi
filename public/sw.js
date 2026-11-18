@@ -1,5 +1,5 @@
 // Service Worker for Quản Trò Ma Sói PWA
-const CACHE_NAME = 'werewolf-pwa-v2';
+const CACHE_NAME = 'werewolf-pwa-v3';
 
 const STATIC_ASSETS = [
   '/',
