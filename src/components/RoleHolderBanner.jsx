@@ -25,13 +25,27 @@ export default function RoleHolderBanner({
   const hasHolders = holders.length > 0;
   const isRoleCursedOut = Boolean(cursedHolder) && !hasHolders;
   
-  // MẶC ĐỊNH: Nếu chưa có ai giữ vai và vai chưa bị loại do nguyền thì TỰ ĐỘNG MỞ SẴN lưới gán vai
-  const [showAssignDropdown, setShowAssignDropdown] = useState(!hasHolders && !isRoleCursedOut);
+  // Các vai trò đã có sẵn giao diện gán vai trực tiếp ngay trong bước kịch bản (NightSpecialRolesStep)
+  const rolesWithInlineAssigner = [
+    'anh-tu',
+    'dua-tre-hoang-da',
+    'hai-chi-em',
+    'ba-anh-em',
+    'tho-san',
+    'ki-si',
+    'cho-soi-soi-lai'
+  ];
+  const hasInlineAssigner = rolesWithInlineAssigner.includes(currentRole?.id);
 
-  // Khi chuyển sang vai mới, tự động mở nếu chưa có ai giữ vai và chưa bị loại
+  // MẶC ĐỊNH: Nếu chưa có ai giữ vai và vai chưa bị loại do nguyền:
+  // CHỈ tự động mở sẵn lưới gán vai nếu bước này KHÔNG CÓ sẵn bộ gán vai riêng bên dưới (tránh lỗi hiển thị gán vai 2 lần)!
+  const shouldAutoOpen = !hasHolders && !isRoleCursedOut && !hasInlineAssigner;
+  const [showAssignDropdown, setShowAssignDropdown] = useState(shouldAutoOpen);
+
+  // Khi chuyển sang vai mới, tự động mở nếu chưa có ai giữ vai, chưa bị loại và không có bộ gán vai riêng
   useEffect(() => {
-    setShowAssignDropdown(!hasHolders && !isRoleCursedOut);
-  }, [currentRole?.id, isRoleCursedOut]);
+    setShowAssignDropdown(!hasHolders && !isRoleCursedOut && !hasInlineAssigner);
+  }, [currentRole?.id, isRoleCursedOut, hasHolders, hasInlineAssigner]);
 
   if (!currentRole) return null;
 
