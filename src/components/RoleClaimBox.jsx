@@ -411,7 +411,7 @@ export default function RoleClaimBox({
           <button
             type="button"
             onClick={() => setViewMode('matrix')}
-            className={`px-2 py-0.5 rounded text-[10px] font-bold transition-all cursor-pointer ${
+            className={`hit-44 px-2.5 py-1 rounded text-caption font-bold transition-all cursor-pointer ${
               viewMode === 'matrix'
                 ? isWolfStep ? 'bg-rose-900 border border-rose-500 text-white' : 'bg-purple-900 border border-purple-500 text-white'
                 : 'text-slate-400 hover:text-slate-200'
@@ -422,7 +422,7 @@ export default function RoleClaimBox({
           <button
             type="button"
             onClick={() => setViewMode('slider')}
-            className={`px-2 py-0.5 rounded text-[10px] font-bold transition-all cursor-pointer ${
+            className={`hit-44 px-2.5 py-1 rounded text-caption font-bold transition-all cursor-pointer ${
               viewMode === 'slider'
                 ? isWolfStep ? 'bg-rose-900 border border-rose-500 text-white' : 'bg-purple-900 border border-purple-500 text-white'
                 : 'text-slate-400 hover:text-slate-200'
@@ -454,7 +454,7 @@ export default function RoleClaimBox({
               type="button"
               disabled={slidePage === 0}
               onClick={() => scrollSlider('prev')}
-              className="px-2.5 py-1 rounded-lg bg-black/50 border border-slate-800 disabled:opacity-30 text-slate-300 flex items-center gap-1 cursor-pointer"
+              className="hit-44 px-3 py-1.5 rounded-lg bg-black/50 border border-slate-800 disabled:opacity-30 text-slate-300 flex items-center gap-1 cursor-pointer"
             >
               <ChevronLeft className="w-3.5 h-3.5" /> Trước
             </button>
@@ -465,7 +465,7 @@ export default function RoleClaimBox({
               type="button"
               disabled={slidePage >= totalPages - 1}
               onClick={() => scrollSlider('next')}
-              className="px-2.5 py-1 rounded-lg bg-black/50 border border-slate-800 disabled:opacity-30 text-slate-300 flex items-center gap-1 cursor-pointer"
+              className="hit-44 px-3 py-1.5 rounded-lg bg-black/50 border border-slate-800 disabled:opacity-30 text-slate-300 flex items-center gap-1 cursor-pointer"
             >
               Sau <ChevronRight className="w-3.5 h-3.5" />
             </button>
@@ -482,7 +482,7 @@ export default function RoleClaimBox({
             <button
               type="button"
               onClick={() => setSelectedWolfIds([])}
-              className={`text-xs underline font-medium cursor-pointer ${
+              className={`hit-44 text-caption underline font-medium cursor-pointer ${
                 isWolfStep ? 'text-slate-400 hover:text-rose-300' : 'text-slate-400 hover:text-purple-300'
               }`}
             >

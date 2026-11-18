@@ -1,6 +1,9 @@
 import React, { useState } from 'react';
-import { Star, Award, ShieldAlert, CheckCircle2, Search } from 'lucide-react';
+import { Star, Award, ShieldAlert, CheckCircle2, X } from 'lucide-react';
 import GothicButton from './ui/GothicButton';
+import IconButton from './ui/IconButton';
+import PlayerSeatCard from './ui/PlayerSeatCard';
+import SearchInput from './ui/SearchInput';
 import { getPlayerRole, matchesSearch, removeVietnameseTones } from '../utils/roleUtils';
 import triggerHaptic from '../utils/haptics';
 
@@ -59,13 +62,11 @@ export default function SheriffSuccessionModal({
           </div>
 
           {!isMandatory && (
-            <button
+            <IconButton
+              icon={X}
+              label="Đóng"
               onClick={onClose}
-              className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-white/10 transition-colors"
-              aria-label="Đóng"
-            >
-              ✕
-            </button>
+            />
           )}
         </div>
 
@@ -95,16 +96,13 @@ export default function SheriffSuccessionModal({
         <div className="flex-1 overflow-y-auto pr-1 space-y-2 overscroll-contain">
           <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider flex items-center justify-between gap-2">
             <span>Danh sách ({filteredAlive.length}):</span>
-            <div className="relative">
-              <Search className="w-3 h-3 text-slate-400 absolute left-2 top-1/2 -translate-y-1/2 pointer-events-none" />
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={e => setSearchQuery(e.target.value)}
-                placeholder="Tìm tên..."
-                className="w-28 text-xs py-0.5 pl-6 pr-2 rounded-lg bg-slate-900 border border-slate-700 text-slate-200 placeholder:text-slate-500 focus:outline-none focus:border-amber-500"
-              />
-            </div>
+            <SearchInput
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              onClear={() => setSearchQuery('')}
+              placeholder="Tìm tên..."
+              className="w-32"
+            />
           </div>
 
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 pb-4">
@@ -114,27 +112,15 @@ export default function SheriffSuccessionModal({
               if (isOldSheriff) return null;
 
               return (
-                <button
+                <PlayerSeatCard
                   key={p.id}
+                  player={p}
+                  role={role}
+                  mode="pick"
+                  showRole={true}
+                  badges={<Star className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />}
                   onClick={() => handleSelect(p.id)}
-                  className="group relative p-2.5 rounded-xl bg-slate-900/80 hover:bg-amber-950/60 border border-slate-700/70 hover:border-amber-400 transition-all text-left flex flex-col justify-between min-h-[64px] shadow-md hover:shadow-[0_0_15px_rgba(245,158,11,0.3)] active:scale-[0.98]"
-                >
-                  <div className="flex items-center justify-between w-full">
-                    <span className="text-[11px] font-mono font-bold px-1.5 py-0.5 rounded bg-slate-800 text-slate-300 group-hover:bg-amber-500/20 group-hover:text-amber-300 border border-slate-700 group-hover:border-amber-500/40">
-                      #{p.id < 10 ? `0${p.id}` : p.id}
-                    </span>
-                    <Star className="w-3.5 h-3.5 text-slate-600 group-hover:text-amber-400 transition-colors" />
-                  </div>
-
-                  <div className="mt-1">
-                    <div className="text-xs sm:text-sm font-bold text-white group-hover:text-amber-200 truncate">
-                      {p.name}
-                    </div>
-                    <div className="text-[10px] text-slate-400 group-hover:text-amber-300/80 truncate">
-                      {role?.name || 'Chưa lộ vai'}
-                    </div>
-                  </div>
-                </button>
+                />
               );
             })}
           </div>

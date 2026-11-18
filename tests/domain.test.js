@@ -1524,6 +1524,62 @@ console.log('🧪 Starting Phase 1 Domain Model & Strategy Tests...\n');
 
     console.log('✅ Test 71: Role Conflict Logic (Apothecary vs Elder & Pyro vs Witch Poison) verified.');
 
-    console.log('\n🎉 ALL 71 DOMAIN ENGINE TESTS PASSED PERFECTLY!\n');
+    // Test 72: Role Completeness Standard for Oan Nhân (Scapegoat)
+    {
+      // 1. Logic & Role aliases
+      const oanNhanRole = ROLES.find(r => r.id === 'nguoi-the-than');
+      assert.ok(oanNhanRole, 'Oan Nhân role must exist in catalog');
+      assert.strictEqual(oanNhanRole.name, 'Oan Nhân', 'Canonical role name must be Oan Nhân');
+      assert.strictEqual(oanNhanRole.enName, 'Scapegoat', 'English name must be Scapegoat');
+      assert.strictEqual(oanNhanRole.faction, 'village', 'Oan Nhân must belong to Village faction');
+      assert.ok(oanNhanRole.aliases.includes('Oan Nhân'), 'Must include alias Oan Nhân');
+      assert.ok(oanNhanRole.aliases.includes('Scapegoat'), 'Must include alias Scapegoat');
+
+      // 2. Complex Interaction: Tie vote lynch detection & decree handling
+      const oanNhanPlayer = new Player({ id: 301, name: 'Oan Nhân Thật', currentRoleId: 'nguoi-the-than', isAlive: true });
+      const villagerPlayer = new Player({ id: 302, name: 'Dân Làng A', currentRoleId: 'dan-lang', isAlive: true, isSheriff: true });
+      const wolfPlayer = new Player({ id: 303, name: 'Sói Hoang', currentRoleId: 'soi-thuong', isAlive: true });
+
+      const oanNhanGame = new WerewolfGame({
+        roundNumber: 1,
+        isNight: false,
+        players: [oanNhanPlayer, villagerPlayer, wolfPlayer],
+        deckRoleIds: ['nguoi-the-than', 'dan-lang', 'soi-thuong']
+      });
+
+      // Lynch Oan Nhân on tie vote
+      const oanNhanLynchRes = oanNhanGame.lynchPlayer(301);
+      assert.strictEqual(oanNhanLynchRes.success, true);
+      assert.strictEqual(oanNhanLynchRes.isScapegoatLynch, true, 'isScapegoatLynch must be true');
+      assert.strictEqual(oanNhanLynchRes.game.getPlayer(301).isAlive, false, 'Oan Nhân must be eliminated');
+
+      // Undo lynch restores Oan Nhân and clears decree
+      const undoneGame = oanNhanLynchRes.game.undoLynch(301);
+      assert.strictEqual(undoneGame.getPlayer(301).isAlive, true, 'Undo lynch must revive Oan Nhân');
+      assert.strictEqual(undoneGame.scapegoatBannedVoterIds.length, 0, 'Undo lynch must clear banned voter list');
+
+      // 3. Faction Alignment & Transformations:
+      // When alive and unbitten: Village faction
+      assert.strictEqual(oanNhanPlayer.getFactionType(), FACTION_TYPES.VILLAGE);
+      // If bitten/infected by Cursed Wolf -> becomes Wolf faction
+      const infectedOanNhan = oanNhanPlayer.infectByCursedWolf(1);
+      assert.strictEqual(infectedOanNhan.getFactionType(), FACTION_TYPES.WEREWOLF, 'Infected Oan Nhân must align with Werewolf faction');
+
+      // 4. Win Condition:
+      // When Wolves were present and eliminated -> Village wins
+      const deadWolf = wolfPlayer.kill('Treo cổ', 'Ngày 1');
+      const endVillagersWin = checkGameEnd([oanNhanPlayer, villagerPlayer, deadWolf]);
+      assert.strictEqual(endVillagersWin.isEnded, true);
+      assert.strictEqual(endVillagersWin.winner, 'Villagers');
+
+      // When Wolves equal Villagers -> Werewolves win
+      const endWolvesWin = checkGameEnd([oanNhanPlayer, wolfPlayer]);
+      assert.strictEqual(endWolvesWin.isEnded, true);
+      assert.strictEqual(endWolvesWin.winner, 'Werewolves');
+
+      console.log('✅ Test 72: Role Completeness Standard for Oan Nhân (Scapegoat) verified.');
+    }
+
+    console.log('\n🎉 ALL 72 DOMAIN ENGINE TESTS PASSED PERFECTLY!\n');
   });
 }

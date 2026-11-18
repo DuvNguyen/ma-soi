@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 import GothicButton from './ui/GothicButton';
 import GothicBadge from './ui/GothicBadge';
+import IconButton from './ui/IconButton';
 import ClawMarks from './ui/ClawMarks';
 import { useGothicDialog } from '../context/GothicDialogContext';
 import { getPlayerRole, getRole } from '../utils/roleUtils';
@@ -195,23 +196,17 @@ export default function MatchHistoryModal({ isOpen, onClose }) {
           </div>
 
           <div className="flex items-center gap-2 shrink-0">
-            <button
-              type="button"
+            <IconButton
+              icon={RefreshCw}
+              label="Làm mới danh sách ván đấu"
               onClick={fetchMatches}
-              className="p-2 rounded-xl text-slate-400 hover:text-white bg-slate-900 border border-slate-800 hover:border-slate-700 cursor-pointer transition-all"
-              title="Làm mới danh sách"
-              aria-label="Làm mới danh sách ván đấu"
-            >
-              <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
-            </button>
-            <button
-              type="button"
+              className={isLoading ? 'animate-spin' : ''}
+            />
+            <IconButton
+              icon={X}
+              label="Đóng cửa sổ lịch sử"
               onClick={onClose}
-              aria-label="Đóng cửa sổ lịch sử"
-              className="p-2 rounded-xl text-slate-400 hover:text-white bg-slate-900 border border-slate-800 hover:border-slate-700 cursor-pointer transition-all"
-            >
-              <X className="w-5 h-5" />
-            </button>
+            />
           </div>
         </div>
 
@@ -288,16 +283,14 @@ export default function MatchHistoryModal({ isOpen, onClose }) {
                       </div>
 
                       <div className="flex items-center gap-2">
-                        <button
-                          type="button"
+                        <IconButton
+                          icon={Trash2}
+                          label="Xóa bản ghi trận đấu này"
+                          size="sm"
+                          variant="danger"
                           disabled={deletingMatchId === m.id}
                           onClick={(e) => handleDeleteMatch(m.id, e)}
-                          className="text-slate-500 hover:text-rose-400 disabled:opacity-40 disabled:cursor-not-allowed p-1 cursor-pointer transition-colors"
-                          title="Xóa trận này"
-                          aria-label="Xóa bản ghi trận đấu này"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
+                        />
                         <span className="text-xs font-semibold text-rose-300 group-hover:text-rose-200 flex items-center gap-0.5">
                           Xem chi tiết <ChevronRight className="w-3.5 h-3.5" />
                         </span>
@@ -325,15 +318,13 @@ export default function MatchHistoryModal({ isOpen, onClose }) {
             {/* Modal Header */}
             <div className="p-4 sm:p-5 border-b border-rose-950/90 flex items-center justify-between bg-gradient-to-r from-rose-950/60 to-transparent">
               <div className="flex items-center gap-2.5 min-w-0">
-                <button
-                  type="button"
+                <IconButton
+                  icon={ArrowLeft}
+                  label="Quay lại danh sách lịch sử"
+                  size="sm"
+                  variant="ghost"
                   onClick={() => setIsDetailOpen(false)}
-                  className="p-1.5 rounded-lg text-rose-300 hover:text-white hover:bg-rose-950/80 cursor-pointer transition-colors shrink-0"
-                  title="Quay lại danh sách"
-                  aria-label="Quay lại danh sách lịch sử"
-                >
-                  <ArrowLeft className="w-5 h-5" />
-                </button>
+                />
                 <div className="min-w-0">
                   <h3 className="font-cinzel font-black text-sm sm:text-base text-rose-100 truncate">
                     {selectedMatch.roomName || 'Chi Tiết Ván Đấu'}
@@ -346,14 +337,14 @@ export default function MatchHistoryModal({ isOpen, onClose }) {
 
               <div className="flex items-center gap-2 shrink-0">
                 {getWinnerBadge(selectedMatch.winnerTeam, selectedMatch.winnerDescription || selectedMatch.winnerDesc)}
-                <button
-                  type="button"
+                <IconButton
+                  icon={X}
+                  label="Đóng chi tiết ván đấu"
+                  size="sm"
+                  variant="danger"
                   onClick={() => setIsDetailOpen(false)}
-                  aria-label="Đóng chi tiết ván đấu"
-                  className="w-8 h-8 rounded-full bg-rose-600 hover:bg-rose-500 text-white flex items-center justify-center shadow-lg transition-transform active:scale-95 cursor-pointer ml-1"
-                >
-                  <X className="w-4 h-4 stroke-[3]" />
-                </button>
+                  className="ml-1"
+                />
               </div>
             </div>
 
@@ -563,7 +554,7 @@ export default function MatchHistoryModal({ isOpen, onClose }) {
               <button
                 type="button"
                 onClick={() => setIsDetailOpen(false)}
-                className="text-xs text-rose-300 hover:text-white flex items-center gap-1 cursor-pointer"
+                className="hit-44 text-xs text-rose-300 hover:text-white flex items-center gap-1 cursor-pointer"
               >
                 <ArrowLeft className="w-3.5 h-3.5" />
                 <span>Quay lại danh sách</span>

@@ -84,3 +84,39 @@ Always use GitNexus when performing any of the following:
 3. **Design System Consistency**:
    - Strictly adhere to Soft Bento Minimalism and the dark gothic palette (warm neutrals, charcoal, deep obsidian, gold/blood accents).
    - Avoid generic AI-style pulsing green badges (`emerald-50`, `emerald-200`) or decorative clutter that detracts from the gothic ambiance.
+
+## Role Completeness Standard / Tiêu Chuẩn Hoàn Thiện Role (Mandatory)
+
+Mỗi nhân vật / vai trò (Role) trong game Ma Sói khi được lập trình, kiểm tra hoặc mở rộng phải đáp ứng trọn vẹn 5 tiêu chí bắt buộc ("Code Đủ"):
+
+1. **Đúng Logic (Game Core Mechanics)**:
+   - Khởi tạo đầy đủ thuộc tính, vai trò, thời điểm thức dậy/kích hoạt (Đêm, Ngày, Khi chết, Khi biểu quyết hòa...).
+   - Đảm bảo đúng thời gian hiệu lực của hiệu ứng (ngay lập tức, 1 đêm, suốt ván, vòng kế tiếp).
+
+2. **Đủ Trường Hợp Tương Tác Sự Kiện Phức Tạp (Complex Interactions & Cascades)**:
+   - Xử lý đầy đủ tương tác đa vai và chuỗi phản ứng dây chuyền:
+     - Tình nhân (Cupid): Chết chùm, người yêu chết kích hoạt phát súng hấp hối (Thợ Săn, Kẻ Báo Thù).
+     - Bảo hộ, cứu & hạ độc: Bảo Vệ, Phù Thủy, Dược Sĩ (cứu trùng, độc trùng, thứ tự ưu tiên).
+     - Biến đổi, thức tỉnh & kế thừa: Đứa Trẻ Hoang Dã (mất mẹ hóa sói), Ảnh Tử (chủ thể chết kế thừa vai), Người Đầy Tớ (thừa kế vai khi lynch), Bán Sói (thức tỉnh), Sói Nguyền / Sói Quỷ (lây nhiễm).
+     - Phong ấn & nguyền rủa: Già Làng chết oan phong ấn toàn bộ chức năng thần thánh, Nguyệt Nữ khóa phép đêm.
+     - Biểu quyết & thách đấu: Thẩm Phán Lắp Bắp (vote thêm), Kị Sĩ thách đấu, Trưởng Làng (x2 phiếu vs cấm vote).
+   - Phân biệt rõ chết ban đêm vs chết ban ngày vs chết do tự vẫn / phản đòn.
+
+3. **Có Điều Kiện Thắng / Điều Kiện Thua Rõ Ràng (Win / Loss Conditions)**:
+   - Xác định chính xác mục tiêu thắng của nhân vật trong `checkGameEnd`.
+   - Xử lý đúng chuyển đổi điều kiện thắng khi thay đổi hình thái hoặc ghép đôi khác phe (Couple).
+
+4. **Về Đúng Phe (Faction Alignment & Transformation)**:
+   - Thuộc đúng `faction` và `factionType` (`village`, `werewolf`, `hostile_third_party`, `neutral_objective`, `dynamic`).
+   - Cập nhật đúng phe phái ngay khi bị chuyển hóa (hóa sói, lây nhiễm, thức tỉnh).
+
+5. **Có UI Hiển Thị Hỗ Trợ Đủ Cho Quản Trò Để Làm Đúng Hoặc Sửa Sai (GM Support & Mistake Recovery)**:
+   - **Hỗ trợ làm đúng**:
+     - Nút hành động trực quan tại đúng thời điểm (ví dụ: nút "Người Thế Thân Chết Thay ⚖️" khi hòa phiếu).
+     - Huy hiệu (Badge) nhận diện trạng thái rõ ràng trên thẻ người chơi (Cấm vote, Quạ phạt, Mê man...).
+     - Banner tóm tắt sắc lệnh / hiệu ứng trên đầu giao diện Ban Ngày & Ban Đêm.
+     - Modal chọn mục tiêu thuận tiện (hỗ trợ cả chọn người được phép / người bị cấm, chọn tất cả, bỏ chọn).
+   - **Hỗ trợ sửa sai**:
+     - Chức năng Hoàn Tác (Undo) khôi phục nguyên vẹn trạng thái trước khi lynch hoặc resolve.
+     - Cho phép Quản trò mở lại modal để chỉnh sửa, thêm/bớt danh sách áp dụng hoặc gỡ bỏ sắc lệnh mà không cần reset ván đấu.
+     - Ghi nhận chi tiết vào Nhật ký trận đấu (`gameDiary`).

@@ -46,8 +46,9 @@ export default function GameGuideModal({ isOpen, onClose }) {
           <button
             type="button"
             onClick={onClose}
-            className="w-8 h-8 rounded-full bg-[#241007] hover:bg-[#451608] border border-[#5e2e15] text-[#faebd7] flex items-center justify-center transition-all cursor-pointer shadow-md active:scale-95 shrink-0"
+            className="hit-44 w-8 h-8 rounded-full bg-[#241007] hover:bg-[#451608] border border-[#5e2e15] text-[#faebd7] flex items-center justify-center transition-all cursor-pointer shadow-md active:scale-95 shrink-0"
             title="Đóng sổ tay"
+            aria-label="Đóng sổ tay"
           >
             <X className="w-4 h-4" />
           </button>
@@ -125,10 +126,10 @@ export default function GameGuideModal({ isOpen, onClose }) {
               <div className="space-y-1">
                 <div className="flex items-center gap-2 text-[#3b1206] font-cinzel font-black text-xs sm:text-sm uppercase tracking-wide">
                   <span className="w-5 h-5 rounded-full bg-[#2b1207] text-[#faebd7] flex items-center justify-center text-[10px] font-bold">IV</span>
-                  <span>Nút Reset Về 0 (Khởi Động Ván Mới)</span>
+                  <span>Nút Ván Mới (Khởi Động Lại)</span>
                 </div>
                 <p className="text-[#30180c] text-xs leading-relaxed pl-7">
-                  Khi kết thúc hoặc muốn chia lại từ đầu, bấm nút <strong>Reset Về 0</strong> trên header. Hệ thống sẽ thu hồi toàn bộ vai trò về trạng thái chưa chia nhưng <strong>giữ nguyên danh sách tên người chơi và thứ tự chỗ ngồi</strong> để bắt đầu ván mới ngay lập tức.
+                  Khi kết thúc hoặc muốn chia lại từ đầu, bấm nút <strong>Ván Mới</strong> trên header. Hệ thống sẽ thu hồi toàn bộ vai trò về trạng thái chưa chia nhưng <strong>giữ nguyên danh sách tên người chơi và thứ tự chỗ ngồi</strong> để bắt đầu ván mới ngay lập tức.
                 </p>
               </div>
 

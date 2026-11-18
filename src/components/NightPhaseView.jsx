@@ -164,7 +164,7 @@ export default function NightPhaseView({
         team: 'Phe Sói',
         shortDesc: 'Sói Anh và Sói Em thức dậy nhận diện nhau. Phân định rõ Sói Anh và Sói Em.',
         gmCall: 'Hai Anh Em Sói thức dậy nhận biết nhau. Quản trò phân định Sói Anh và Sói Em.',
-        image: '/cards/anh_em_soi.png'
+        image: '/cards/anh-em-soi.webp'
       });
     }
 
@@ -184,7 +184,7 @@ export default function NightPhaseView({
         gmCall: livingWolvesCount === 0
           ? 'Ma Sói thức dậy. (Quản trò gọi có lệ). Ma Sói nhắm mắt lại.'
           : 'Ma Sói thức dậy. Hãy nhận diện đồng bọn và chọn con mồi đêm nay.',
-        image: '/cards/la-bai-ma-soi.jpg'
+        image: '/cards/soi-thuong.webp'
       });
     }
 
@@ -203,7 +203,7 @@ export default function NightPhaseView({
         team: 'Phe Sói',
         shortDesc: 'Đồng bọn tử trận kích hoạt ngọn lửa hận thù. Sói Lửa thức dậy thiêu rụi vĩnh viễn năng lực của 1 người.',
         gmCall: 'Sói Lửa thức dậy một mình. Hãy chọn người bạn muốn thiêu rụi năng lực vĩnh viễn.',
-        image: '/cards/Cao_lua.png'
+        image: '/cards/soi-lua.webp'
       });
     }
 
@@ -226,7 +226,7 @@ export default function NightPhaseView({
           : null,
         shortDesc: 'Mỗi đêm cắn thêm 1 nạn nhân khi chưa có bất kỳ Ma Sói nào trong bầy bị tiêu diệt.',
         gmCall: 'Sói Lớn Xấu Xa thức dậy một mình. Bạn có muốn cắn thêm nạn nhân nào không?',
-        image: '/cards/Nhan_vat_Ma_soi___Soi_lon_xau_xa.PNG'
+        image: '/cards/soi-lon-xau-xa.webp'
       });
     }
 
@@ -239,7 +239,7 @@ export default function NightPhaseView({
         team: 'Phe Thứ Ba',
         shortDesc: 'Cứ 2 đêm 1 lần, Sói Trắng thức dậy riêng và có thể chọn cắn chết 1 con Sói khác trong bầy.',
         gmCall: 'Sói Trắng thức dậy một mình. Bạn có muốn chọn giết 1 con Ma Sói nào khác trong bầy không?',
-        image: '/cards/Nhan_vat_Ma_soi___Soi_trang.PNG'
+        image: '/cards/soi-trang.webp'
       });
     }
 

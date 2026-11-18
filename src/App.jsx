@@ -23,6 +23,7 @@ import MatchHistoryModal from './components/MatchHistoryModal';
 import CemeteryModal from './components/CemeteryModal';
 import GameSettingsModal from './components/GameSettingsModal';
 import GothicButton from './components/ui/GothicButton';
+import IconButton from './components/ui/IconButton';
 import GothicBadge from './components/ui/GothicBadge';
 import WolfIcon from './components/ui/WolfIcon';
 import { Moon, Sun, Users, BookOpen, RotateCcw, Shield, Eye, Skull, Sparkles, Trophy, Layers, Database, CheckCircle2, RefreshCw, History, Settings, SlidersHorizontal, FlaskConical } from 'lucide-react';
@@ -209,6 +210,8 @@ export default function App() {
   const [pendingAvengerShot, setPendingAvengerShot] = useState(() => savedInitial?.pendingAvengerShot || null);
   const [scapegoatBannedVoterIds, setScapegoatBannedVoterIds] = useState(() => savedInitial?.scapegoatBannedVoterIds || []);
   const [scapegoatBannedRound, setScapegoatBannedRound] = useState(() => savedInitial?.scapegoatBannedRound ?? null);
+  const [scapegoatNominatedId, setScapegoatNominatedId] = useState(() => savedInitial?.scapegoatNominatedId ?? null);
+  const [scapegoatNominatedRound, setScapegoatNominatedRound] = useState(() => savedInitial?.scapegoatNominatedRound ?? null);
   const [preLynchSnapshot, setPreLynchSnapshot] = useState(() => savedInitial?.preLynchSnapshot || null);
   const [selectedTemplateId, setSelectedTemplateId] = useState(() => savedInitial?.selectedTemplateId || null);
   const [canWolvesKillTeammates, setCanWolvesKillTeammates] = useState(() => {
@@ -324,6 +327,8 @@ export default function App() {
         pendingAvengerShot,
         scapegoatBannedVoterIds,
         scapegoatBannedRound,
+        scapegoatNominatedId,
+        scapegoatNominatedRound,
         preLynchSnapshot,
         selectedTemplateId,
         currentNightStepIdx,
@@ -340,7 +345,7 @@ export default function App() {
       // Lưu ý: Không đồng bộ Cloud DB liên tục trong lúc chơi để loại bỏ độ trễ (lag).
       // Bản ghi ván đấu hoàn chỉnh sẽ được lưu lên Neon khi kết thúc game.
     }
-  }, [roundNumber, isNight, activeTab, players, deckRoleIds, rolesInGame, nightState, lynchedTodayPlayerId, gameEndResult, isVillageCursed, wolfCanKillDouble, pendingHunterShot, pendingAvengerShot, scapegoatBannedVoterIds, scapegoatBannedRound, preLynchSnapshot, selectedTemplateId, currentNightStepIdx, gameDiary, canWolvesKillTeammates]);
+  }, [roundNumber, isNight, activeTab, players, deckRoleIds, rolesInGame, nightState, lynchedTodayPlayerId, gameEndResult, isVillageCursed, wolfCanKillDouble, pendingHunterShot, pendingAvengerShot, scapegoatBannedVoterIds, scapegoatBannedRound, scapegoatNominatedId, scapegoatNominatedRound, preLynchSnapshot, selectedTemplateId, currentNightStepIdx, gameDiary, canWolvesKillTeammates]);
 
   // Helper canonical diary chronologist: merges & sorts chapters strictly by round number and phase (Night before Day)
   const appendToDiary = (prevDiary, newEntry) => {
@@ -420,6 +425,8 @@ export default function App() {
     setPendingHunterShot(null);
     setScapegoatBannedVoterIds([]);
     setScapegoatBannedRound(null);
+    setScapegoatNominatedId(null);
+    setScapegoatNominatedRound(null);
     setPreLynchSnapshot(null);
     setIsVillageCursed(false);
     setWolfCanKillDouble(false);
@@ -469,6 +476,8 @@ export default function App() {
     setPendingHunterShot(null);
     setScapegoatBannedVoterIds([]);
     setScapegoatBannedRound(null);
+    setScapegoatNominatedId(null);
+    setScapegoatNominatedRound(null);
     setPreLynchSnapshot(null);
     setCurrentNightStepIdx(0);
     setGameDiary([]);
@@ -490,10 +499,10 @@ export default function App() {
     }
 
     showConfirm({
-      title: 'HỦY DIỆT VÁN ĐẤU & RESET?',
+      title: 'HỦY DIỆT VÁN ĐẤU ĐỂ CHƠI LẠI?',
       message: 'Khôi phục toàn bộ vai trò về trạng thái ban đầu để chia bài lại từ Đêm 1. Giữ nguyên danh sách người chơi và số ghế.',
       variant: 'blood',
-      confirmText: 'Reset Về 0 Ngay 🩸',
+      confirmText: 'Bắt Đầu Ván Mới 🩸',
       cancelText: 'Giữ Lại Ván Chơi',
       onConfirm: executeResetGame
     });
@@ -525,6 +534,8 @@ export default function App() {
     setPendingHunterShot(null);
     setScapegoatBannedVoterIds([]);
     setScapegoatBannedRound(null);
+    setScapegoatNominatedId(null);
+    setScapegoatNominatedRound(null);
     setPreLynchSnapshot(null);
     setIsVillageCursed(false);
     setWolfCanKillDouble(false);
@@ -569,6 +580,8 @@ export default function App() {
     setPendingHunterShot(null);
     setScapegoatBannedVoterIds([]);
     setScapegoatBannedRound(null);
+    setScapegoatNominatedId(null);
+    setScapegoatNominatedRound(null);
     setPreLynchSnapshot(null);
     setIsVillageCursed(false);
     setWolfCanKillDouble(false);
@@ -612,6 +625,8 @@ export default function App() {
     setPendingHunterShot(null);
     setScapegoatBannedVoterIds([]);
     setScapegoatBannedRound(null);
+    setScapegoatNominatedId(null);
+    setScapegoatNominatedRound(null);
     setPreLynchSnapshot(null);
     setIsVillageCursed(false);
     setWolfCanKillDouble(false);
@@ -1310,17 +1325,54 @@ export default function App() {
           confirmText: 'Đã Rõ'
         });
       } else if (type === 'scapegoat_decree') {
-        const bannedList = Array.isArray(payload) ? payload : (payload?.bannedVoterIds || []);
-        setScapegoatBannedVoterIds(bannedList);
-        setScapegoatBannedRound(roundNumber + 1);
-        if (bannedList.length > 0) {
-          const names = players.filter(p => bannedList.includes(p.id)).map(p => `#${p.id} ${p.name}`).join(', ');
-          showAlert({
-            title: 'DI NGÔN NGƯỜI THẾ THÂN ⚖️',
-            message: `Người Thế Thân đã thi hành quyền năng di ngôn!\n\nNgười chơi bị cấm biểu quyết trong Ngày ${roundNumber + 1}:\n${names}`,
-            variant: 'gold'
-          });
+        const targetRound = (scapegoatBannedRound === roundNumber || scapegoatNominatedRound === roundNumber)
+          ? roundNumber
+          : roundNumber + 1;
+
+        let bannedList = [];
+        let nominatedId = null;
+
+        if (Array.isArray(payload)) {
+          bannedList = payload;
+        } else if (payload && typeof payload === 'object') {
+          bannedList = Array.isArray(payload.bannedVoterIds) ? payload.bannedVoterIds : [];
+          nominatedId = payload.nominatedId || null;
         }
+
+        setScapegoatBannedVoterIds(bannedList);
+        setScapegoatBannedRound(bannedList.length > 0 ? targetRound : null);
+        setScapegoatNominatedId(nominatedId);
+        setScapegoatNominatedRound(nominatedId ? targetRound : null);
+
+        const nominatedPlayer = players.find(p => p.id === nominatedId);
+        const bannedNames = players.filter(p => bannedList.includes(p.id)).map(p => `#${p.id} ${p.name}`).join(', ');
+
+        let detailText = '';
+        if (nominatedPlayer) {
+          detailText = `Chỉ định #${nominatedPlayer.id} ${nominatedPlayer.name} lên bàn nghi vấn / giàn treo Ngày ${targetRound}`;
+        }
+        if (bannedList.length > 0) {
+          detailText += (detailText ? ' | ' : '') + `Cấm biểu quyết Ngày ${targetRound}: ${bannedNames}`;
+        }
+        if (!detailText) {
+          detailText = `Không áp dụng sắc lệnh nào cho Ngày ${targetRound}`;
+        }
+
+        showAlert({
+          title: 'SẮC LỆNH OAN NHÂN ⚖️',
+          message: `Oan Nhân đã thi hành quyền năng di ngôn!\n\n${detailText}`,
+          variant: 'gold'
+        });
+
+        const decreeEntry = {
+          id: Date.now(),
+          phase: isNight ? `Đêm ${roundNumber}` : `Ngày ${roundNumber}`,
+          round: roundNumber,
+          title: '⚖️ SẮC LỆNH OAN NHÂN',
+          detail: detailText,
+          timestamp: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })
+        };
+        setGameDiary(prev => appendToDiary(prev, decreeEntry));
       }
       return next;
     });
@@ -2104,7 +2156,8 @@ export default function App() {
         isOpen: true,
         actionType: 'scapegoat_decree',
         player: target,
-        role: target.getRole()
+        role: target.getRole(),
+        actionData: { bannedVoterIds: scapegoatBannedVoterIds, nominatedId: scapegoatNominatedId }
       });
     }
   };
@@ -2305,7 +2358,8 @@ export default function App() {
         isOpen: true,
         actionType: 'scapegoat_decree',
         player: target,
-        role: target.getRole()
+        role: target.getRole(),
+        actionData: { bannedVoterIds: scapegoatBannedVoterIds, nominatedId: scapegoatNominatedId }
       });
     }
   };
@@ -2490,6 +2544,8 @@ export default function App() {
       setPendingAvengerShot(null);
       setScapegoatBannedVoterIds([]);
       setScapegoatBannedRound(null);
+      setScapegoatNominatedId(null);
+      setScapegoatNominatedRound(null);
       setPreLynchSnapshot(null);
       setActionModal(prev => ({ ...prev, isOpen: false }));
       return;
@@ -2518,6 +2574,8 @@ export default function App() {
     setPendingAvengerShot(null);
     setScapegoatBannedVoterIds([]);
     setScapegoatBannedRound(null);
+    setScapegoatNominatedId(null);
+    setScapegoatNominatedRound(null);
     setPreLynchSnapshot(null);
     setActionModal(prev => ({ ...prev, isOpen: false }));
   };
@@ -2544,6 +2602,38 @@ export default function App() {
         });
       }
     }
+  };
+
+  const handleEditScapegoatDecree = () => {
+    setActionModal({
+      isOpen: true,
+      actionType: 'scapegoat_decree',
+      actionData: {
+        bannedVoterIds: scapegoatBannedVoterIds,
+        nominatedId: scapegoatNominatedId
+      }
+    });
+  };
+
+  const handleClearScapegoatDecree = () => {
+    setScapegoatBannedVoterIds([]);
+    setScapegoatBannedRound(null);
+    setScapegoatNominatedId(null);
+    setScapegoatNominatedRound(null);
+    const clearEntry = {
+      id: Date.now(),
+      phase: isNight ? `Đêm ${roundNumber}` : `Ngày ${roundNumber}`,
+      round: roundNumber,
+      title: '⚖️ GỠ BỎ SẮC LỆNH OAN NHÂN',
+      detail: 'Quản trò đã hủy bỏ toàn bộ sắc lệnh Oan Nhân.',
+      timestamp: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })
+    };
+    setGameDiary(prev => appendToDiary(prev, clearEntry));
+    showAlert({
+      title: 'GỠ BỎ SẮC LỆNH ⚖️',
+      message: 'Đã hủy bỏ toàn bộ sắc lệnh Oan Nhân hôm nay.',
+      variant: 'dark'
+    });
   };
 
   const handleAdvanceToNight = () => {
@@ -2809,14 +2899,14 @@ export default function App() {
             </div>
             <div className="min-w-0">
               <div className="flex items-center gap-1 sm:gap-1.5">
-                <h1 className="font-cinzel font-black text-xs sm:text-sm md:text-base tracking-wide sm:tracking-wider text-slate-100 leading-tight truncate">
+                <h1 className="font-display font-bold text-title tracking-wider text-slate-100 leading-tight truncate">
                   QUẢN TRÒ MA SÓI
                 </h1>
                 {neonStatus.ok && (
-                  <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-emerald-400 animate-pulse shrink-0" title="Đã kết nối Neon DB"></span>
+                  <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-emerald-400 animate-pulse shrink-0" title="Đã kết nối máy chủ" aria-label="Đã kết nối máy chủ"></span>
                 )}
               </div>
-              <div className="text-[10px] text-purple-300/70 font-medium hidden sm:block">
+              <div className="text-caption text-purple-300/70 font-medium hidden sm:block">
                 {players.length} người chơi • Kịch bản đêm lần lượt
               </div>
             </div>
@@ -2824,108 +2914,105 @@ export default function App() {
 
           {/* Quick Actions & Modals Triggers */}
           <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
-            {/* RESET GAME BUTTON */}
-            <button
-              type="button"
-              onClick={handleResetGame}
-              title="Reset ván chơi về 0"
-              className="h-7 w-7 sm:h-8 sm:w-auto sm:px-2.5 rounded-lg sm:rounded-xl bg-rose-950/70 hover:bg-rose-900 border border-rose-700/80 hover:border-rose-400 text-rose-200 text-xs font-bold transition-all flex items-center justify-center gap-1 cursor-pointer shadow-sm active:scale-95 shrink-0"
-            >
-              <RefreshCw className="w-3.5 h-3.5 shrink-0 text-rose-300" />
-              <span className="hidden sm:inline">Reset Về 0</span>
-            </button>
+            {/* RESET GAME BUTTON (Visually separated from Setup group to prevent accidental taps) */}
+            <div className="mr-0.5 sm:mr-1 pr-1 sm:pr-1.5 border-r border-purple-950/60">
+              <GothicButton
+                type="button"
+                variant="danger"
+                size="sm"
+                onClick={handleResetGame}
+                icon={RefreshCw}
+                title="Khởi động ván chơi mới"
+                className="px-2 sm:px-2.5"
+              >
+                <span className="hidden sm:inline">Ván Mới</span>
+              </GothicButton>
+            </div>
 
             {/* Unified Setup Group: Thiết Lập Ván Chơi (Tích hợp Người Chơi + Bộ Bài) */}
-            <div className="flex items-center gap-0.5 bg-[#101220]/80 p-0.5 rounded-lg sm:rounded-xl border border-purple-950/80 shrink-0">
-              <button
+            <div className="flex items-center gap-0.5 bg-[var(--color-surface-1)] p-0.5 rounded-control border border-purple-950/80 shrink-0">
+              <GothicButton
                 type="button"
+                variant="primary"
+                size="sm"
                 onClick={() => {
                   setSetupModalTab('setup');
                   setIsSetupOpen(true);
                 }}
+                icon={SlidersHorizontal}
                 title="Thiết lập phòng chơi: Tùy chỉnh danh sách người chơi & bộ bài đồng bộ"
-                className="h-6 sm:h-7 px-1.5 sm:px-2.5 rounded-md sm:rounded-lg bg-purple-950 hover:bg-purple-900 border border-purple-600/70 text-purple-200 text-xs font-bold transition-all flex items-center justify-center gap-1 sm:gap-1.5 cursor-pointer shadow-sm active:scale-95 shrink-0"
+                className="px-2 sm:px-2.5"
               >
-                <SlidersHorizontal className="w-3.5 h-3.5 text-purple-300 shrink-0" />
                 <span className="hidden sm:inline">Thiết Lập Ván</span>
-                <span className="sm:hidden text-[11px]">Thiết Lập</span>
-              </button>
+                <span className="sm:hidden text-caption">Thiết Lập</span>
+              </GothicButton>
 
               {/* Quick shortcut to Rosters */}
-              <button
-                type="button"
-                onClick={() => {
-                  setSetupModalTab('rosters');
-                  setIsSetupOpen(true);
-                }}
-                title="Quản lý danh sách nhóm người chơi"
-                className="hidden sm:flex h-6 w-6 sm:h-7 sm:w-auto sm:px-1.5 rounded-md sm:rounded-lg hover:bg-slate-800 text-slate-400 hover:text-purple-200 text-xs font-bold transition-all items-center justify-center cursor-pointer"
-              >
-                <Users className="w-3.5 h-3.5 shrink-0" />
-              </button>
+              <span className="hidden sm:inline-flex">
+                <IconButton
+                  icon={Users}
+                  label="Quản lý danh sách nhóm người chơi"
+                  onClick={() => {
+                    setSetupModalTab('rosters');
+                    setIsSetupOpen(true);
+                  }}
+                  size="sm"
+                />
+              </span>
 
               {/* Quick shortcut to Templates */}
-              <button
-                type="button"
-                onClick={() => {
-                  setSetupModalTab('templates');
-                  setIsSetupOpen(true);
-                }}
-                title="Quản lý bộ bài mẫu"
-                className="hidden sm:flex h-6 w-6 sm:h-7 sm:w-auto sm:px-1.5 rounded-md sm:rounded-lg hover:bg-slate-800 text-slate-400 hover:text-amber-200 text-xs font-bold transition-all items-center justify-center cursor-pointer"
-              >
-                <Layers className="w-3.5 h-3.5 shrink-0" />
-              </button>
+              <span className="hidden sm:inline-flex">
+                <IconButton
+                  icon={Layers}
+                  label="Quản lý bộ bài mẫu"
+                  onClick={() => {
+                    setSetupModalTab('templates');
+                    setIsSetupOpen(true);
+                  }}
+                  size="sm"
+                />
+              </span>
             </div>
 
             {/* Tools Group: Cài Đặt, Lịch Sử, Thư Viện */}
-            <div className="flex items-center gap-0.5 bg-[#101220]/80 p-0.5 rounded-lg sm:rounded-xl border border-slate-800 shrink-0">
+            <div className="flex items-center gap-0.5 bg-[var(--color-surface-1)] p-0.5 rounded-control border border-[var(--color-line)] shrink-0">
               {/* Test Mode Badge Alert */}
               {isTestMode && (
                 <button
                   type="button"
                   onClick={() => setIsSettingsOpen(true)}
-                  className="h-6 sm:h-7 px-1.5 sm:px-2 rounded-md sm:rounded-lg bg-amber-950/90 border border-amber-500 text-amber-200 text-[10px] sm:text-xs font-bold flex items-center gap-1 shrink-0 animate-pulse cursor-pointer shadow-sm mr-0.5"
+                  className="h-8 px-2 rounded-control bg-amber-950/90 border border-amber-500 text-amber-200 text-caption font-bold flex items-center gap-1 shrink-0 animate-pulse cursor-pointer shadow-sm mr-0.5 hit-44"
                   title="Chế độ Thử Nghiệm đang BẬT: Trận này không lưu lịch sử đấu"
                 >
-                  <FlaskConical className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-amber-400" />
-                  <span>TEST MODE</span>
+                  <FlaskConical className="w-3.5 h-3.5 text-amber-400" />
+                  <span>TEST</span>
                 </button>
               )}
 
               {/* Cài Đặt Luật Chơi */}
-              <button
-                type="button"
+              <IconButton
+                icon={Settings}
+                label="Cài đặt hệ thống & luật chơi"
                 onClick={() => setIsSettingsOpen(true)}
-                title="Cài đặt luật chơi (Bật/tắt Sói cắn đồng loại, lưu state game...)"
-                className="h-6 w-6 sm:h-7 sm:w-auto sm:px-2 rounded-md sm:rounded-lg hover:bg-slate-800 text-purple-200 text-xs font-bold transition-all flex items-center justify-center gap-1 cursor-pointer shrink-0"
-              >
-                <Settings className="w-3.5 h-3.5 text-purple-300 shrink-0" />
-                <span className="hidden md:inline">Cài Đặt</span>
-              </button>
+                size="sm"
+              />
 
               {/* Lịch Sử */}
-              <button
-                type="button"
+              <IconButton
+                icon={History}
+                label="Xem lịch sử các ván đã lưu"
                 onClick={() => setIsHistoryOpen(true)}
-                title="Xem lịch sử các trận đấu đã lưu trên Neon DB"
-                className="h-6 w-6 sm:h-7 sm:w-auto sm:px-2 rounded-md sm:rounded-lg hover:bg-slate-800 text-slate-300 text-xs font-bold transition-all flex items-center justify-center gap-1 cursor-pointer shrink-0"
-              >
-                <History className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                <span className="hidden md:inline">Lịch Sử</span>
-              </button>
+                size="sm"
+              />
 
               {/* Thư viện */}
-              <button
-                type="button"
+              <IconButton
+                icon={BookOpen}
+                label={`Thư viện ${ROLES.length} vai trò Ma Sói`}
                 onClick={() => setIsLibraryOpen(true)}
-                title={`Thư viện ${ROLES.length} vai trò Ma Sói`}
-                aria-label={`Thư viện ${ROLES.length} vai trò Ma Sói`}
-                className="h-6 w-6 sm:h-7 sm:w-auto sm:px-2 rounded-md sm:rounded-lg hover:bg-slate-800 bg-amber-950/25 hover:bg-amber-950/60 text-amber-300 hover:text-amber-100 text-xs font-bold transition-all flex items-center justify-center gap-1 cursor-pointer shrink-0 border border-amber-900/40"
-              >
-                <BookOpen className="w-3.5 h-3.5 text-amber-300 shrink-0" />
-                <span className="hidden md:inline">Thư Viện</span>
-              </button>
+                variant="gold"
+                size="sm"
+              />
             </div>
           </div>
         </div>
@@ -3076,6 +3163,9 @@ export default function App() {
             deckRoleIds={deckRoleIds}
             onAssignRole={handleAssignRole}
             scapegoatBannedVoterIds={roundNumber === scapegoatBannedRound ? scapegoatBannedVoterIds : []}
+            scapegoatNominatedId={roundNumber === scapegoatNominatedRound ? scapegoatNominatedId : null}
+            onEditScapegoatDecree={handleEditScapegoatDecree}
+            onClearScapegoatDecree={handleClearScapegoatDecree}
           />
         </div>
 
@@ -3084,6 +3174,7 @@ export default function App() {
             players={players}
             nightState={nightState}
             scapegoatBannedVoterIds={roundNumber === scapegoatBannedRound ? scapegoatBannedVoterIds : []}
+            scapegoatNominatedId={roundNumber === scapegoatNominatedRound ? scapegoatNominatedId : null}
             onOpenRosters={() => {
               setSetupModalTab('rosters');
               setIsSetupOpen(true);
@@ -3121,6 +3212,7 @@ export default function App() {
         deckRoleIds={deckRoleIds}
         rolesInGame={rolesInGame}
         nightState={nightState}
+        actionData={actionModal.actionData}
         onSaveAction={handleSaveAction}
         onAssignRole={handleAssignRole}
         onRevivePlayer={handleRevivePlayer}

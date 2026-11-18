@@ -1,5 +1,108 @@
 @import "tailwindcss";
 
+@theme {
+  /* Font */
+  --font-display: "Cormorant Garamond", "Playfair Display", serif;
+  --font-sans: "Inter", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+
+  /* Surface: gom 8 sắc xanh đêm thành 3 surface chính */
+  --color-bg: #07080d;
+  --color-surface-1: #121422;
+  --color-surface-2: #181a2e;
+  --color-line: #2a2d45;
+
+  /* Chữ: 2 mức, cả hai đạt WCAG AA */
+  --color-ink: #e2e8f0;
+  --color-ink-muted: #94a3b8;
+
+  /* Phe (đồng bộ với src/data/roles.js) */
+  --color-wolf: #e11d48;
+  --color-village: #7c3aed;
+  --color-lover: #ec4899;
+  --color-neutral: #f59e0b;
+  --color-danger: #ef4444;
+
+  /* Parchment (chỉ cho modal lật bài của ActionModal) */
+  --color-parchment-edge: #faebd7;
+  --color-parchment-wood: #542d13;
+  --color-parchment-deep: #2b1207;
+  --color-parchment-mid: #30180c;
+  --color-parchment-red: #3b1206;
+
+  /* Type scale: 5 vai trò, sàn 12px */
+  --text-caption: 0.75rem;
+  --text-caption--line-height: 1rem;
+  --text-body: 0.875rem;
+  --text-body--line-height: 1.25rem;
+  --text-title: 1.125rem;
+  --text-title--line-height: 1.5rem;
+  --text-headline: 1.5rem;
+  --text-headline--line-height: 2rem;
+  --text-display: 2.25rem;
+  --text-display--line-height: 2.5rem;
+
+  /* Radius: 2 mức chính */
+  --radius-control: 0.75rem;
+  --radius-card: 1.25rem;
+}
+
+/* Mở rộng vùng chạm lên 44px mà không đổi kích thước nhìn thấy */
+@utility hit-44 {
+  position: relative;
+  &::before {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: max(100%, 44px);
+    height: max(100%, 44px);
+    transform: translate(-50%, -50%);
+  }
+}
+
+/* Theme phe: một component, đổi phe bằng data-faction */
+[data-faction="wolf"] {
+  --f-line: #e11d48;
+  --f-bg: #1c0305;
+  --f-ink: #fda4af;
+  --f-glow: rgb(225 29 72 / 0.35);
+}
+[data-faction="village"] {
+  --f-line: #7c3aed;
+  --f-bg: #121422;
+  --f-ink: #c4b5fd;
+  --f-glow: rgb(124 58 237 / 0.3);
+}
+[data-faction="lover"] {
+  --f-line: #ec4899;
+  --f-bg: #3a0a20;
+  --f-ink: #f9a8d4;
+  --f-glow: rgb(236 72 153 / 0.35);
+}
+[data-faction="neutral"] {
+  --f-line: #f59e0b;
+  --f-bg: #1f1405;
+  --f-ink: #fcd34d;
+  --f-glow: rgb(245 158 11 / 0.3);
+}
+
+/* Focus và reduced motion toàn cục */
+:where(button, [role="button"], a, input, select, textarea):focus-visible {
+  outline: 2px solid var(--color-village);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
 :root {
   color-scheme: dark;
 }
@@ -13,9 +116,9 @@ html, body {
   overscroll-behavior-x: none;
   touch-action: pan-y;
   -webkit-tap-highlight-color: transparent;
-  font-family: 'Inter', system-ui, -apple-system, sans-serif;
-  background-color: #06070b;
-  color: #f1f5f9;
+  font-family: var(--font-sans);
+  background-color: var(--color-bg);
+  color: var(--color-ink);
   background-image: 
     radial-gradient(circle at 50% 0%, rgba(88, 28, 135, 0.15) 0%, transparent 50%),
     radial-gradient(circle at 85% 100%, rgba(153, 27, 27, 0.08) 0%, transparent 40%);
@@ -62,21 +165,12 @@ button, a, input, select, textarea, [role="button"] {
   box-sizing: border-box;
 }
 
-.font-cinzel {
-  font-family: 'Cinzel', serif;
+.font-cinzel, .font-display {
+  font-family: var(--font-display);
 }
 
 .font-mono {
-  font-family: 'JetBrains Mono', monospace;
-}
-
-@font-face {
-  font-family: 'TH Kinhdi 1';
-  src: local('TH Kinhdi 1'), local('TH Kinh di 1'), local('THKinhdi1');
-}
-
-.font-kinhdi {
-  font-family: 'TH Kinhdi 1', 'Nosifer', 'Creepster', 'Cinzel', cursive, fantasy, serif;
+  font-family: var(--font-mono);
 }
 
 @keyframes bannerDrop {

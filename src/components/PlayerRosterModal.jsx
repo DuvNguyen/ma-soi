@@ -3,6 +3,7 @@ import { fetchRosters, saveRosterApi, deleteRosterApi } from '../services/api';
 import { Users, Plus, Trash2, Check, X, ArrowRight, Clipboard, UserCheck, Edit3, AlertCircle } from 'lucide-react';
 import GothicButton from './ui/GothicButton';
 import GothicBadge from './ui/GothicBadge';
+import IconButton from './ui/IconButton';
 import ClawMarks from './ui/ClawMarks';
 import { useGothicDialog } from '../context/GothicDialogContext';
 
@@ -198,14 +199,11 @@ export default function PlayerRosterModal({
                 <span>Thêm Nhóm</span>
               </GothicButton>
             )}
-            <button 
-              type="button"
-              onClick={onClose} 
-              aria-label="Đóng cửa sổ danh sách người chơi"
-              className="p-1.5 sm:p-2 text-slate-400 hover:text-white rounded-lg cursor-pointer shrink-0"
-            >
-              <X className="w-5 h-5" />
-            </button>
+            <IconButton
+              icon={X}
+              label="Đóng cửa sổ danh sách người chơi"
+              onClick={onClose}
+            />
           </div>
         </div>
 
@@ -224,7 +222,7 @@ export default function PlayerRosterModal({
                     setIsCreating(false);
                     setEditingRosterId(null);
                   }}
-                  className="text-xs text-slate-400 hover:text-white underline cursor-pointer"
+                  className="hit-44 text-caption text-slate-400 hover:text-white underline cursor-pointer"
                 >
                   Quay lại danh sách
                 </button>
@@ -259,7 +257,7 @@ export default function PlayerRosterModal({
                   <button
                     type="button"
                     onClick={handleCopyCurrentGameNames}
-                    className="text-[11px] text-indigo-400 hover:text-indigo-300 flex items-center gap-1 underline font-medium cursor-pointer"
+                    className="hit-44 text-caption text-indigo-400 hover:text-indigo-300 flex items-center gap-1 underline font-medium cursor-pointer"
                   >
                     <Clipboard className="w-3.5 h-3.5" />
                     Lấy tên từ ván chơi hiện tại
@@ -331,7 +329,7 @@ Ngọc, Hoàng, Minh, Linh, Tuấn, Hương, Đạt, Phương, Quân, Trang, Vi�
                   disabled={isSaving}
                 >
                   <Check className="w-4 h-4 mr-1 inline" />
-                  <span>{isSaving ? 'Đang lưu...' : (editingRosterId ? 'Lưu Thay Đổi Nhóm' : 'Lưu Danh Sách Vào Neon DB')}</span>
+                  <span>{isSaving ? 'Đang lưu...' : (editingRosterId ? 'Lưu Thay Đổi Nhóm' : 'Lưu Nhóm Người Chơi')}</span>
                 </GothicButton>
               </div>
             </form>
@@ -409,7 +407,7 @@ Ngọc, Hoàng, Minh, Linh, Tuấn, Hương, Đạt, Phương, Quân, Trang, Vi�
                               type="button"
                               disabled={deletingRosterId === r.id}
                               onClick={(e) => handleDeleteRoster(r.id, e)}
-                              className="text-xs text-slate-500 hover:text-rose-400 disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1 transition-colors cursor-pointer"
+                              className="hit-44 text-xs text-slate-500 hover:text-rose-400 disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1 transition-colors cursor-pointer"
                               title="Xóa nhóm này khỏi Neon DB"
                             >
                               <Trash2 className="w-3.5 h-3.5" />
@@ -418,7 +416,7 @@ Ngọc, Hoàng, Minh, Linh, Tuấn, Hương, Đạt, Phương, Quân, Trang, Vi�
                             <button
                               type="button"
                               onClick={(e) => handleStartEdit(r, e)}
-                              className="text-xs text-purple-400 hover:text-purple-300 flex items-center gap-1 transition-colors cursor-pointer"
+                              className="hit-44 text-xs text-purple-400 hover:text-purple-300 flex items-center gap-1 transition-colors cursor-pointer"
                               title="Chỉnh sửa danh sách nhóm này"
                             >
                               <Edit3 className="w-3.5 h-3.5" />

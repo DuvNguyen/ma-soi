@@ -91,14 +91,14 @@ export default function NightStepHeader({
                   if (onSelectSeerTarget) onSelectSeerTarget(null);
                   if (onSetShowAssignDropdown) onSetShowAssignDropdown(false);
                 }}
-                className={`py-1.5 px-3 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 border cursor-pointer ${
+                className={`hit-44 py-1.5 px-3 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 border cursor-pointer ${
                   isCurrent
                     ? isStepWolf
                       ? 'bg-gradient-to-r from-rose-900 to-rose-950 border-rose-500 text-rose-100 shadow-[0_0_15px_rgba(225,29,72,0.5)] ring-1 ring-rose-400'
                       : 'bg-gradient-to-r from-purple-900 to-purple-950 border-purple-500 text-purple-100 shadow-[0_0_15px_rgba(168,85,247,0.4)] ring-1 ring-purple-400'
                     : isPassed
                     ? 'bg-[#0f111c] border-emerald-900/70 text-emerald-400'
-                    : 'bg-[#0c0d16]/70 border-slate-800/80 text-slate-500 hover:text-slate-300'
+                    : 'bg-[#0c0d16]/70 border-slate-800/80 text-slate-400 hover:text-slate-200'
                 }`}
               >
                 {isPassed ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <span>{idx + 1}.</span>}
@@ -124,6 +124,10 @@ export default function NightStepHeader({
               <img
                 src={currentRole.image}
                 alt={currentRole.name}
+                width="56"
+                height="80"
+                loading="eager"
+                decoding="async"
                 className="w-full h-full object-contain"
               />
             ) : (
@@ -136,7 +140,7 @@ export default function NightStepHeader({
           {/* Role Title + Team Badge + GM Prompt */}
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2 flex-wrap">
-              <h3 className={`text-base sm:text-lg md:text-xl font-black font-cinzel leading-tight tracking-wider truncate ${
+              <h3 className={`text-headline font-display font-black leading-tight tracking-wider truncate ${
                 isWolfStep ? 'text-rose-100 drop-shadow-[0_1px_10px_rgba(225,29,72,0.7)]' : 'text-slate-100'
               }`}>
                 {currentRole.name}

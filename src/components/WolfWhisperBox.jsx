@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Skull, Clock, Play, Pause, RotateCcw, Settings, Check, Volume2, VolumeX, AlertCircle, X, MessageSquare } from 'lucide-react';
 import WolfIcon from './ui/WolfIcon';
+import GothicButton from './ui/GothicButton';
+import IconButton from './ui/IconButton';
 import { isWolfPlayer, getPlayerRole } from '../utils/roleUtils';
 
 const QUICK_NOTES = [
@@ -199,34 +201,33 @@ export default function WolfWhisperBox({
             </div>
 
             <div className="flex items-center gap-1.5">
-              <button
-                type="button"
+              <IconButton
+                icon={soundEnabled ? Volume2 : VolumeX}
+                label={soundEnabled ? 'Tắt âm thanh' : 'Bật âm thanh'}
+                size="sm"
+                variant="ghost"
                 onClick={() => setSoundEnabled(!soundEnabled)}
-                title={soundEnabled ? 'Tắt âm thanh' : 'Bật âm thanh'}
-                className="p-2 rounded-xl bg-[#260509] border border-rose-800/80 text-rose-300 hover:text-white transition-colors cursor-pointer"
-              >
-                {soundEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4 text-slate-500" />}
-              </button>
+              />
 
               <button
                 type="button"
                 data-testid="wolf-timer-settings-btn"
                 onClick={() => setShowSettings(!showSettings)}
-                className="py-1.5 px-2.5 rounded-xl bg-[#260509] hover:bg-[#3d080e] border border-rose-800/80 text-xs font-bold text-rose-200 flex items-center gap-1.5 transition-colors cursor-pointer"
+                className="hit-44 py-1.5 px-2.5 rounded-xl bg-[#260509] hover:bg-[#3d080e] border border-rose-800/80 text-caption font-bold text-rose-200 flex items-center gap-1.5 transition-colors cursor-pointer"
               >
                 <Settings className="w-3.5 h-3.5" />
                 <span>{timerDuration}s</span>
               </button>
 
               {onClose && (
-                <button
-                  type="button"
+                <IconButton
+                  icon={X}
+                  label="Đóng chuyền máy / Trở về quản trò"
+                  size="sm"
+                  variant="danger"
                   onClick={handleClose}
-                  className="p-2 rounded-xl bg-rose-950/80 hover:bg-rose-900 border border-rose-600 text-rose-200 hover:text-white transition-colors cursor-pointer ml-1"
-                  title="Đóng chuyền máy / Trở về quản trò"
-                >
-                  <X className="w-4 h-4 stroke-[2.5]" />
-                </button>
+                  className="ml-1"
+                />
               )}
             </div>
           </div>
@@ -249,7 +250,7 @@ export default function WolfWhisperBox({
                     key={secs}
                     type="button"
                     onClick={() => handleUpdateDuration(secs)}
-                    className={`py-1 px-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer border ${
+                    className={`hit-44 py-1.5 px-3 rounded-xl text-caption font-bold transition-all cursor-pointer border ${
                       timerDuration === secs
                         ? 'bg-rose-600 text-white border-rose-400 shadow-[0_0_12px_rgba(225,29,72,0.6)]'
                         : 'bg-[#150204] text-rose-300 border-rose-900 hover:border-rose-700'
@@ -351,22 +352,20 @@ export default function WolfWhisperBox({
 
                       {/* Timer Quick Actions */}
                       <div className="flex items-center gap-1 pl-2 border-l border-rose-950">
-                        <button
-                          type="button"
+                        <IconButton
+                          icon={isRunning ? Pause : Play}
+                          label={isRunning ? 'Tạm dừng' : 'Bắt đầu'}
+                          size="sm"
+                          variant="ghost"
                           onClick={isRunning ? handlePauseTimer : handleStartTimer}
-                          className="p-1 rounded-lg bg-rose-950 hover:bg-rose-900 text-rose-300 border border-rose-800 transition-colors cursor-pointer"
-                          title={isRunning ? 'Tạm dừng' : 'Bắt đầu'}
-                        >
-                          {isRunning ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5 fill-rose-300" />}
-                        </button>
-                        <button
-                          type="button"
+                        />
+                        <IconButton
+                          icon={RotateCcw}
+                          label="Đặt lại thời gian"
+                          size="sm"
+                          variant="ghost"
                           onClick={handleResetTimer}
-                          className="p-1 rounded-lg bg-[#1a0406] hover:bg-rose-950 text-slate-400 hover:text-white border border-rose-900 transition-colors cursor-pointer"
-                          title="Đặt lại"
-                        >
-                          <RotateCcw className="w-3.5 h-3.5" />
-                        </button>
+                        />
                       </div>
                     </div>
                   </div>
@@ -504,15 +503,16 @@ export default function WolfWhisperBox({
                       )}
                     </div>
 
-                    <button
+                    <GothicButton
                       type="button"
+                      variant="blood"
+                      size="sm"
                       onClick={handleSendAndNextWolf}
-                      className="h-9 px-4 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 bg-gradient-to-r from-rose-600 to-rose-800 hover:from-rose-500 hover:to-rose-700 text-white cursor-pointer active:scale-95 shadow-md shadow-rose-950/80 transition-all"
                     >
                       <span>
                         {activeWolfIndex < livingWolves.length - 1 ? 'Chuyền Sang Sói Kế Tiếp ➔' : 'Trả Máy Cho Quản Trò ↩'}
                       </span>
-                    </button>
+                    </GothicButton>
                   </div>
                 </div>
               )}
@@ -533,13 +533,15 @@ export default function WolfWhisperBox({
                 ) : <div />}
 
                 {onClose && (
-                  <button
+                  <GothicButton
                     type="button"
+                    variant="danger"
+                    size="sm"
                     onClick={handleClose}
-                    className="w-full sm:w-auto px-4 py-2 rounded-xl bg-rose-900/80 hover:bg-rose-800 text-rose-100 font-bold text-xs border border-rose-600 transition-colors cursor-pointer shrink-0"
+                    className="w-full sm:w-auto shrink-0"
                   >
                     Trở Về Quản Trò ↩
-                  </button>
+                  </GothicButton>
                 )}
               </div>
             </>

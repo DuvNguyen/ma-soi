@@ -12,13 +12,13 @@ export default function NightStickyFooter({
   return (
     <div className="sticky bottom-0 z-30 -mx-4 -mb-4 sm:-mx-6 sm:-mb-6 p-2.5 sm:p-3 pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))] bg-[#0a0c16]/95 backdrop-blur-md border-t border-purple-900/80 shadow-[0_-8px_25px_rgba(0,0,0,0.8)] flex items-center justify-between gap-2">
       <GothicButton
-        variant="dark"
-        size="sm"
+        variant="secondary"
+        size="md"
         disabled={safeStepIdx === 0}
         onClick={onPrevStep}
         icon={ChevronLeft}
         aria-label="Bước trước"
-        className="h-10 px-2.5 sm:px-3 text-xs shrink-0"
+        className="h-11 px-3 text-caption shrink-0"
       >
         <span className="hidden sm:inline">Bước Trước</span>
       </GothicButton>
@@ -45,11 +45,11 @@ export default function NightStickyFooter({
 
       <GothicButton
         variant={isWolfStep ? 'blood' : 'witch'}
-        size="sm"
+        size="md"
         disabled={!stepValidation.isValid}
         onClick={() => onNextStep(false)}
         aria-label="Đi ngủ (chuyển bước)"
-        className="h-10 px-3 sm:px-4 text-xs font-black shrink-0 shadow-lg"
+        className="h-11 px-4 text-body font-black shrink-0 shadow-lg"
       >
         <span className="truncate">Đi Ngủ 💤</span>
         <ChevronRight className="w-4 h-4 ml-0.5 inline shrink-0" />

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Settings, Shield, Skull, Check, X, AlertTriangle, RefreshCw, Database, Smartphone, Share2, PlusSquare, FlaskConical } from 'lucide-react';
 import GothicButton from './ui/GothicButton';
+import IconButton from './ui/IconButton';
 import ClawMarks from './ui/ClawMarks';
 import WolfIcon from './ui/WolfIcon';
 import { useGothicDialog } from '../context/GothicDialogContext';
@@ -71,14 +72,11 @@ export default function GameSettingsModal({
             </div>
           </div>
 
-          <button
-            type="button"
+          <IconButton
+            icon={X}
+            label="Đóng cài đặt"
             onClick={onClose}
-            className="p-2 rounded-xl text-slate-400 hover:text-white bg-slate-900/80 border border-slate-800 hover:border-slate-700 cursor-pointer transition-all"
-            title="Đóng (Esc)"
-          >
-            <X className="w-5 h-5" />
-          </button>
+          />
         </div>
 
         {/* Modal Content - Scrollable */}
@@ -113,7 +111,7 @@ export default function GameSettingsModal({
               <button
                 type="button"
                 onClick={handleToggle}
-                className={`relative inline-flex h-6 w-12 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                className={`hit-44 relative inline-flex h-6 w-12 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
                   canWolvesKillTeammates ? 'bg-rose-600 shadow-[0_0_12px_rgba(225,29,72,0.6)]' : 'bg-slate-800'
                 }`}
                 title="Bấm để bật/tắt luật này"
@@ -141,7 +139,7 @@ export default function GameSettingsModal({
                 </div>
                 <div>
                   <h4 className="font-bold text-sm text-slate-100 flex items-center gap-2">
-                    <span>Chế Độ Thử Nghiệm (Test Mode)</span>
+                    <span title="Chế Độ Thử Nghiệm (Test Mode)">Chế Độ Thử Nghiệm</span>
                     {isTestMode ? (
                       <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-950 border border-amber-500 text-amber-300">
                         Đang Bật
@@ -162,7 +160,7 @@ export default function GameSettingsModal({
               <button
                 type="button"
                 onClick={() => onToggleTestMode && onToggleTestMode(!isTestMode)}
-                className={`relative inline-flex h-6 w-12 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                className={`hit-44 relative inline-flex h-6 w-12 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
                   isTestMode ? 'bg-amber-600 shadow-[0_0_12px_rgba(217,119,6,0.6)]' : 'bg-slate-800'
                 }`}
                 title="Bật/tắt chế độ thử nghiệm"
@@ -178,7 +176,7 @@ export default function GameSettingsModal({
             {isTestMode && (
               <div className="p-2.5 rounded-xl bg-amber-950/60 border border-amber-700/80 text-amber-200 text-[11px] flex items-center gap-2">
                 <span className="font-bold">🧪 ĐANG BẬT:</span>
-                <span>Ván đấu này sẽ KHÔNG ghi vào lịch sử (LocalStorage & Neon DB).</span>
+                <span>Ván đấu này sẽ KHÔNG ghi vào lịch sử lưu trữ.</span>
               </div>
             )}
           </div>
@@ -192,10 +190,10 @@ export default function GameSettingsModal({
                 </div>
                 <div>
                   <h4 className="font-bold text-sm text-slate-100">
-                    Lưu Trữ State Game Tự Động
+                    Tự Động Lưu Ván
                   </h4>
                   <p className="text-xs text-slate-400">
-                    Bảo toàn 100% dữ liệu ván đấu khi F5 / tải lại trang
+                    Bảo toàn 100% dữ liệu ván đấu khi tải lại trang
                   </p>
                 </div>
               </div>
@@ -207,7 +205,7 @@ export default function GameSettingsModal({
             </div>
 
             <p className="text-[11px] text-slate-400 pl-12">
-              Mọi hành động (gán vai, cắn mồi, bảo vệ, treo cổ, nhật ký chặng) được lưu trữ tức thì vào <strong>LocalStorage</strong> và đồng bộ lên <strong>Neon PostgreSQL Cloud</strong>.
+              Mọi hành động (gán vai, cắn mồi, bảo vệ, treo cổ, nhật ký chặng) được lưu trữ tức thì và đồng bộ an toàn.
             </p>
           </div>
 
@@ -220,7 +218,7 @@ export default function GameSettingsModal({
                 </div>
                 <div>
                   <h4 className="font-bold text-sm text-slate-100 flex items-center gap-2">
-                    <span>Ứng Dụng PWA Cho iPhone (iOS)</span>
+                    <span>Cài Lên Màn Hình iPhone</span>
                   </h4>
                   <p className="text-xs text-slate-400">
                     Cài vào màn hình chính để dùng toàn màn hình, mượt mà như App Store
@@ -234,13 +232,14 @@ export default function GameSettingsModal({
                   <span>Đã Cài Đặt</span>
                 </div>
               ) : (
-                <button
+                <GothicButton
                   type="button"
+                  size="sm"
+                  variant="witch"
                   onClick={() => setShowIosGuide(!showIosGuide)}
-                  className="px-2.5 py-1 rounded-lg text-xs font-bold bg-purple-950/80 hover:bg-purple-900 border border-purple-600 text-purple-200 transition-all cursor-pointer"
                 >
                   {showIosGuide ? 'Thu Gọn ▲' : 'Xem Hướng Dẫn ▼'}
-                </button>
+                </GothicButton>
               )}
             </div>
 

@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
 import { Heart, Skull, Shield, Eye, UserCheck, AlertCircle, Sparkles, Star, Edit3, Users, Scale, History } from 'lucide-react';
 import GothicBadge from './ui/GothicBadge';
+import PlayerSeatCard from './ui/PlayerSeatCard';
 import WolfIcon from './ui/WolfIcon';
 import { isWolfPlayer, getPlayerRole, getPlayerOriginalRole, isHostileThirdParty } from '../utils/roleUtils';
 import PlayerJourneyModal from './PlayerJourneyModal';
 
-export default function PlayersGridView({ players, onOpenAssignRole, onOpenRosters, scapegoatBannedVoterIds = [], nightState = {} }) {
+export default function PlayersGridView({ players, onOpenAssignRole, onOpenRosters, scapegoatBannedVoterIds = [], scapegoatNominatedId = null, nightState = {} }) {
   const [journeyPlayer, setJourneyPlayer] = useState(null);
   const aliveCount = players.filter(p => p.isAlive).length;
   const wolfCount = players.filter(p => p.isAlive && isWolfPlayer(p)).length;
@@ -119,156 +120,111 @@ export default function PlayersGridView({ players, onOpenAssignRole, onOpenRoste
             const isSilenced = nightState?.silencedPlayerId === p.id && !nightState?.moonPriestessSkipped;
             const isServant = p.isAlive && ((p.currentRoleId || p.roleId) === 'nguoi-day-to-tan-tuy' || pRole?.id === 'nguoi-day-to-tan-tuy');
 
-            return (
-              <button
-                key={p.id}
-                type="button"
-                onClick={() => onOpenAssignRole(p)}
-                title={`Ghế #${p.id} - ${p.name} (${pRole?.name || 'Chưa gán vai'})`}
-                className={`relative p-2 sm:p-2.5 rounded-xl border text-center transition-all duration-75 select-none touch-manipulation active:scale-95 cursor-pointer flex flex-col items-center justify-between min-h-[90px] sm:min-h-[105px] group ${
-                  !p.isAlive
-                    ? 'bg-[#08080c]/80 border-slate-900 opacity-40 hover:opacity-75'
-                    : isWolf
-                    ? 'bg-gradient-to-b from-[#280509] via-[#160205] to-[#0c0203] border-rose-600/90 shadow-[0_0_15px_rgba(225,29,72,0.4)] ring-1 ring-rose-500/50 hover:scale-105'
-                    : isServant
-                    ? 'bg-gradient-to-b from-[#081a2e] via-[#05111f] to-[#030912] border-cyan-500/90 shadow-[0_0_15px_rgba(6,182,212,0.4)] ring-1 ring-cyan-400/50 hover:scale-105'
-                    : 'bg-[#101322] hover:bg-[#181c33] border-purple-900/70 hover:border-purple-400 shadow-sm hover:scale-105'
-                }`}
-              >
-                {/* Theatre Seat Top Headrest Bar */}
-                <div className={`w-8 sm:w-10 h-1 rounded-full mb-1 ${
-                  !p.isAlive
-                    ? 'bg-slate-800'
-                    : isWolf
-                    ? 'bg-rose-500 shadow-[0_0_8px_rgba(225,29,72,0.8)]'
-                    : isServant
-                    ? 'bg-cyan-400 shadow-[0_0_6px_rgba(6,182,212,0.6)]'
-                    : 'bg-purple-500 shadow-[0_0_6px_rgba(168,85,247,0.5)]'
-                }`}></div>
+            const badges = (
+              <div className="flex items-center gap-1">
+                {p.poisonedByRustySword && <span className="text-[10px] select-none" title="Nhiễm gỉ sét từ Hiệp Sĩ Kiếm Gỉ">🗡️</span>}
+                {isSilenced && <span className="text-[10px] select-none" title="Bị Nguyệt Nữ cấm lặng hôm nay">🔇</span>}
+                {p.id === scapegoatNominatedId && (
+                  <Scale className="w-3 h-3 text-rose-500 fill-rose-500 shrink-0 animate-pulse" title="Bị Oan Nhân chỉ định lên giàn nghi vấn" />
+                )}
+                {scapegoatBannedVoterIds?.includes(p.id) && (
+                  <Scale className="w-3 h-3 text-amber-400 shrink-0" title="Bị cấm biểu quyết (Di ngôn Oan Nhân)" />
+                )}
+                {p.roleHistory && p.roleHistory.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setJourneyPlayer(p);
+                    }}
+                    className="hit-44 px-1 py-0.2 rounded bg-purple-950 hover:bg-purple-900 border border-purple-500/80 text-purple-200 text-caption flex items-center gap-0.5 cursor-pointer shadow-sm ml-0.5"
+                    title="Xem nhật ký các lần biến đổi vai trò của người chơi này"
+                  >
+                    <History className="w-2.5 h-2.5 text-purple-300" />
+                    <span>{p.roleHistory.length}</span>
+                  </button>
+                )}
+              </div>
+            );
 
-                {/* Seat Number (Prominent Like Cinema Seat) */}
-                <div className="flex items-center gap-1">
-                  <span className={`font-mono font-black text-xs sm:text-sm ${
-                    !p.isAlive
-                      ? 'text-slate-600 line-through'
-                      : isWolf
-                      ? 'text-rose-300'
+            const renderSubtext = () => {
+              if (!p.isAlive) {
+                return <span className="text-rose-400/90 font-medium">Tử trận</span>;
+              }
+              if (!hasRole) {
+                return <span className="text-slate-500 italic">Chưa gán</span>;
+              }
+              if (p.isCursedWolf && origRole) {
+                return (
+                  <div className="space-y-0.5">
+                    <span className="text-caption font-bold px-1 py-0.5 rounded flex items-center justify-center gap-1 truncate bg-rose-950 text-rose-200 border border-rose-600 shadow-sm" title={pRole?.name}>
+                      <WolfIcon className="w-2.5 h-2.5 shrink-0" /> {pRole?.name}
+                    </span>
+                    <span className="text-[10px] text-purple-300 font-medium block truncate" title={`Vai ban đầu: ${origRole.name}`}>
+                      🔮 Trúng nguyền
+                    </span>
+                  </div>
+                );
+              }
+              return (
+                <div className="space-y-0.5">
+                  <span className={`text-caption font-bold px-1.5 py-0.2 rounded block truncate ${
+                    isWolf
+                      ? 'bg-rose-950 text-rose-300 border border-rose-800'
                       : isServant
-                      ? 'text-cyan-300'
-                      : 'text-purple-300'
+                      ? 'bg-cyan-950 text-cyan-300 border border-cyan-800'
+                      : 'bg-purple-950 text-purple-300 border border-purple-800'
                   }`}>
-                    #{p.id}
+                    {pRole?.name || 'Đã gán vai'}
                   </span>
-                  {p.isSheriff && <Star className="w-3 h-3 text-amber-400 fill-amber-400 shrink-0" title="Cảnh Sát Trưởng (x2 phiếu)" />}
-                  {partner && <Heart className="w-3 h-3 text-pink-400 fill-pink-500 shrink-0" title="Người yêu" />}
-                  {p.isHypnotized && <span className="text-[11px] shrink-0 select-none" title="Bị Người Thổi Sáo thôi miên">🎵</span>}
-                  {p.poisonedByRustySword && <span className="text-[11px] shrink-0 select-none" title="Nhiễm gỉ sét từ Hiệp Sĩ Kiếm Gỉ (sẽ chết ở đêm tiếp theo)">🗡️</span>}
-                  {isSilenced && <span className="text-[11px] shrink-0 select-none" title="Bị Nguyệt Nữ cấm lặng hôm nay">🔇</span>}
-                  {scapegoatBannedVoterIds?.includes(p.id) && (
-                    <Scale className="w-3 h-3 text-rose-400 shrink-0" title="Bị cấm biểu quyết (Di ngôn Người Thế Thân)" />
-                  )}
-                  {p.roleHistory && p.roleHistory.length > 0 && (
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setJourneyPlayer(p);
-                      }}
-                      className="px-1 py-0.2 rounded bg-purple-950 hover:bg-purple-900 border border-purple-500/80 text-purple-200 text-[9px] flex items-center gap-0.5 cursor-pointer shadow-sm ml-0.5 active:scale-95"
-                      title="Xem nhật ký các lần biến đổi vai trò của người chơi này"
-                    >
-                      <History className="w-2.5 h-2.5 text-purple-300" />
-                      <span>{p.roleHistory.length}</span>
-                    </button>
-                  )}
-                </div>
-
-                {/* Player Name */}
-                <div className={`font-bold text-xs truncate max-w-full px-1 ${
-                  !p.isAlive
-                    ? 'text-slate-600 line-through'
-                    : isWolf
-                    ? 'text-rose-100 font-black'
-                    : isServant
-                    ? 'text-cyan-100 font-bold'
-                    : 'text-slate-100'
-                }`}>
-                  {p.name}
-                </div>
-
-                {/* Role Pill or Status */}
-                <div className="w-full mt-1">
-                  {!p.isAlive ? (
-                    <span className="text-[9px] font-bold text-rose-400/90 flex items-center justify-center gap-0.5">
-                      <Skull className="w-2.5 h-2.5" /> Chết
+                  {isServant && (
+                    <span className="text-[10px] text-cyan-300 font-semibold block truncate" title="Người Hầu: Chờ đổi thẻ sau khi có người bị treo cổ">
+                      🗝️ Chờ kế thừa
                     </span>
-                  ) : hasRole ? (
-                    p.isCursedWolf && origRole ? (
-                      <div className="space-y-0.5">
-                        <span className="text-[8px] font-bold px-1 py-0.5 rounded flex items-center justify-center gap-1 truncate bg-rose-950 text-rose-200 border border-rose-600 shadow-sm" title={pRole?.name}>
-                          <WolfIcon className="w-2.5 h-2.5 shrink-0" /> {pRole?.name}
-                        </span>
-                        <span className="text-[8px] text-purple-300 font-medium block truncate" title={`Vai ban đầu: ${origRole.name}`}>
-                          🔮 Trúng nguyền
-                        </span>
-                      </div>
+                  )}
+                  {p.isAlive && (p.currentRoleId === 'dua-tre-hoang-da' || p.roleId === 'dua-tre-hoang-da' || pRole?.id === 'dua-tre-hoang-da') && !p.isCursedWolf && (
+                    p.idolId ? (
+                      <span className="text-[10px] text-amber-300 font-medium block truncate bg-amber-950/50 border border-amber-800/60 rounded px-1 py-0.5 mt-0.5" title={`Mẹ (Thần tượng): Ghế #${p.idolId}`}>
+                        ★ Mẹ: #{p.idolId}
+                      </span>
                     ) : (
-                      <div className="space-y-0.5">
-                        <span className={`text-[9px] font-bold px-1.5 py-0.2 rounded block truncate ${
-                          isWolf
-                            ? 'bg-rose-950 text-rose-300 border border-rose-800'
-                            : isServant
-                            ? 'bg-cyan-950 text-cyan-300 border border-cyan-800'
-                            : 'bg-purple-950 text-purple-300 border border-purple-800'
-                        }`}>
-                          {pRole?.name || 'Đã gán vai'}
-                        </span>
-                        {isServant && (
-                          <span className="text-[8px] text-cyan-300 font-semibold block truncate" title="Người Hầu: Chờ đổi thẻ sau khi có người bị treo cổ">
-                            🗝️ Chờ kế thừa
-                          </span>
-                        )}
-                        {p.isAlive && (p.currentRoleId === 'dua-tre-hoang-da' || p.roleId === 'dua-tre-hoang-da' || pRole?.id === 'dua-tre-hoang-da') && !p.isCursedWolf && (
-                          p.idolId ? (
-                            <span className="text-[8px] text-amber-300 font-medium block truncate bg-amber-950/50 border border-amber-800/60 rounded px-1 py-0.5 mt-0.5" title={`Mẹ (Thần tượng): Ghế #${p.idolId}`}>
-                              ★ Mẹ: #{p.idolId}
-                            </span>
-                          ) : (
-                            <span className="text-[8px] text-amber-400 font-semibold block truncate bg-amber-950/50 border border-amber-800/60 rounded px-1 py-0.5 mt-0.5" title="Chưa chọn Mẹ">
-                              ★ Chưa gán Mẹ
-                            </span>
-                          )
-                        )}
-                        {p.isAlive && p.isCursedWolf && p.originalRoleId === 'dua-tre-hoang-da' && (
-                          <span className="text-[8px] text-rose-300 font-bold block truncate" title={`Con Hoang đã hóa Sói (Mẹ #${p.idolId} đã chết)`}>
-                            🐺 Con Hoang Hóa Sói
-                          </span>
-                        )}
-                        {p.isAlive && (p.currentRoleId === 'anh-tu' || p.roleId === 'anh-tu' || pRole?.id === 'anh-tu') && (
-                          p.shadowHostId ? (
-                            <span className="text-[8px] text-purple-300 font-medium block truncate bg-purple-950/50 border border-purple-800/60 rounded px-1 py-0.5 mt-0.5" title={`Bản thể: Ghế #${p.shadowHostId}`}>
-                              👻 Bản thể: #{p.shadowHostId}
-                            </span>
-                          ) : (
-                            <span className="text-[8px] text-amber-300 font-semibold block truncate bg-amber-950/50 border border-amber-800/60 rounded px-1 py-0.5 mt-0.5" title="Chưa liên kết bản thể">
-                              👻 Chưa gán bản thể
-                            </span>
-                          )
-                        )}
-                      </div>
+                      <span className="text-[10px] text-amber-400 font-semibold block truncate bg-amber-950/50 border border-amber-800/60 rounded px-1 py-0.5 mt-0.5" title="Chưa chọn Mẹ">
+                        ★ Chưa gán Mẹ
+                      </span>
                     )
-                  ) : (
-                    <span className="text-[9px] text-slate-500 italic block truncate">
-                      Chưa gán
+                  )}
+                  {p.isAlive && p.isCursedWolf && p.originalRoleId === 'dua-tre-hoang-da' && (
+                    <span className="text-[10px] text-rose-300 font-bold block truncate" title={`Con Hoang đã hóa Sói (Mẹ #${p.idolId} đã chết)`}>
+                      🐺 Con Hoang Hóa Sói
                     </span>
                   )}
+                  {p.isAlive && (p.currentRoleId === 'anh-tu' || p.roleId === 'anh-tu' || pRole?.id === 'anh-tu') && (
+                    p.shadowHostId ? (
+                      <span className="text-[10px] text-purple-300 font-medium block truncate bg-purple-950/50 border border-purple-800/60 rounded px-1 py-0.5 mt-0.5" title={`Bản thể: Ghế #${p.shadowHostId}`}>
+                        👻 Bản thể: #{p.shadowHostId}
+                      </span>
+                    ) : (
+                      <span className="text-[10px] text-amber-300 font-semibold block truncate bg-amber-950/50 border border-amber-800/60 rounded px-1 py-0.5 mt-0.5" title="Chưa liên kết bản thể">
+                        👻 Chưa gán bản thể
+                      </span>
+                    )
+                  )}
                 </div>
+              );
+            };
 
-                {/* Hover Quick Prompt */}
-                <span className="absolute inset-x-0 -bottom-1 text-[8px] uppercase tracking-wider text-purple-300 font-bold opacity-0 group-hover:opacity-100 transition-opacity bg-black/90 py-0.5 rounded-b-xl border-t border-purple-600">
-                  Đổi vai ▾
-                </span>
-              </button>
+            return (
+              <PlayerSeatCard
+                key={p.id}
+                player={p}
+                role={pRole}
+                partner={partner}
+                mode="view"
+                showAvatar={hasRole && p.isAlive}
+                badges={badges}
+                subtext={renderSubtext()}
+                onClick={() => onOpenAssignRole(p)}
+              />
             );
           })}
         </div>

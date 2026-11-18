@@ -2,7 +2,7 @@ import React from 'react';
 
 export default function GothicButton({
   children,
-  variant = 'witch', // 'witch', 'blood', 'dark', 'ghost', 'gold'
+  variant = 'witch', // 'primary', 'secondary', 'danger', 'ghost', 'witch', 'blood', 'dark', 'gold', 'cyan'
   size = 'md',       // 'sm', 'md', 'lg'
   isWolf = false,
   className = '',
@@ -12,22 +12,25 @@ export default function GothicButton({
   icon: Icon = null,
   ...props
 }) {
-  const baseStyles = 'inline-flex items-center justify-center font-bold tracking-wider rounded-xl transition-all duration-75 select-none cursor-pointer disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:scale-100 active:scale-95 touch-manipulation';
+  const baseStyles = 'inline-flex items-center justify-center font-semibold tracking-wider rounded-control transition-all duration-75 select-none cursor-pointer disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:scale-100 active:scale-95 touch-manipulation focus-visible:ring-2 focus-visible:ring-[var(--color-village)] focus-visible:outline-none';
 
   const sizeStyles = {
-    sm: 'text-xs py-1.5 px-3 gap-1.5 min-h-[34px]',
-    md: 'text-xs md:text-sm py-2 px-4 gap-2 min-h-[40px]',
-    lg: 'text-sm md:text-base py-3 px-6 gap-2.5 min-h-[48px] uppercase font-cinzel font-black tracking-widest'
+    sm: 'text-body py-1.5 px-3 gap-1.5 min-h-9 hit-44',
+    md: 'text-body py-2.5 px-4 gap-2 min-h-11',
+    lg: 'text-body md:text-title py-3 px-6 gap-2.5 min-h-[52px] uppercase font-display font-black tracking-widest'
   };
 
   const variantStyles = {
-    // Tím Phù Thủy (Occult Witch Purple)
+    // Primary / Tím Phù Thủy (Occult Witch Purple)
+    primary: 'bg-gradient-to-b from-[#2e1065] to-[#170536] hover:from-[#3b0764] hover:to-[#22074f] text-purple-200 border border-purple-700/70 hover:border-purple-500 shadow-[0_4px_16px_rgba(88,28,135,0.35)] hover:shadow-[0_0_20px_rgba(168,85,247,0.45)]',
     witch: 'bg-gradient-to-b from-[#2e1065] to-[#170536] hover:from-[#3b0764] hover:to-[#22074f] text-purple-200 border border-purple-700/70 hover:border-purple-500 shadow-[0_4px_16px_rgba(88,28,135,0.35)] hover:shadow-[0_0_20px_rgba(168,85,247,0.45)]',
     
-    // Đỏ Ma Sói / Huyết Nguyệt (Blood / Werewolf)
+    // Danger / Đỏ Ma Sói / Huyết Nguyệt (Blood / Werewolf)
+    danger: 'bg-gradient-to-b from-[#450a0a] to-[#1c0305] hover:from-[#5c0d0d] hover:to-[#260507] text-rose-200 border border-rose-800/80 hover:border-rose-500 shadow-[0_4px_16px_rgba(153,27,27,0.4)] hover:shadow-[0_0_22px_rgba(225,29,72,0.5)]',
     blood: 'bg-gradient-to-b from-[#450a0a] to-[#1c0305] hover:from-[#5c0d0d] hover:to-[#260507] text-rose-200 border border-rose-800/80 hover:border-rose-500 shadow-[0_4px_16px_rgba(153,27,27,0.4)] hover:shadow-[0_0_22px_rgba(225,29,72,0.5)]',
     
-    // Tối Huyền Bí (Obsidian Dark)
+    // Secondary / Tối Huyền Bí (Obsidian Dark)
+    secondary: 'bg-gradient-to-b from-[#161926] to-[#0c0e17] hover:from-[#1f2436] hover:to-[#121524] text-slate-300 hover:text-white border border-slate-800 hover:border-slate-700 shadow-[0_2px_10px_rgba(0,0,0,0.5)]',
     dark: 'bg-gradient-to-b from-[#161926] to-[#0c0e17] hover:from-[#1f2436] hover:to-[#121524] text-slate-300 hover:text-white border border-slate-800 hover:border-slate-700 shadow-[0_2px_10px_rgba(0,0,0,0.5)]',
     
     // Hủy / Viền Mờ (Ghost)
@@ -40,6 +43,9 @@ export default function GothicButton({
     cyan: 'bg-gradient-to-b from-[#083344] to-[#041c26] hover:from-[#0e4860] hover:to-[#082938] text-cyan-200 border border-cyan-600/70 hover:border-cyan-400 shadow-[0_4px_16px_rgba(6,182,212,0.35)] hover:shadow-[0_0_20px_rgba(6,182,212,0.5)]'
   };
 
+  const selectedVariant = variantStyles[variant] || variantStyles.witch;
+  const selectedSize = sizeStyles[size] || sizeStyles.md;
+
   // Wolf glow override
   const wolfGlow = isWolf ? 'border-rose-600/90 shadow-[0_0_18px_rgba(225,29,72,0.65)] ring-1 ring-rose-500/50' : '';
 
@@ -48,11 +54,11 @@ export default function GothicButton({
       type={type}
       disabled={disabled}
       onClick={onClick}
-      className={`${baseStyles} ${sizeStyles[size]} ${variantStyles[variant]} ${wolfGlow} ${className}`}
+      className={`${baseStyles} ${selectedSize} ${selectedVariant} ${wolfGlow} ${className}`}
       {...props}
     >
       {Icon && <Icon className="w-4 h-4 shrink-0" />}
-      <span>{children}</span>
+      {children && <span>{children}</span>}
     </button>
   );
 }

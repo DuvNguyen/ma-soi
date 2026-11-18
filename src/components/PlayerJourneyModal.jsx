@@ -269,7 +269,15 @@ export default function PlayerJourneyModal({ isOpen, onClose, player: initialPla
                         {/* Thẻ Card Thumbnail */}
                         <div className="w-16 h-20 sm:w-20 sm:h-24 rounded-xl overflow-hidden border border-slate-700/80 bg-black/60 shadow-inner flex items-center justify-center my-1 relative">
                           {node.role?.image ? (
-                            <img src={node.role.image} alt={node.role.name} className="w-full h-full object-cover" />
+                            <img
+                              src={node.role.image}
+                              alt={node.role.name}
+                              width="80"
+                              height="96"
+                              loading="lazy"
+                              decoding="async"
+                              className="w-full h-full object-cover"
+                            />
                           ) : (
                             <span className="text-2xl">🃏</span>
                           )}

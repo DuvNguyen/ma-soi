@@ -2,9 +2,10 @@ import React, { useState, useEffect, useRef } from 'react';
 import { ROLES } from '../data/roles';
 import { DEFAULT_PLAYER_NAMES } from '../data/defaultPlayers';
 import { fetchTemplates, saveTemplateApi, deleteTemplateApi, setDefaultTemplateApi } from '../services/api';
-import { Layers, Plus, Trash2, Check, X, Sparkles, Shield, Eye, Skull, ArrowRight, Edit3, Search, Star } from 'lucide-react';
+import { Layers, Plus, Minus, Trash2, Check, X, Sparkles, Shield, Eye, Skull, ArrowRight, Edit3, Search, Star } from 'lucide-react';
 import GothicButton from './ui/GothicButton';
 import GothicBadge from './ui/GothicBadge';
+import IconButton from './ui/IconButton';
 import ClawMarks from './ui/ClawMarks';
 import WolfIcon from './ui/WolfIcon';
 import { useGothicDialog } from '../context/GothicDialogContext';
@@ -272,7 +273,7 @@ export default function DeckTemplateModal({
             </div>
             <div className="min-w-0 flex-1">
               <h2 className="font-cinzel font-black text-sm sm:text-base md:text-xl text-rose-100 tracking-wider drop-shadow-[0_2px_10px_rgba(225,29,72,0.8)] truncate">
-                QUẢN LÝ BỘ BÀI & TEMPLATE
+                QUẢN LÝ BỘ BÀI
               </h2>
               <p className="text-[11px] sm:text-xs text-rose-300/80 truncate hidden sm:block">
                 Lưu trữ các mẫu bộ bài tùy chỉnh theo số lượng người chơi
@@ -292,14 +293,11 @@ export default function DeckTemplateModal({
                 <span>Tạo Mới</span>
               </GothicButton>
             )}
-            <button 
-              type="button"
-              onClick={onClose} 
-              aria-label="Đóng cửa sổ bộ bài mẫu"
-              className="p-1.5 sm:p-2 text-slate-400 hover:text-white rounded-lg cursor-pointer shrink-0"
-            >
-              <X className="w-5 h-5" />
-            </button>
+            <IconButton
+              icon={X}
+              label="Đóng cửa sổ bộ bài mẫu"
+              onClick={onClose}
+            />
           </div>
         </div>
 
@@ -328,7 +326,7 @@ export default function DeckTemplateModal({
                     setIsCreating(false);
                     setEditingTemplateId(null);
                   }}
-                  className="text-xs text-slate-400 hover:text-white underline cursor-pointer"
+                  className="hit-44 text-caption text-slate-400 hover:text-white underline cursor-pointer"
                 >
                   Quay lại danh sách
                 </button>
@@ -417,6 +415,10 @@ export default function DeckTemplateModal({
                           <img
                             src={role.image}
                             alt=""
+                            width="28"
+                            height="36"
+                            loading="lazy"
+                            decoding="async"
                             className="w-7 h-9 object-contain rounded shrink-0 bg-black/40"
                           />
                           <div className="truncate">
@@ -428,24 +430,23 @@ export default function DeckTemplateModal({
                         </div>
 
                         {/* +/- counter */}
-                        <div className="flex items-center gap-1.5 shrink-0 bg-slate-950/80 p-1 rounded-lg border border-slate-800">
-                          <button
-                            type="button"
+                        <div className="flex items-center gap-1 shrink-0 bg-slate-950/80 p-0.5 rounded-lg border border-slate-800">
+                          <IconButton
+                            icon={Minus}
+                            label={`Giảm số lượng ${role.name}`}
+                            size="sm"
                             onClick={() => updateRoleCount(role.id, -1)}
-                            className="w-6 h-6 rounded flex items-center justify-center font-bold text-sm text-slate-400 hover:text-white hover:bg-slate-800"
-                          >
-                            -
-                          </button>
-                          <span className="w-5 text-center font-bold text-xs text-amber-300">
+                            disabled={count === 0}
+                          />
+                          <span className="w-5 text-center font-mono font-bold text-caption text-amber-300">
                             {count}
                           </span>
-                          <button
-                            type="button"
+                          <IconButton
+                            icon={Plus}
+                            label={`Tăng số lượng ${role.name}`}
+                            size="sm"
                             onClick={() => updateRoleCount(role.id, 1)}
-                            className="w-6 h-6 rounded flex items-center justify-center font-bold text-sm text-slate-400 hover:text-white hover:bg-slate-800"
-                          >
-                            +
-                          </button>
+                          />
                         </div>
                       </div>
                     );
@@ -465,16 +466,18 @@ export default function DeckTemplateModal({
                     </span>
                   </div>
 
-                  <button
+                  <GothicButton
                     type="button"
+                    variant="witch"
+                    size="sm"
                     onClick={() => {
                       const sample = DEFAULT_PLAYER_NAMES.slice(0, totalCards).join('\n');
                       setCustomNamesText(sample);
                     }}
-                    className="text-xs px-2.5 py-1 rounded-xl border border-purple-700/80 bg-purple-950/60 hover:bg-purple-900 text-purple-200 transition-all font-semibold cursor-pointer self-start sm:self-auto"
+                    className="self-start sm:self-auto"
                   >
                     ⚡ Điền {totalCards} Tên Mẫu Tiếng Việt
-                  </button>
+                  </GothicButton>
                 </div>
 
                 <textarea
@@ -642,7 +645,7 @@ export default function DeckTemplateModal({
                               type="button"
                               disabled={settingDefaultId === tpl.id || tpl.isDefault}
                               onClick={(e) => handleSetDefaultTemplate(tpl.id, e)}
-                              className={`text-xs flex items-center gap-1 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${
+                              className={`hit-44 text-xs flex items-center gap-1 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${
                                 tpl.isDefault ? 'text-amber-400 font-semibold' : 'text-slate-500 hover:text-amber-300'
                               }`}
                               title={tpl.isDefault ? 'Bộ bài mặc định' : 'Đặt làm bộ bài mặc định'}
@@ -654,8 +657,9 @@ export default function DeckTemplateModal({
                               type="button"
                               disabled={deletingTemplateId === tpl.id}
                               onClick={(e) => handleDeleteTemplate(tpl.id, e)}
-                              className="text-xs text-slate-500 hover:text-rose-400 disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1 transition-colors cursor-pointer"
-                              title="Xóa bộ bài khỏi Neon DB"
+                              className="hit-44 text-xs text-slate-500 hover:text-rose-400 disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1 transition-colors cursor-pointer"
+                              title="Xóa bộ bài"
+                              aria-label="Xóa bộ bài"
                             >
                               <Trash2 className="w-3.5 h-3.5" />
                               {deletingTemplateId === tpl.id ? 'Đang xóa...' : 'Xóa'}
@@ -663,7 +667,7 @@ export default function DeckTemplateModal({
                             <button
                               type="button"
                               onClick={(e) => handleStartEditTemplate(tpl, e)}
-                              className="text-xs text-purple-400 hover:text-purple-300 flex items-center gap-1 transition-colors cursor-pointer"
+                              className="hit-44 text-xs text-purple-400 hover:text-purple-300 flex items-center gap-1 transition-colors cursor-pointer"
                               title="Chỉnh sửa cấu hình bộ bài này"
                             >
                               <Edit3 className="w-3.5 h-3.5" />

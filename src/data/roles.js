@@ -18,7 +18,7 @@ export const ROLES = [
       "Bị chết nếu bị Ma Sói cắn trúng trong đêm hoặc bị dân làng bỏ phiếu treo cổ ban ngày.",
       "Sức mạnh của Dân làng nằm ở lá phiếu và khả năng lập luận sắc bén."
     ],
-    "image": "/cards/la-bai-dan-lang.jpg",
+    "image": "/cards/dan-lang.webp",
     "colors": {
       "bg": "#1e3a8a",
       "border": "#3b82f6",
@@ -44,7 +44,7 @@ export const ROLES = [
       "Nhiệm vụ của Tiên Tri là dẫn dắt dân làng bỏ phiếu đúng Sói nhưng phải ẩn mình khéo léo để không bị Sói phát hiện và cắn chết vào đêm tiếp theo.",
       "Sẽ bị chết nếu bị Ma Sói cắn trúng mà không được Bảo Vệ hoặc Phù Thủy cứu."
     ],
-    "image": "/cards/huong-dan-choi-ma-soi4.jpg",
+    "image": "/cards/tien-tri.webp",
     "colors": {
       "bg": "#3b1c71",
       "border": "#7c3aed",
@@ -70,7 +70,7 @@ export const ROLES = [
       "Bảo Vệ KHÔNG được phép bảo vệ cùng một người chơi trong 2 đêm liên tiếp.",
       "Lưu ý quan trọng: Người được Bảo Vệ bảo vệ chỉ miễn nhiễm vết cắn của Ma Sói, vẫn có thể chết do bình thuốc độc của Phù Thủy hoặc bị Thợ Săn bắn."
     ],
-    "image": "/cards/la-bai-bao-ve.jpg",
+    "image": "/cards/bao-ve.webp",
     "colors": {
       "bg": "#0f766e",
       "border": "#14b8a6",
@@ -96,7 +96,7 @@ export const ROLES = [
       "Người bị Thợ Săn bắn sẽ chết ngay lập tức và không thể được cứu.",
       "Nếu Thợ Săn bị chết vì tình yêu (người yêu trong cặp đôi Cupid chết), Thợ Săn vẫn được bắn phát súng cuối cùng."
     ],
-    "image": "/cards/la-bai-tho-san.jpg",
+    "image": "/cards/tho-san.webp",
     "colors": {
       "bg": "#78350f",
       "border": "#f59e0b",
@@ -123,7 +123,7 @@ export const ROLES = [
       "Nếu đêm đó Bảo Vệ đã bảo vệ đúng nạn nhân của Sói, Quản trò sẽ ra dấu lắc tay báo không có ai bị thương/chết.",
       "Dù đã dùng hết 2 bình thuốc, mỗi đêm Phù Thủy vẫn được gọi dậy để biết nạn nhân của Sói nhưng không thể can thiệp."
     ],
-    "image": "/cards/la-bai-phu-thuy.jpg",
+    "image": "/cards/phu-thuy.webp",
     "colors": {
       "bg": "#581c87",
       "border": "#c084fc",
@@ -150,7 +150,7 @@ export const ROLES = [
       "Nếu 2 người yêu nhau cùng phe (Dân + Dân hoặc Sói + Sói), họ giữ nguyên điều kiện thắng của phe mình.",
       "ĐẶC BIỆT: Nếu 1 Sói yêu 1 Dân, cả hai trở thành PHE THỨ 3 độc lập. Mục tiêu thắng duy nhất của họ là tiêu diệt toàn bộ người chơi khác để trở thành 2 người sống sót cuối cùng!"
     ],
-    "image": "/cards/la-bai-than-tinh-yeu.jpg",
+    "image": "/cards/cupid.webp",
     "colors": {
       "bg": "#831843",
       "border": "#f43f5e",
@@ -178,7 +178,7 @@ export const ROLES = [
       "Bất kỳ ai (dù là Dân, Sói hay Phe thứ 3) đều có thể được bầu làm Cảnh Sát Trưởng.",
       "Khi Cảnh Sát Trưởng bị loại khỏi cuộc chơi, người đó có toàn quyền di chúc chuyển lại huy hiệu cho bất kỳ ai còn sống."
     ],
-    "image": "/cards/Truong_lang.PNG",
+    "image": "/cards/canh-sat-truong.webp",
     "colors": {
       "bg": "#1e3a8a",
       "border": "#3b82f6",
@@ -204,7 +204,7 @@ export const ROLES = [
       "Cô Bé phải hết sức khéo léo và thận trọng. Nếu bất kỳ con Sói nào phát hiện Cô Bé đang nhìn trộm, Sói có thể ra hiệu cho Quản trò để giết chết Cô Bé ngay trong đêm thay vì nạn nhân bình thường.",
       "Cô Bé không được phép giả vờ làm Sói để giơ tay chỉ người."
     ],
-    "image": "/cards/la-bai-ban-soi.jpg",
+    "image": "/cards/co-be.webp",
     "colors": {
       "bg": "#1e3a8a",
       "border": "#3b82f6",
@@ -231,7 +231,7 @@ export const ROLES = [
       "Sói cũng có thể tự cắn đồng bọn của mình để đánh lừa Tiên Tri và dân làng.",
       "Điều kiện thắng: Khi số lượng Sói bằng hoặc lớn hơn số lượng Dân làng còn sống."
     ],
-    "image": "/cards/la-bai-ma-soi.jpg",
+    "image": "/cards/soi-thuong.webp",
     "colors": {
       "bg": "#7f1d1d",
       "border": "#ef4444",
@@ -257,7 +257,7 @@ export const ROLES = [
       "Là nhân vật mang tính báo thù cực cao của phe Sói.",
       "Dân làng cần cân nhắc khi phát hiện ra tung tích của Sói Con để tránh hậu quả thảm sát vào đêm sau."
     ],
-    "image": "/cards/la-bai-ma-soi.jpg",
+    "image": "/cards/soi-con.webp",
     "colors": {
       "bg": "#7f1d1d",
       "border": "#ef4444",
@@ -283,7 +283,7 @@ export const ROLES = [
       "Trước khi bị cắn: Tiên Tri soi ra người này là Dân Làng.",
       "Sau khi bị cắn: Người này chính thức thành Sói và Tiên Tri soi sẽ ra Sói."
     ],
-    "image": "/cards/nua_nguoi_nua_soi.jpg",
+    "image": "/cards/nua-nguoi-nua-soi.webp",
     "colors": {
       "bg": "#1f2937",
       "border": "#6b7280",
@@ -309,7 +309,7 @@ export const ROLES = [
       "Mục tiêu tối hậu của Sói Trắng là tiêu diệt cả Dân Làng lẫn toàn bộ bầy Sói để trở thành kẻ duy nhất sống sót trong ngôi làng.",
       "Thuộc Phe Thứ Ba độc lập hoàn toàn."
     ],
-    "image": "/cards/soi_trang.jpg",
+    "image": "/cards/soi-trang.webp",
     "colors": {
       "bg": "#581c87",
       "border": "#a855f7",
@@ -335,7 +335,7 @@ export const ROLES = [
       "Quy tắc bắt buộc: Nếu trong 2 lá bài úp có ít nhất một lá Ma Sói, Ăn Trộm BẮT BUỘC phải chọn lá Ma Sói đó.",
       "Nếu Ăn Trộm không đổi vai, người đó tiếp tục chơi như một Dân làng bình thường."
     ],
-    "image": "/cards/an_trom.PNG",
+    "image": "/cards/an-trom.webp",
     "colors": {
       "bg": "#1f2937",
       "border": "#6b7280",
@@ -361,7 +361,7 @@ export const ROLES = [
       "Nếu Thằng Ngố bị dân làng biểu quyết treo cổ vào ban ngày, ván đấu kết thúc ngay lập tức với chiến thắng thuộc về Thằng Ngố.",
       "Nếu Thằng Ngố bị Ma Sói cắn trong đêm hoặc bị Phù Thủy đầu độc, Thằng Ngố chết bình thường và không được chiến thắng."
     ],
-    "image": "/cards/Nhan_vat_Ma_soi__Thang_ngoc.jpg",
+    "image": "/cards/thang-ngoc.webp",
     "colors": {
       "bg": "#3b0764",
       "border": "#a855f7",
@@ -387,7 +387,7 @@ export const ROLES = [
       "Nếu Già Làng bị dân làng treo cổ, bị Thợ Săn bắn chết hoặc bị Phù Thủy dùng bình độc giết, Già Làng chết ngay lập tức.",
       "HẬU QUẢ NGHIÊM TRỌNG: Nếu Già Làng chết bởi tay phe Dân, toàn bộ các vai trò có chức năng đặc biệt của phe Dân (trừ Thợ Săn) sẽ VĨNH VIỄN MẤT HẾT PHÉP THUẬT, trở thành dân thường!"
     ],
-    "image": "/cards/la-bai-gia-lang.jpg",
+    "image": "/cards/gia-lang.webp",
     "colors": {
       "bg": "#1e3a8a",
       "border": "#3b82f6",
@@ -397,8 +397,9 @@ export const ROLES = [
   },
   {
     "id": "nguoi-the-than",
-    "name": "Người Thế Thân (Kẻ Thế Thân)",
+    "name": "Oan Nhân",
     "enName": "Scapegoat",
+    "aliases": ["Oan Nhân", "Scapegoat", "oan-nhan", "Người Thế Thân", "Kẻ Thế Thân"],
     "expansion": "Ma Sói New Moon",
     "team": "Phe Dân Làng",
     "teamCode": "V",
@@ -406,14 +407,15 @@ export const ROLES = [
     "factionType": "village",
     "wakeOrder": 93,
     "wakeTime": "Khi bỏ phiếu hòa",
-    "shortDesc": "Nếu kết quả bỏ phiếu treo cổ của làng bị hòa, Người Thế Thân lập tức bị xử tử thay thế. Khi chết có quyền chỉ định ai được vote ngày mai.",
-    "fullDesc": "Người Thế Thân luôn gánh chịu số phận nghiệt ngã. Khi dân làng bỏ phiếu treo cổ mà số phiếu giữa các ứng viên cao nhất bị ngang bằng (hòa phiếu), thay vì không ai chết hay bỏ phiếu lại, Người Thế Thân sẽ lập tức bị đem lên giàn treo thay thế cho tất cả.",
-    "gmCall": "Khi hòa phiếu treo cổ: 'Kết quả bỏ phiếu hòa. Người Thế Thân bị đưa lên giàn treo!' -> 'Trước khi chết, Người Thế Thân hãy chỉ định những người được phép bỏ phiếu vào ngày mai.'",
+    "shortDesc": "Thuộc phe Dân Làng. Khi bỏ phiếu treo cổ bị hòa, Oan Nhân chịu tội chết thay. Trước khi chết chỉ định 1 người chơi (biểu quyết riêng hoặc lên giàn nghi vấn/treo cổ ngày mai).",
+    "fullDesc": "Oan Nhân (Scapegoat) thuộc phe Dân Làng, ngủ chung với dân thường ban đêm. Khi việc biểu quyết treo cổ ban ngày rơi vào trường hợp hòa phiếu, Oan Nhân sẽ là người phải chịu tội chết và bị đưa lên giàn treo. Trước khi chết do phiếu hòa, Oan Nhân có quyền chỉ định một người chơi bất kỳ: người này sẽ phải đưa ra biểu quyết riêng biệt hoặc bị đưa lên bàn nghi vấn / giàn treo tùy theo biến thể luật nhóm chơi.",
+    "gmCall": "Khi hòa phiếu treo cổ: 'Phiếu bầu bị hòa! Oan Nhân sẽ bị đưa lên giàn treo cổ thế mạng!' -> 'Oan Nhân trước khi rời ván hãy chỉ định một người chơi!'",
     "notes": [
-      "Người Thế Thân phải luôn vận động lập luận để các cuộc biểu quyết không bao giờ rơi vào trạng thái hòa phiếu.",
-      "Quyền năng di ngôn: Khi bị xử tử, người này được quyền chỉ định đích danh những người chơi nào ĐƯỢC hoặc KHÔNG ĐƯỢC biểu quyết vào ngày hôm sau."
+      "Oan Nhân ngủ suốt đêm cùng dân thường, không thức dậy.",
+      "Chỉ bị treo cổ thay khi biểu quyết ban ngày rơi vào trường hợp hòa phiếu.",
+      "Quyền năng chỉ định trước khi chết: Chỉ định 1 người đưa ra biểu quyết riêng biệt, hoặc chỉ định danh sách được/cấm vote, hoặc chỉ định 1 người lên bàn nghi vấn/giàn treo ngày mai tùy biến thể."
     ],
-    "image": "/cards/Nhan_vat_Ma_soi_Scapegoat.jpg",
+    "image": "/cards/nguoi-the-than.webp",
     "colors": {
       "bg": "#1e3a8a",
       "border": "#3b82f6",
@@ -439,7 +441,7 @@ export const ROLES = [
       "Người Thổi Sáo KHÔNG thể tự thôi miên chính mình.",
       "Điều kiện thắng duy nhất: Người Thổi Sáo chiến thắng ngay lập tức khi TẤT CẢ người chơi còn sống sót đều đã rơi vào trạng thái bị thôi miên!"
     ],
-    "image": "/cards/thoisao.jpg",
+    "image": "/cards/nguoi-thoi-sao.webp",
     "colors": {
       "bg": "#581c87",
       "border": "#a855f7",
@@ -465,7 +467,7 @@ export const ROLES = [
       "Thẻ Hỏa hoạn là dấu hiệu vật lý đặc trưng của bản The Village.",
       "Có thể gây sát thương phản đòn bất ngờ lên phe Ma Sói."
     ],
-    "image": "/cards/ma_soi_the_village___hoa_hoan_ke_dot_nha.jpeg",
+    "image": "/cards/ke-dot-nha.webp",
     "colors": {
       "bg": "#7f1d1d",
       "border": "#ef4444",
@@ -491,7 +493,7 @@ export const ROLES = [
       "Rất có lợi để dồn phiếu diệt Sói khi phe Dân làng cần định hướng dư luận.",
       "Cần tránh để Sói biết Con Quạ là ai."
     ],
-    "image": "/cards/ma_soi_the_village___con_qua.PNG",
+    "image": "/cards/con-qua.webp",
     "colors": {
       "bg": "#1e3a8a",
       "border": "#3b82f6",
@@ -516,7 +518,7 @@ export const ROLES = [
     "notes": [
       "Tham gia thảo luận và vote bình thường."
     ],
-    "image": "/cards/Nhan_vat_Ma_soi__Dan_lang.PNG",
+    "image": "/cards/dan-thuong.webp",
     "colors": {
       "bg": "#1e3a8a",
       "border": "#3b82f6",
@@ -541,7 +543,7 @@ export const ROLES = [
     "notes": [
       "Tạo thành một cặp đồng minh vững chắc không sợ bị phản bội."
     ],
-    "image": "/cards/Nhan_vat_Ma_soi__Hai_chi_em.PNG",
+    "image": "/cards/hai-chi-em.webp",
     "colors": {
       "bg": "#1e3a8a",
       "border": "#3b82f6",
@@ -566,7 +568,7 @@ export const ROLES = [
     "notes": [
       "Tạo ưu thế số đông cho phe Dân Làng ở giai đoạn đầu game."
     ],
-    "image": "/cards/Nhan_vat_Ma_soi___Ba_anh_em.PNG",
+    "image": "/cards/ba-anh-em.webp",
     "colors": {
       "bg": "#1e3a8a",
       "border": "#3b82f6",
@@ -592,7 +594,7 @@ export const ROLES = [
       "Nếu bị treo cổ ngày đầu tiên: THIÊN SỨ THẮNG TRÒ CHƠI NGAY LẬP TỨC.",
       "Nếu ngày đầu tiên không bị treo cổ, Thiên Sứ mất hết điều kiện thắng đặc biệt và trở thành một Dân thường bình thường."
     ],
-    "image": "/cards/Nhan_vat_Ma_soi__Thien_su.PNG",
+    "image": "/cards/thien-su.webp",
     "colors": {
       "bg": "#581c87",
       "border": "#a855f7",
@@ -617,7 +619,7 @@ export const ROLES = [
     "notes": [
       "Rất lợi hại khi làng đang nắm chắc tung tích của nhiều con Sói cùng lúc."
     ],
-    "image": "/cards/Nhan_vat_Ma_soi___Tham_phan_lap_bap.PNG",
+    "image": "/cards/tham-phan-lap-bap.webp",
     "colors": {
       "bg": "#1e3a8a",
       "border": "#3b82f6",
@@ -642,7 +644,7 @@ export const ROLES = [
     "notes": [
       "Giúp đổi mạng 1 lấy 1 với phe Sói mà không cần dùng súng như Thợ Săn."
     ],
-    "image": "/cards/Nhan_vat_Ma_soi___Hiep_si_Kiem_gi.PNG",
+    "image": "/cards/hiep-si-kiem-gi.webp",
     "colors": {
       "bg": "#1e3a8a",
       "border": "#3b82f6",
@@ -667,7 +669,7 @@ export const ROLES = [
     "notes": [
       "Là trinh sát diện rộng cực kỳ đắc lực cho phe Dân Làng."
     ],
-    "image": "/cards/Nhan_vat_Ma_soi___Cao.PNG",
+    "image": "/cards/cao.webp",
     "colors": {
       "bg": "#1e3a8a",
       "border": "#3b82f6",
@@ -693,7 +695,7 @@ export const ROLES = [
       "Nếu cả hai người bên cạnh đều là Dân lương thiện, Quản trò không gầm gì cả.",
       "Làng sẽ biết ngay có Sói ngồi gần Người Thuần Phục Gấu."
     ],
-    "image": "/cards/Nhan_vat_Ma_soi__Nguoi_thuan_phuc_gau.PNG",
+    "image": "/cards/nguoi-thuan-phuc-gau.webp",
     "colors": {
       "bg": "#1e3a8a",
       "border": "#3b82f6",
@@ -718,7 +720,7 @@ export const ROLES = [
     "notes": [
       "Tạo ra sự biến hóa khôn lường khó đoán trong chiến thuật."
     ],
-    "image": "/cards/Nhan_vat_Ma_soi__Dien_vien.PNG",
+    "image": "/cards/dien-vien.webp",
     "colors": {
       "bg": "#1f2937",
       "border": "#6b7280",
@@ -744,7 +746,7 @@ export const ROLES = [
       "Nếu nạn nhân là Sói, Người Đầy Tớ lập tức trở thành Sói!",
       "Nếu nạn nhân là Tiên Tri/Bảo Vệ, Người Đầy Tớ kế thừa năng lực đó."
     ],
-    "image": "/cards/Nhan_vat_Ma_soi___Nguoi_day_to_tan_tuy.jpg",
+    "image": "/cards/nguoi-day-to-tan-tuy.webp",
     "colors": {
       "bg": "#1e3a8a",
       "border": "#3b82f6",
@@ -769,7 +771,7 @@ export const ROLES = [
     "notes": [
       "Điều kiện thắng: Khi tất cả thành viên của phe đối nghịch đều đã bị tiêu diệt."
     ],
-    "image": "/cards/Nhan_vat_Ma_soi___Thanh_vien_giao_phai.jpg",
+    "image": "/cards/thanh-vien-giao-phai.webp",
     "colors": {
       "bg": "#581c87",
       "border": "#a855f7",
@@ -796,7 +798,7 @@ export const ROLES = [
       "Chừng nào Thần Tượng (Mẹ) còn sống, Đứa Trẻ vẫn thuộc phe Dân Làng.",
       "Khi Thần Tượng (Mẹ) chết vì bất kỳ lý do gì, Đứa Trẻ chính thức trở thành Ma Sói và cùng phe Sói săn mồi từ đêm tiếp theo."
     ],
-    "image": "/cards/Nhan_vat_Ma_soi___Dua_tre_hoang_da.PNG",
+    "image": "/cards/dua-tre-hoang-da.webp",
     "colors": {
       "bg": "#1f2937",
       "border": "#6b7280",
@@ -821,7 +823,7 @@ export const ROLES = [
     "notes": [
       "Quyết định này là vĩnh viễn và không thể thay đổi trong suốt phần còn lại của ván đấu."
     ],
-    "image": "/cards/Nhan_vat_Ma_soi___Cho_soi.jpg",
+    "image": "/cards/cho-soi-soi-lai.webp",
     "colors": {
       "bg": "#1f2937",
       "border": "#6b7280",
@@ -847,7 +849,7 @@ export const ROLES = [
       "Giúp phe Sói có tốc độ tàn sát gấp đôi ở giai đoạn đầu game.",
       "Khi có ít nhất 1 con Sói phe mình ngã xuống, Sói Lớn mất năng lực cắn thêm này."
     ],
-    "image": "/cards/Nhan_vat_Ma_soi___Soi_lon_xau_xa.PNG",
+    "image": "/cards/soi-lon-xau-xa.webp",
     "colors": {
       "bg": "#7f1d1d",
       "border": "#ef4444",
@@ -875,7 +877,7 @@ export const ROLES = [
       "Nạn nhân được nguyền sẽ KHÔNG CHẾT vào sáng hôm sau, giữ kỹ năng cũ và thức dậy cùng bầy Sói từ đêm tiếp theo.",
       "Bảo Vệ không ngăn được lời nguyền của Sói Quỷ và bình cứu Phù Thủy không giải được lời nguyền."
     ],
-    "image": "/cards/soi-quy.png",
+    "image": "/cards/soi-quy.webp",
     "colors": {
       "bg": "#7f1d1d",
       "border": "#ef4444",
@@ -902,7 +904,7 @@ export const ROLES = [
       "Tiên Tri soi ra sẽ thấy biểu tượng Phe Sói.",
       "Kỹ năng của vai trò gốc bị phong ấn hoàn toàn."
     ],
-    "image": "/cards/la-bai-ma-soi.jpg",
+    "image": "/cards/soi-bi-nguyen.webp",
     "colors": {
       "bg": "#4a044e",
       "border": "#c026d3",
@@ -928,7 +930,7 @@ export const ROLES = [
       "Thay thế sự kiện thường của làng bằng phiên giải đáp tâm linh bí ẩn.",
       "Tối đa chỉ dùng được 5 lần trong một ván chơi."
     ],
-    "image": "/cards/nhan_vat_ma_soi.jpg",
+    "image": "/cards/ba-dong.webp",
     "colors": {
       "bg": "#1e3a8a",
       "border": "#3b82f6",
@@ -956,7 +958,7 @@ export const ROLES = [
       "Khác với Cảnh Sát Trưởng (trưởng làng 2 phiếu vote), Cảnh Sát chuyên trách điều hành Sự Kiện.",
       "Cảnh Sát Trưởng có thể tước chức và chuyển cho người khác trước giờ biểu quyết."
     ],
-    "image": "/cards/Canh_sat.jpg",
+    "image": "/cards/canh-sat-characters.webp",
     "colors": {
       "bg": "#1e3a8a",
       "border": "#3b82f6",
@@ -982,7 +984,7 @@ export const ROLES = [
       "Ngoại lệ: Nguyệt Nữ KHÔNG vô hiệu hóa được chức năng của Bảo Vệ.",
       "Không ảnh hưởng đến các kỹ năng chỉ áp dụng vào ban ngày."
     ],
-    "image": "/cards/Nguyet_nu.png",
+    "image": "/cards/nguyet-nu.webp",
     "colors": {
       "bg": "#1e3a8a",
       "border": "#3b82f6",
@@ -1008,7 +1010,7 @@ export const ROLES = [
       "Thầy Thôi Miên KHÔNG được phép chọn liên tục cùng 1 người trong 2 đêm liên tiếp.",
       "Là lớp lá chắn sống cực kỳ an toàn để giữ mạng."
     ],
-    "image": "/cards/Thay_thoi_mien.png",
+    "image": "/cards/thay-thoi-mien.webp",
     "colors": {
       "bg": "#1e3a8a",
       "border": "#3b82f6",
@@ -1034,7 +1036,7 @@ export const ROLES = [
       "Bình Thuốc Mê: Làm cho 1 người chơi bị cấm nói chuyện và mất hoàn toàn quyền biểu quyết trong 1 ngày.",
       "Bình Hồi Phục: Nếu chọn đúng người bị Phù Thủy hạ độc giết chết trong đêm thì nạn nhân sẽ được giải độc và sống sót bình thường."
     ],
-    "image": "/cards/duoc_si.png",
+    "image": "/cards/duoc-si.webp",
     "colors": {
       "bg": "#1e3a8a",
       "border": "#3b82f6",
@@ -1059,7 +1061,7 @@ export const ROLES = [
     "notes": [
       "Năng lực xoay chuyển cục diện ván cờ cực kỳ kinh hoàng."
     ],
-    "image": "/cards/Nguoi_mua_roi.png",
+    "image": "/cards/nguoi-mua-roi.webp",
     "colors": {
       "bg": "#1e3a8a",
       "border": "#3b82f6",
@@ -1084,7 +1086,7 @@ export const ROLES = [
     "notes": [
       "Biến sự nghi ngờ của dân làng thành vũ khí giết chóc trả thù."
     ],
-    "image": "/cards/Thich_khach.png",
+    "image": "/cards/sat-thu.webp",
     "colors": {
       "bg": "#581c87",
       "border": "#a855f7",
@@ -1109,7 +1111,7 @@ export const ROLES = [
     "notes": [
       "Là canh bạc tất tay cực kỳ kịch tính và gay cấn giữa ban ngày."
     ],
-    "image": "/cards/Ky_si.png",
+    "image": "/cards/ki-si.webp",
     "colors": {
       "bg": "#1e3a8a",
       "border": "#3b82f6",
@@ -1134,7 +1136,7 @@ export const ROLES = [
     "notes": [
       "Giúp dồn áp lực biểu quyết lên những kẻ đáng ngờ."
     ],
-    "image": "/cards/Con_qua.png",
+    "image": "/cards/con-qua-plus.webp",
     "colors": {
       "bg": "#1e3a8a",
       "border": "#3b82f6",
@@ -1159,7 +1161,7 @@ export const ROLES = [
     "notes": [
       "Người chết chỉ được chỉ tay, không được mở miệng hay phát ra âm thanh."
     ],
-    "image": "/cards/Nguoi_goi_hon.png",
+    "image": "/cards/nguoi-goi-hon.webp",
     "colors": {
       "bg": "#1e3a8a",
       "border": "#3b82f6",
@@ -1184,7 +1186,7 @@ export const ROLES = [
     "notes": [
       "Cực kỳ nguy hiểm cho các chức năng chủ chốt như Tiên Tri, Bảo Vệ hay Phù Thủy."
     ],
-    "image": "/cards/Cao_lua.png",
+    "image": "/cards/soi-lua.webp",
     "colors": {
       "bg": "#7f1d1d",
       "border": "#ef4444",
@@ -1209,7 +1211,7 @@ export const ROLES = [
     "notes": [
       "Là quân bài ngụy trang nội gián hoàn hảo trong lòng dân làng."
     ],
-    "image": "/cards/anh_em_soi.png",
+    "image": "/cards/anh-em-soi.webp",
     "colors": {
       "bg": "#7f1d1d",
       "border": "#ef4444",
@@ -1234,7 +1236,7 @@ export const ROLES = [
     "notes": [
       "Luôn tìm cách bảo vệ người mình đã chọn hoặc toan tính thừa kế những vai quyền lực."
     ],
-    "image": "/cards/anh_tu.png",
+    "image": "/cards/anh-tu.webp",
     "colors": {
       "bg": "#1f2937",
       "border": "#6b7280",
@@ -1260,7 +1262,7 @@ export const ROLES = [
       "Nếu người bị chọn cùng phe với Kẻ Báo Thù chọn ban đầu thì người đó không bị hề hấn gì.",
       "Không phải phe thứ 3 độc lập mà gắn liền số phận với phe đã chọn."
     ],
-    "image": "/cards/Ke_bao_thu.png",
+    "image": "/cards/ke-bao-thu.webp",
     "colors": {
       "bg": "#1f2937",
       "border": "#6b7280",

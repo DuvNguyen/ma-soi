@@ -3,6 +3,7 @@ import { Sun, Scale } from 'lucide-react';
 import triggerHaptic from '../utils/haptics';
 import { useGothicDialog } from '../context/GothicDialogContext';
 import { getPlayerRole } from '../utils/roleUtils';
+import GothicButton from './ui/GothicButton';
 
 // Modularized Day Subcomponents
 import DayCasualtyAnnouncement from './day/DayCasualtyAnnouncement';
@@ -34,6 +35,9 @@ export default function DayPhaseView({
   onOpenAvengerModal,
   onSkipAvengerShot,
   scapegoatBannedVoterIds = [],
+  scapegoatNominatedId = null,
+  onEditScapegoatDecree,
+  onClearScapegoatDecree,
   rolesInGame = [],
   deckRoleIds = [],
   onAssignRole
@@ -99,31 +103,47 @@ export default function DayPhaseView({
         nightLogs={nightLogs}
       />
 
-      {/* 2. Public Office: Sheriff Banner */}
-      <DaySheriffBanner
-        players={players}
-        alivePlayers={alivePlayers}
-        onOpenSheriffModal={onOpenSheriffModal}
-        onToggleSheriff={onToggleSheriff}
-        showSheriffSelector={showSheriffSelector}
-        setShowSheriffSelector={setShowSheriffSelector}
-      />
+      {/* 2. Priority Day Event Actions Container */}
+      <div className="space-y-3">
+        {/* Public Office: Sheriff Banner */}
+        <DaySheriffBanner
+          players={players}
+          alivePlayers={alivePlayers}
+          onOpenSheriffModal={onOpenSheriffModal}
+          onToggleSheriff={onToggleSheriff}
+          showSheriffSelector={showSheriffSelector}
+          setShowSheriffSelector={setShowSheriffSelector}
+        />
 
-      {/* 3. Pending Hunter Shot Warning Banner */}
-      <DayHunterBanner
-        pendingHunterShot={pendingHunterShot}
-        onOpenHunterModal={onOpenHunterModal}
-        onSkipHunterShot={onSkipHunterShot}
-      />
+        {/* Pending Hunter Shot Warning Banner */}
+        <DayHunterBanner
+          pendingHunterShot={pendingHunterShot}
+          onOpenHunterModal={onOpenHunterModal}
+          onSkipHunterShot={onSkipHunterShot}
+        />
 
-      {/* 3.1 Pending Avenger Retaliation Warning Banner */}
-      <DayAvengerBanner
-        pendingAvengerShot={pendingAvengerShot}
-        onOpenAvengerModal={onOpenAvengerModal}
-        onSkipAvengerShot={onSkipAvengerShot}
-      />
+        {/* Pending Avenger Retaliation Warning Banner */}
+        <DayAvengerBanner
+          pendingAvengerShot={pendingAvengerShot}
+          onOpenAvengerModal={onOpenAvengerModal}
+          onSkipAvengerShot={onSkipAvengerShot}
+        />
 
-      {/* 4. Discussion Timer & Bear Tamer Warning */}
+        {/* Special Day Action: Knight Duel */}
+        <DayKnightDuel
+          players={players}
+          alivePlayers={alivePlayers}
+          hasLynchedToday={hasLynchedToday}
+          onKnightDuel={onKnightDuel}
+          showConfirm={showConfirm}
+          showAlert={showAlert}
+          rolesInGame={rolesInGame}
+          deckRoleIds={deckRoleIds}
+          onAssignRole={onAssignRole}
+        />
+      </div>
+
+      {/* 3. Discussion Timer & Bear Tamer Warning */}
       <DayDiscussionTimer
         timeLeft={timeLeft}
         setTimeLeft={setTimeLeft}
@@ -135,40 +155,116 @@ export default function DayPhaseView({
         nightState={nightState}
       />
 
-      {/* 5. Special Day Action: Knight Duel */}
-      <DayKnightDuel
-        players={players}
-        alivePlayers={alivePlayers}
-        hasLynchedToday={hasLynchedToday}
-        onKnightDuel={onKnightDuel}
-        showConfirm={showConfirm}
-        showAlert={showAlert}
-        rolesInGame={rolesInGame}
-        deckRoleIds={deckRoleIds}
-        onAssignRole={onAssignRole}
-      />
+      {/* Scapegoat Nominated Player Banner (Lên giàn nghi vấn / giàn treo) */}
+      {scapegoatNominatedId && (
+        <div className="p-3 sm:p-3.5 rounded-2xl bg-gradient-to-r from-rose-950/40 via-[#26050a]/60 to-slate-900/60 border border-rose-600/60 flex items-center justify-between gap-3 text-xs shadow-md animate-fade-in flex-wrap sm:flex-nowrap">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="w-8 h-8 rounded-xl bg-rose-950 border border-rose-600/80 flex items-center justify-center text-rose-300 shrink-0">
+              <Scale className="w-4 h-4" />
+            </div>
+            <div className="min-w-0">
+              <div className="font-bold text-rose-200 uppercase tracking-wide text-[11px] font-cinzel">
+                Oan Nhân Chỉ Định Lên Giàn Nghi Vấn (Ngày {roundNumber})
+              </div>
+              <div className="text-slate-300 truncate text-[11px]">
+                Người chơi bị chỉ định: <span className="font-bold text-rose-300">
+                  {(() => {
+                    const np = players.find(p => p.id === scapegoatNominatedId);
+                    return np ? `#${np.id} ${np.name}` : `#${scapegoatNominatedId}`;
+                  })()}
+                </span>
+              </div>
+            </div>
+          </div>
+          <div className="flex items-center gap-1.5 shrink-0">
+            <GothicButton
+              type="button"
+              variant="blood"
+              size="sm"
+              onClick={() => setSelectedLynchId(scapegoatNominatedId)}
+            >
+              Chọn Treo Cổ 🔥
+            </GothicButton>
+            {onEditScapegoatDecree && (
+              <GothicButton
+                type="button"
+                variant="secondary"
+                size="sm"
+                onClick={onEditScapegoatDecree}
+              >
+                Sửa
+              </GothicButton>
+            )}
+            {onClearScapegoatDecree && (
+              <GothicButton
+                type="button"
+                variant="dark"
+                size="sm"
+                onClick={() => {
+                  showConfirm({
+                    title: 'GỠ BỎ CHỈ ĐỊNH OAN NHÂN',
+                    message: 'Bạn có chắc chắn muốn hủy bỏ chỉ định lên giàn nghi vấn hôm nay?',
+                    variant: 'dark',
+                    confirmText: 'Gỡ Bỏ ⚖️',
+                    onConfirm: onClearScapegoatDecree
+                  });
+                }}
+              >
+                Gỡ
+              </GothicButton>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Scapegoat Decree Banner */}
       {scapegoatBannedVoterIds && scapegoatBannedVoterIds.length > 0 && (
-        <div className="p-3 sm:p-3.5 rounded-2xl bg-gradient-to-r from-amber-950/40 via-[#1a0f04]/60 to-slate-900/60 border border-amber-700/60 flex items-center justify-between gap-3 text-xs shadow-md animate-fade-in">
+        <div className="p-3 sm:p-3.5 rounded-2xl bg-gradient-to-r from-amber-950/40 via-[#1a0f04]/60 to-slate-900/60 border border-amber-700/60 flex items-center justify-between gap-3 text-xs shadow-md animate-fade-in flex-wrap sm:flex-nowrap">
           <div className="flex items-center gap-2.5 min-w-0">
             <div className="w-8 h-8 rounded-xl bg-amber-950 border border-amber-600/80 flex items-center justify-center text-amber-300 shrink-0">
               <Scale className="w-4 h-4" />
             </div>
             <div className="min-w-0">
               <div className="font-bold text-amber-200 uppercase tracking-wide text-[11px] font-cinzel">
-                Di Ngôn Người Thế Thân Có Hiệu Lực
+                Sắc Lệnh Oan Nhân (Ngày {roundNumber})
               </div>
               <div className="text-slate-300 truncate text-[11px]">
-                Người bị cấm biểu quyết: <span className="font-semibold text-amber-300">
+                Cấm biểu quyết: <span className="font-semibold text-amber-300">
                   {players.filter(p => scapegoatBannedVoterIds.includes(p.id)).map(p => `#${p.id} ${p.name}`).join(', ')}
                 </span>
               </div>
             </div>
           </div>
-          <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-amber-950 text-amber-300 border border-amber-700/70 shrink-0">
-            Ngày {roundNumber}
-          </span>
+          <div className="flex items-center gap-1.5 shrink-0">
+            {onEditScapegoatDecree && (
+              <GothicButton
+                type="button"
+                variant="secondary"
+                size="sm"
+                onClick={onEditScapegoatDecree}
+              >
+                Sửa Di Ngôn
+              </GothicButton>
+            )}
+            {onClearScapegoatDecree && (
+              <GothicButton
+                type="button"
+                variant="dark"
+                size="sm"
+                onClick={() => {
+                  showConfirm({
+                    title: 'GỠ BỎ SẮC LỆNH OAN NHÂN',
+                    message: 'Bạn có chắc chắn muốn hủy bỏ toàn bộ danh sách cấm biểu quyết ngày hôm nay?',
+                    variant: 'dark',
+                    confirmText: 'Gỡ Bỏ ⚖️',
+                    onConfirm: onClearScapegoatDecree
+                  });
+                }}
+              >
+                Gỡ Bỏ
+              </GothicButton>
+            )}
+          </div>
         </div>
       )}
 
@@ -188,6 +284,7 @@ export default function DayPhaseView({
         onLynchPlayer={onLynchPlayer}
         showConfirm={showConfirm}
         scapegoatBannedVoterIds={scapegoatBannedVoterIds}
+        scapegoatNominatedId={scapegoatNominatedId}
       />
 
       {/* 7. Night Transition Footer Button */}

@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
-import { ChevronLeft, ChevronRight, Heart, Skull, Shield, Eye, Flame, Check, Search } from 'lucide-react';
-import WolfIcon from './ui/WolfIcon';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
+import PlayerSeatCard from './ui/PlayerSeatCard';
+import SearchInput from './ui/SearchInput';
 import { getPlayerRole, matchesSearch, removeVietnameseTones } from '../utils/roleUtils';
 import triggerHaptic from '../utils/haptics';
 
@@ -39,98 +40,24 @@ export default function PlayerSeatPicker({
     }
   };
 
-  const getVariantStyles = (isSelected, isWolf, isDisabled) => {
-    if (isDisabled) {
-      return 'opacity-30 cursor-not-allowed bg-black/40 border-slate-900 text-slate-600';
-    }
-
-    if (isSelected) {
-      switch (variant) {
-        case 'cupid':
-          return 'bg-gradient-to-r from-pink-950 via-[#3b124d] to-pink-950 border-pink-500 text-white shadow-[0_0_18px_rgba(236,72,153,0.6)] ring-1 ring-pink-400 scale-[1.03]';
-        case 'protect':
-          return 'bg-teal-950 border-teal-400 text-teal-100 shadow-[0_0_18px_rgba(20,184,166,0.6)] ring-1 ring-teal-400 scale-[1.03]';
-        case 'wolf':
-          return 'bg-gradient-to-r from-rose-950 via-[#3b090e] to-rose-950 border-rose-500 text-white shadow-[0_0_20px_rgba(225,29,72,0.7)] ring-1 ring-rose-400 scale-[1.03]';
-        case 'seer':
-          return 'bg-purple-950 border-purple-400 text-purple-100 shadow-[0_0_18px_rgba(168,85,247,0.6)] ring-1 ring-purple-400 scale-[1.03]';
-        default:
-          return 'bg-purple-950 border-purple-400 text-white shadow-[0_0_15px_rgba(168,85,247,0.5)] scale-[1.03]';
-      }
-    }
-
-    if (isWolf && variant !== 'wolf') {
-      return 'bg-gradient-to-b from-[#22070a] to-[#120305] border-rose-600/90 hover:border-rose-400 text-slate-200 shadow-sm';
-    }
-
-    return 'bg-[#101322] hover:bg-[#181c33] border-slate-800 hover:border-purple-600 text-slate-300 shadow-sm';
-  };
-
   const renderSeatItem = (p) => {
     const isSelected = selectedIds.includes(p.id);
     const isDisabled = disabledIds.includes(p.id);
-    const isWolf = isWolfPlayer(p);
 
     return (
-      <button
+      <PlayerSeatCard
         key={p.id}
-        type="button"
+        player={p}
+        mode="pick"
+        selected={isSelected}
         disabled={isDisabled}
+        variant={variant}
+        showRole={showRole}
         onClick={() => {
           triggerHaptic('tap');
           onSelect(p.id);
         }}
-        className={`p-2 rounded-xl border text-left transition-all duration-75 select-none touch-manipulation active:scale-95 cursor-pointer flex flex-col justify-between min-h-[64px] sm:min-h-[72px] relative overflow-hidden ${getVariantStyles(
-          isSelected,
-          isWolf,
-          isDisabled
-        )}`}
-      >
-        {/* Top seat bar indicator */}
-        <div className={`w-6 h-0.5 rounded-full mb-1 ${
-          isSelected ? 'bg-white' : isWolf ? 'bg-rose-500' : 'bg-purple-500/60'
-        }`}></div>
-
-        {/* Seat Header: Seat Number + Status Icon */}
-        <div className="flex items-center justify-between w-full">
-          <span className={`font-mono font-black text-xs sm:text-sm ${
-            isSelected ? 'text-white' : isWolf ? 'text-rose-300' : 'text-purple-300'
-          }`}>
-            #{p.id}
-          </span>
-
-          {isSelected && (
-            variant === 'cupid' ? (
-              <Heart className="w-3.5 h-3.5 text-pink-400 fill-pink-500 animate-bounce" />
-            ) : variant === 'protect' ? (
-              <Shield className="w-3.5 h-3.5 text-teal-300 fill-teal-400" />
-            ) : variant === 'wolf' ? (
-              <Skull className="w-3.5 h-3.5 text-rose-400 fill-rose-500 animate-pulse" />
-            ) : variant === 'seer' ? (
-              <Eye className="w-3.5 h-3.5 text-purple-300" />
-            ) : (
-              <Check className="w-3.5 h-3.5 text-emerald-400" />
-            )
-          )}
-          {!isSelected && isWolf && (
-            <WolfIcon className="w-3 h-3 text-rose-400 inline" />
-          )}
-        </div>
-
-        {/* Player Name */}
-        <div className="font-bold text-xs truncate w-full mt-0.5">
-          <span className={isSelected ? 'text-white font-black' : isWolf ? 'text-rose-200' : 'text-slate-100'}>
-            {p.name}
-          </span>
-        </div>
-
-        {/* Role or Action hint */}
-        {showRole && (
-          <div className="text-[9px] text-slate-400 truncate w-full mt-0.5">
-            {getPlayerRole(p)?.name || (isDisabled ? 'Bị cấm' : 'Chưa lộ vai')}
-          </div>
-        )}
-      </button>
+      />
     );
   };
 
@@ -143,24 +70,20 @@ export default function PlayerSeatPicker({
             <span>Ghế: {selectedIds.length}/{maxSelect}</span>
           </span>
 
-          {/* Compact Search Input */}
-          <div className="relative">
-            <Search className="w-3 h-3 text-slate-400 absolute left-2 top-1/2 -translate-y-1/2 pointer-events-none" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Tìm tên..."
-              className="w-24 sm:w-32 text-xs py-0.5 pl-6 pr-2 rounded-lg bg-slate-900/90 border border-slate-700 text-slate-200 placeholder:text-slate-500 focus:outline-none focus:border-purple-500"
-            />
-          </div>
+          <SearchInput
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            onClear={() => setSearchQuery('')}
+            placeholder="Tìm tên..."
+            className="w-28 sm:w-36"
+          />
         </div>
 
         <div className="flex items-center gap-1 bg-black/60 p-0.5 rounded-lg border border-slate-800 shrink-0">
           <button
             type="button"
             onClick={() => setViewMode('matrix')}
-            className={`px-2 py-0.5 rounded text-[10px] font-bold transition-all cursor-pointer ${
+            className={`hit-44 px-2.5 py-1 rounded text-caption font-bold transition-all cursor-pointer ${
               viewMode === 'matrix'
                 ? 'bg-purple-900 border border-purple-500 text-white'
                 : 'text-slate-400 hover:text-slate-200'
@@ -171,7 +94,7 @@ export default function PlayerSeatPicker({
           <button
             type="button"
             onClick={() => setViewMode('slider')}
-            className={`px-2 py-0.5 rounded text-[10px] font-bold transition-all cursor-pointer ${
+            className={`hit-44 px-2.5 py-1 rounded text-caption font-bold transition-all cursor-pointer ${
               viewMode === 'slider'
                 ? 'bg-purple-900 border border-purple-500 text-white'
                 : 'text-slate-400 hover:text-slate-200'

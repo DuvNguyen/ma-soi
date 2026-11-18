@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { Flame, Ghost, Wand2, Eye, EyeOff, Check, Skull, MoonStar, Crosshair, Users, Search, Swords, Theater, RefreshCw, Sparkles, Shield, Zap } from 'lucide-react';
 import PlayerSeatPicker from '../PlayerSeatPicker';
 import WolfIcon from '../ui/WolfIcon';
+import GothicButton from '../ui/GothicButton';
+import SearchInput from '../ui/SearchInput';
 import { getPlayerRole, matchesSearch, removeVietnameseTones } from '../../utils/roleUtils';
 import { ROLES } from '../../data/roles';
 
@@ -104,23 +106,19 @@ export default function NightSpecialRolesStep({
             </span>
 
             <div className="flex items-center gap-2">
-              {/* Compact Search Input */}
-              <div className="relative">
-                <Search className="w-3 h-3 text-slate-400 absolute left-2 top-1/2 -translate-y-1/2 pointer-events-none" />
-                <input
-                  type="text"
-                  value={roleActionSearch}
-                  onChange={(e) => setRoleActionSearch(e.target.value)}
-                  placeholder="Tìm tên..."
-                  className="w-24 sm:w-32 text-xs py-0.5 pl-6 pr-2 rounded-lg bg-slate-900/90 border border-slate-700 text-slate-200 placeholder:text-slate-500 focus:outline-none focus:border-amber-500"
-                />
-              </div>
+              <SearchInput
+                value={roleActionSearch}
+                onChange={(e) => setRoleActionSearch(e.target.value)}
+                onClear={() => setRoleActionSearch('')}
+                placeholder="Tìm tên..."
+                className="w-28 sm:w-36"
+              />
 
               {wildChildPlayer && typeof onAssignRole === 'function' && (
                 <button
                   type="button"
                   onClick={() => onAssignRole(wildChildPlayer.id, currentRole.id)}
-                  className="text-[11px] underline text-slate-400 hover:text-amber-300 cursor-pointer"
+                  className="hit-44 text-[11px] underline text-slate-400 hover:text-amber-300 cursor-pointer"
                 >
                   Đổi vai
                 </button>
@@ -272,23 +270,19 @@ export default function NightSpecialRolesStep({
             </span>
 
             <div className="flex items-center gap-2">
-              {/* Compact Search Input */}
-              <div className="relative">
-                <Search className="w-3 h-3 text-slate-400 absolute left-2 top-1/2 -translate-y-1/2 pointer-events-none" />
-                <input
-                  type="text"
-                  value={roleActionSearch}
-                  onChange={(e) => setRoleActionSearch(e.target.value)}
-                  placeholder="Tìm tên..."
-                  className="w-24 sm:w-32 text-xs py-0.5 pl-6 pr-2 rounded-lg bg-slate-900/90 border border-slate-700 text-slate-200 placeholder:text-slate-500 focus:outline-none focus:border-purple-500"
-                />
-              </div>
+              <SearchInput
+                value={roleActionSearch}
+                onChange={(e) => setRoleActionSearch(e.target.value)}
+                onClear={() => setRoleActionSearch('')}
+                placeholder="Tìm tên..."
+                className="w-28 sm:w-36"
+              />
 
               {shadowPlayer && typeof onAssignRole === 'function' && (
                 <button
                   type="button"
                   onClick={() => onAssignRole(shadowPlayer.id, currentRole.id)}
-                  className="text-[11px] underline text-slate-400 hover:text-purple-300 cursor-pointer"
+                  className="hit-44 text-[11px] underline text-slate-400 hover:text-purple-300 cursor-pointer"
                 >
                   Đổi vai
                 </button>
@@ -372,16 +366,13 @@ export default function NightSpecialRolesStep({
             </h4>
           </div>
           <div className="flex items-center gap-2">
-            <div className="relative">
-              <Search className="w-3 h-3 text-slate-400 absolute left-2 top-1/2 -translate-y-1/2 pointer-events-none" />
-              <input
-                type="text"
-                value={roleActionSearch}
-                onChange={(e) => setRoleActionSearch(e.target.value)}
-                placeholder="Tìm tên..."
-                className="w-24 sm:w-32 text-xs py-0.5 pl-6 pr-2 rounded-lg bg-slate-900/90 border border-slate-700 text-slate-200 placeholder:text-slate-500 focus:outline-none focus:border-indigo-500"
-              />
-            </div>
+            <SearchInput
+              value={roleActionSearch}
+              onChange={(e) => setRoleActionSearch(e.target.value)}
+              onClear={() => setRoleActionSearch('')}
+              placeholder="Tìm tên..."
+              className="w-28 sm:w-36"
+            />
             <span className="text-xs px-2.5 py-1 rounded-lg bg-indigo-950/80 border border-indigo-700/80 text-indigo-300 font-bold shrink-0">
               Tiến độ: {hypnotizedCount}/{targetVictimsCount}
             </span>
@@ -465,27 +456,22 @@ export default function NightSpecialRolesStep({
           </div>
 
           <div className="flex items-center gap-2">
-            <div className="relative">
-              <Search className="w-3 h-3 text-slate-400 absolute left-2 top-1/2 -translate-y-1/2 pointer-events-none" />
-              <input
-                type="text"
-                value={roleActionSearch}
-                onChange={(e) => setRoleActionSearch(e.target.value)}
-                placeholder="Tìm tên..."
-                className="w-24 sm:w-32 text-xs py-0.5 pl-6 pr-2 rounded-lg bg-slate-900/90 border border-slate-700 text-slate-200 placeholder:text-slate-500 focus:outline-none focus:border-slate-400"
-              />
-            </div>
-            <button
+            <SearchInput
+              value={roleActionSearch}
+              onChange={(e) => setRoleActionSearch(e.target.value)}
+              onClear={() => setRoleActionSearch('')}
+              placeholder="Tìm tên..."
+              className="w-28 sm:w-36"
+            />
+            <GothicButton
               type="button"
+              size="sm"
+              variant={nightState.ravenSkipped ? 'primary' : 'ghost'}
               onClick={() => onSaveAction('raven', null, { ravenSkipped: true })}
-              className={`text-xs px-3 py-1 rounded-xl border transition-all font-bold cursor-pointer shrink-0 ${
-                nightState.ravenSkipped
-                  ? 'bg-amber-950 border-amber-500 text-amber-200 shadow-md'
-                  : 'bg-slate-900 hover:bg-slate-800 border-slate-700 text-slate-300'
-              }`}
+              className="shrink-0"
             >
               🚫 Bỏ Qua
-            </button>
+            </GothicButton>
           </div>
         </div>
 
@@ -593,17 +579,14 @@ export default function NightSpecialRolesStep({
             </h4>
           </div>
 
-          <button
+          <GothicButton
             type="button"
+            size="sm"
+            variant={isSkipped ? 'primary' : 'ghost'}
             onClick={() => onSaveAction('fox', null, { foxSkipped: true, foxLostPower: false, foxFoundWolf: null })}
-            className={`text-xs px-3 py-1 rounded-xl border transition-all font-bold cursor-pointer ${
-              isSkipped
-                ? 'bg-amber-950 border-amber-500 text-amber-200 shadow-md ring-1 ring-amber-400'
-                : 'bg-slate-900 hover:bg-slate-800 border-slate-700 text-slate-300'
-            }`}
           >
             🚫 Đêm Nay Bỏ Qua
-          </button>
+          </GothicButton>
         </div>
 
         {/* 2 Primary Decision Case Buttons */}
@@ -780,27 +763,22 @@ export default function NightSpecialRolesStep({
             </h4>
           </div>
           <div className="flex items-center gap-2">
-            <div className="relative">
-              <Search className="w-3 h-3 text-slate-400 absolute left-2 top-1/2 -translate-y-1/2 pointer-events-none" />
-              <input
-                type="text"
-                value={roleActionSearch}
-                onChange={(e) => setRoleActionSearch(e.target.value)}
-                placeholder="Tìm tên..."
-                className="w-24 sm:w-32 text-xs py-0.5 pl-6 pr-2 rounded-lg bg-slate-900/90 border border-slate-700 text-slate-200 placeholder:text-slate-500 focus:outline-none focus:border-purple-500"
-              />
-            </div>
-            <button
+            <SearchInput
+              value={roleActionSearch}
+              onChange={(e) => setRoleActionSearch(e.target.value)}
+              onClear={() => setRoleActionSearch('')}
+              placeholder="Tìm tên..."
+              className="w-28 sm:w-36"
+            />
+            <GothicButton
               type="button"
+              size="sm"
+              variant={nightState.whiteWolfSkipped ? 'primary' : 'ghost'}
               onClick={() => onSaveAction('whiteWolf', null, { whiteWolfSkipped: true })}
-              className={`text-xs px-3 py-1 rounded-xl border transition-all font-bold cursor-pointer shrink-0 ${
-                nightState.whiteWolfSkipped
-                  ? 'bg-purple-950 border-purple-500 text-purple-200 shadow-md'
-                  : 'bg-slate-900 hover:bg-slate-800 border-slate-700 text-slate-300'
-              }`}
+              className="shrink-0"
             >
               🚫 Không Cắn
-            </button>
+            </GothicButton>
           </div>
         </div>
 
@@ -1442,17 +1420,14 @@ export default function NightSpecialRolesStep({
           actionLabel="Thiêu rụi"
         />
         <div className="flex justify-end">
-          <button
+          <GothicButton
             type="button"
+            size="sm"
+            variant={isSkipped ? 'primary' : 'ghost'}
             onClick={() => onSaveAction('fire_wolf', null, { fireWolfSkipped: true })}
-            className={`px-3 py-1.5 rounded-xl border text-xs font-bold transition-all cursor-pointer ${
-              isSkipped
-                ? 'bg-rose-950 border-rose-500 text-rose-200'
-                : 'bg-[#121422] border-slate-800 text-slate-400 hover:text-slate-200'
-            }`}
           >
             🚫 Bỏ Qua Đêm Nay
-          </button>
+          </GothicButton>
         </div>
       </div>
     );
@@ -1511,17 +1486,14 @@ export default function NightSpecialRolesStep({
         />
 
         <div className="flex justify-end">
-          <button
+          <GothicButton
             type="button"
+            size="sm"
+            variant={isSkipped ? 'primary' : 'ghost'}
             onClick={() => onSaveAction('assassin', null, { assassinSkipped: true })}
-            className={`px-3 py-1.5 rounded-xl border text-xs font-bold transition-all cursor-pointer ${
-              isSkipped
-                ? 'bg-purple-950 border-purple-500 text-purple-200'
-                : 'bg-[#121422] border-slate-800 text-slate-400 hover:text-slate-200'
-            }`}
           >
             🚫 Không Ám Sát Đêm Nay
-          </button>
+          </GothicButton>
         </div>
       </div>
     );
@@ -1580,17 +1552,14 @@ export default function NightSpecialRolesStep({
         />
 
         <div className="flex justify-end">
-          <button
+          <GothicButton
             type="button"
+            size="sm"
+            variant={isSkipped ? 'primary' : 'ghost'}
             onClick={() => onSaveAction('pyro', null, { pyroSkipped: true })}
-            className={`px-3 py-1.5 rounded-xl border text-xs font-bold transition-all cursor-pointer ${
-              isSkipped
-                ? 'bg-amber-950 border-amber-500 text-amber-200'
-                : 'bg-[#121422] border-slate-800 text-slate-400 hover:text-slate-200'
-            }`}
           >
             🚫 Không Phóng Hỏa Đêm Nay
-          </button>
+          </GothicButton>
         </div>
       </div>
     );
@@ -1999,17 +1968,14 @@ export default function NightSpecialRolesStep({
             />
 
             <div className="flex justify-end">
-              <button
+              <GothicButton
                 type="button"
+                size="sm"
+                variant={isSkipped ? 'primary' : 'ghost'}
                 onClick={() => onSaveAction('puppeteer', null, { puppeteerSkipped: true })}
-                className={`px-3 py-1.5 rounded-xl border text-xs font-bold transition-all cursor-pointer ${
-                  isSkipped
-                    ? 'bg-indigo-950 border-indigo-500 text-indigo-200'
-                    : 'bg-[#121422] border-slate-800 text-slate-400 hover:text-slate-200'
-                }`}
               >
                 🚫 Không Can Thiệp Đêm Nay
-              </button>
+              </GothicButton>
             </div>
           </>
         )}
@@ -2108,17 +2074,14 @@ export default function NightSpecialRolesStep({
             />
 
             <div className="flex justify-end">
-              <button
+              <GothicButton
                 type="button"
+                size="sm"
+                variant={isSkipped ? 'primary' : 'ghost'}
                 onClick={() => onSaveAction('soothsayer', null, { question: selectedQuestion, soothsayerSkipped: true })}
-                className={`px-3 py-1.5 rounded-xl border text-xs font-bold transition-all cursor-pointer ${
-                  isSkipped
-                    ? 'bg-blue-950 border-blue-500 text-blue-200'
-                    : 'bg-[#121422] border-slate-800 text-slate-400 hover:text-slate-200'
-                }`}
               >
                 🚫 Bỏ Qua Đêm Nay
-              </button>
+              </GothicButton>
             </div>
           </>
         )}
@@ -2177,17 +2140,14 @@ export default function NightSpecialRolesStep({
         />
 
         <div className="flex justify-end">
-          <button
+          <GothicButton
             type="button"
+            size="sm"
+            variant={isSkipped ? 'primary' : 'ghost'}
             onClick={() => onSaveAction('spiritualist', null, { spiritualistSkipped: true })}
-            className={`px-3 py-1.5 rounded-xl border text-xs font-bold transition-all cursor-pointer ${
-              isSkipped
-                ? 'bg-cyan-950 border-cyan-500 text-cyan-200'
-                : 'bg-[#121422] border-slate-800 text-slate-400 hover:text-slate-200'
-            }`}
           >
             🚫 Bỏ Qua Đêm Nay
-          </button>
+          </GothicButton>
         </div>
       </div>
     );

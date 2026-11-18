@@ -5,6 +5,7 @@ import {
   LayoutGrid, List, Sparkles, Sun, Moon, ArrowLeft, Info
 } from 'lucide-react';
 import WolfIcon from './ui/WolfIcon';
+import IconButton from './ui/IconButton';
 import { matchesSearch } from '../utils/roleUtils';
 
 export default function RoleLibraryModal({ isOpen, onClose }) {
@@ -108,7 +109,7 @@ export default function RoleLibraryModal({ isOpen, onClose }) {
                 onClick={() => { setDisplayMode('grid'); setMobileView('grid'); }}
                 title="Dạng lưới thẻ bài"
                 aria-label="Chuyển chế độ xem dạng lưới thẻ bài"
-                className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
+                className={`hit-44 p-1.5 rounded-lg transition-colors cursor-pointer ${
                   displayMode === 'grid' && mobileView === 'grid' ? 'bg-purple-900/80 text-white' : 'text-slate-400'
                 }`}
               >
@@ -119,7 +120,7 @@ export default function RoleLibraryModal({ isOpen, onClose }) {
                 onClick={() => { setDisplayMode('list'); setMobileView('grid'); }}
                 title="Dạng danh sách"
                 aria-label="Chuyển chế độ xem dạng danh sách"
-                className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
+                className={`hit-44 p-1.5 rounded-lg transition-colors cursor-pointer ${
                   displayMode === 'list' && mobileView === 'grid' ? 'bg-purple-900/80 text-white' : 'text-slate-400'
                 }`}
               >
@@ -128,14 +129,11 @@ export default function RoleLibraryModal({ isOpen, onClose }) {
             </div>
 
             {/* Close Button */}
-            <button
-              type="button"
+            <IconButton
+              icon={X}
+              label="Đóng thư viện vai trò"
               onClick={onClose}
-              aria-label="Đóng thư viện vai trò"
-              className="w-9 h-9 rounded-xl bg-slate-900/80 hover:bg-slate-800 border border-slate-800 hover:border-slate-700 text-slate-300 hover:text-white flex items-center justify-center transition-all cursor-pointer active:scale-95"
-            >
-              <X className="w-5 h-5" />
-            </button>
+            />
           </div>
         </div>
 
@@ -271,6 +269,9 @@ export default function RoleLibraryModal({ isOpen, onClose }) {
                             src={r.image}
                             alt={r.name}
                             loading="lazy"
+                            decoding="async"
+                            width="90"
+                            height="120"
                             className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-200"
                           />
                         ) : (
@@ -370,7 +371,7 @@ export default function RoleLibraryModal({ isOpen, onClose }) {
                   <button
                     type="button"
                     onClick={handlePrevRole}
-                    className="h-8 px-2.5 rounded-lg bg-purple-950/60 hover:bg-purple-900/80 border border-purple-800/60 text-purple-200 text-xs font-bold flex items-center gap-1 transition-all active:scale-95 cursor-pointer"
+                    className="hit-44 h-8 px-2.5 rounded-lg bg-purple-950/60 hover:bg-purple-900/80 border border-purple-800/60 text-purple-200 text-xs font-bold flex items-center gap-1 transition-all active:scale-95 cursor-pointer"
                   >
                     <ChevronLeft className="w-4 h-4" />
                     <span>Trước</span>
@@ -385,7 +386,7 @@ export default function RoleLibraryModal({ isOpen, onClose }) {
                   <button
                     type="button"
                     onClick={handleNextRole}
-                    className="h-8 px-2.5 rounded-lg bg-purple-950/60 hover:bg-purple-900/80 border border-purple-800/60 text-purple-200 text-xs font-bold flex items-center gap-1 transition-all active:scale-95 cursor-pointer"
+                    className="hit-44 h-8 px-2.5 rounded-lg bg-purple-950/60 hover:bg-purple-900/80 border border-purple-800/60 text-purple-200 text-xs font-bold flex items-center gap-1 transition-all active:scale-95 cursor-pointer"
                   >
                     <span>Sau</span>
                     <ChevronRight className="w-4 h-4" />
@@ -407,6 +408,9 @@ export default function RoleLibraryModal({ isOpen, onClose }) {
                         <img
                           src={activeRole.image}
                           alt={activeRole.name}
+                          width="240"
+                          height="360"
+                          decoding="async"
                           className="w-full h-full object-contain"
                         />
                       ) : (

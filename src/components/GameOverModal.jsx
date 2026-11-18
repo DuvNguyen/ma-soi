@@ -39,6 +39,10 @@ export default function GameOverModal({ gameEndResult, onRestartGame }) {
           <img
             src="/victory-banner.png"
             alt="Cờ Chiến Thắng"
+            width="360"
+            height="480"
+            loading="eager"
+            decoding="async"
             className="w-full h-auto object-contain filter drop-shadow-[0_10px_20px_rgba(0,0,0,0.8)] pointer-events-none"
           />
 

@@ -67,11 +67,11 @@ export default function DayNightTransition({
   return (
     <div className="flex justify-center pt-2 pb-6">
       <GothicButton
-        variant="witch"
-        size="lg"
+        variant={hasLynchedToday ? 'witch' : 'secondary'}
+        size={hasLynchedToday ? 'lg' : 'md'}
         icon={Moon}
         onClick={handleTransition}
-        className="shadow-2xl shadow-purple-950/80"
+        className={hasLynchedToday ? 'shadow-2xl shadow-purple-950/80' : 'opacity-90'}
       >
         <span>Hết ngày ➔ Ban đêm</span>
       </GothicButton>

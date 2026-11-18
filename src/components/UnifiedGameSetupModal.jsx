@@ -36,6 +36,8 @@ import {
   UserCheck
 } from 'lucide-react';
 import GothicButton from './ui/GothicButton';
+import IconButton from './ui/IconButton';
+import GothicBadge from './ui/GothicBadge';
 import WolfIcon from './ui/WolfIcon';
 import { useGothicDialog } from '../context/GothicDialogContext';
 import triggerHaptic from '../utils/haptics';
@@ -937,15 +939,12 @@ export default function UnifiedGameSetupModal({
           </div>
 
           {/* Close button X */}
-          <button
-            type="button"
+          <IconButton
+            icon={X}
+            label="Đóng cửa sổ thiết lập ván đấu"
             onClick={onClose}
-            aria-label="Đóng cửa sổ thiết lập ván đấu"
-            title="Đóng cửa sổ (Esc)"
-            className="mb-1.5 sm:mb-2 w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-slate-900 hover:bg-rose-950/80 border border-slate-700/80 hover:border-rose-600/80 text-slate-300 hover:text-rose-200 transition-all flex items-center justify-center cursor-pointer shrink-0 shadow-sm active:scale-95"
-          >
-            <X className="w-4 h-4 sm:w-5 sm:h-5 stroke-[2.5]" />
-          </button>
+            className="mb-1.5 sm:mb-2"
+          />
         </div>
 
         {/* ============================================================== */}
@@ -1089,6 +1088,7 @@ export default function UnifiedGameSetupModal({
                       <div
                         key={t.id}
                         onClick={(e) => {
+                          if (isEditing) return;
                           if (e.target.closest('button') || e.target.closest('input')) return;
                           handleSelectTemplate(t);
                         }}
@@ -1103,7 +1103,7 @@ export default function UnifiedGameSetupModal({
                         <div>
                           <div className="flex items-center justify-between mb-1.5 gap-2">
                             {isEditing ? (
-                              <div className="flex-1 min-w-0" onClick={(e) => e.stopPropagation()}>
+                              <div className="flex-1 min-w-0">
                                 <input
                                   type="text"
                                   value={editingDeckName}
@@ -1136,7 +1136,7 @@ export default function UnifiedGameSetupModal({
                           </div>
 
                           {isEditing ? (
-                            <div className="mb-2" onClick={(e) => e.stopPropagation()}>
+                            <div className="mb-2">
                               <input
                                 type="text"
                                 value={editingDeckDesc}
@@ -1181,7 +1181,7 @@ export default function UnifiedGameSetupModal({
 
                         {/* Inline Role Customizer inside the deck card */}
                         {isEditing && (
-                          <div className="mt-4 pt-3.5 border-t border-amber-900/60 space-y-3 animate-fade-in" onClick={(e) => e.stopPropagation()}>
+                          <div className="mt-4 pt-3.5 border-t border-amber-900/60 space-y-3 animate-fade-in">
                             {/* Header for role cards inside editor */}
                             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 border-b border-slate-800/80 pb-2.5">
                               <div className="flex items-center gap-2 flex-wrap">
@@ -1238,24 +1238,22 @@ export default function UnifiedGameSetupModal({
                                     </div>
 
                                     <div className="flex items-center gap-1 shrink-0">
-                                      <button
-                                        type="button"
+                                      <IconButton
+                                        icon={Minus}
+                                        label={`Giảm số lượng ${role.name}`}
+                                        size="sm"
                                         onClick={() => handleModifyRoleCount(role.id, -1)}
                                         disabled={count === 0}
-                                        className="w-6 h-6 rounded-lg bg-slate-800 hover:bg-slate-700 disabled:opacity-30 disabled:pointer-events-none text-white text-xs flex items-center justify-center cursor-pointer active:scale-95"
-                                      >
-                                        <Minus className="w-3 h-3" />
-                                      </button>
-                                      <span className="w-5 text-center text-xs font-mono font-bold text-white">
+                                      />
+                                      <span className="w-5 text-center text-caption font-mono font-bold text-white">
                                         {count}
                                       </span>
-                                      <button
-                                        type="button"
+                                      <IconButton
+                                        icon={Plus}
+                                        label={`Tăng số lượng ${role.name}`}
+                                        size="sm"
                                         onClick={() => handleModifyRoleCount(role.id, 1)}
-                                        className="w-6 h-6 rounded-lg bg-slate-800 hover:bg-purple-900 text-white text-xs flex items-center justify-center cursor-pointer active:scale-95"
-                                      >
-                                        <Plus className="w-3 h-3" />
-                                      </button>
+                                      />
                                     </div>
                                   </div>
                                 );
@@ -1350,15 +1348,14 @@ export default function UnifiedGameSetupModal({
                             </button>
 
                             {/* Delete button available on ALL cards */}
-                            <button
-                              type="button"
+                            <IconButton
+                              icon={Trash2}
+                              label={`Xóa bộ bài "${t.name}"`}
                               disabled={deletingTemplateId === t.id}
                               onClick={(e) => handleDeleteTemplate(t, e)}
-                              title={`Xóa bộ bài "${t.name}"`}
-                              className="p-1.5 rounded-lg text-slate-500 hover:text-rose-400 hover:bg-rose-950/60 disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
+                              variant="danger"
+                              size="sm"
+                            />
                           </div>
                         </div>
                       </div>
@@ -1430,25 +1427,24 @@ export default function UnifiedGameSetupModal({
                     </button>
                   )}
 
-                  <button
-                    type="button"
+                  <IconButton
+                    icon={RotateCcw}
+                    label="Đặt lại tên mặc định"
                     onClick={handleResetNamesToDefault}
-                    title="Đặt lại tên mặc định"
-                    className="p-2 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-400 hover:text-slate-200 transition-all cursor-pointer"
-                  >
-                    <RotateCcw className="w-3.5 h-3.5" />
-                  </button>
+                    size="sm"
+                  />
 
-                  <button
+                  <GothicButton
                     type="button"
                     disabled={isSavingTemplate}
                     onClick={handleSaveNamesToTemplate}
+                    variant="witch"
+                    size="sm"
+                    icon={Save}
                     title="Lưu danh sách tên vào bộ bài này"
-                    className="px-3 py-1.5 rounded-xl bg-purple-950 hover:bg-purple-900 border border-purple-700 text-xs font-bold text-purple-200 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-1.5 cursor-pointer"
                   >
-                    <Save className="w-3.5 h-3.5 text-purple-300" />
                     <span className="hidden sm:inline">{isSavingTemplate ? 'Đang lưu...' : 'Lưu Vào Bộ Này'}</span>
-                  </button>
+                  </GothicButton>
                 </div>
               </div>
 
@@ -1480,14 +1476,13 @@ export default function UnifiedGameSetupModal({
                           Trống
                         </span>
                       )}
-                      <button
-                        type="button"
+                      <IconButton
+                        icon={Trash2}
+                        label={`Xóa người chơi #${idx + 1}`}
                         onClick={() => handleDeletePlayer(idx)}
-                        title={`Xóa người chơi #${idx + 1}`}
-                        className="p-1.5 rounded-lg text-slate-500 hover:text-rose-400 hover:bg-rose-950/60 transition-all cursor-pointer shrink-0"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
+                        variant="danger"
+                        size="sm"
+                      />
                     </div>
                   );
                 })}
@@ -1727,7 +1722,7 @@ export default function UnifiedGameSetupModal({
                                   type="button"
                                   disabled={deletingRosterId === r.id}
                                   onClick={(e) => handleDeleteRoster(r.id, e)}
-                                  className="text-xs text-slate-500 hover:text-rose-400 disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1 transition-colors cursor-pointer"
+                                  className="hit-44 text-xs text-slate-500 hover:text-rose-400 disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1 transition-colors cursor-pointer"
                                   title="Xóa nhóm này khỏi Neon DB"
                                 >
                                   <Trash2 className="w-3.5 h-3.5" />
@@ -1736,7 +1731,7 @@ export default function UnifiedGameSetupModal({
                                 <button
                                   type="button"
                                   onClick={(e) => handleStartEditRoster(r, e)}
-                                  className="text-xs text-purple-400 hover:text-purple-300 flex items-center gap-1 transition-colors cursor-pointer"
+                                  className="hit-44 text-xs text-purple-400 hover:text-purple-300 flex items-center gap-1 transition-colors cursor-pointer"
                                   title="Chỉnh sửa danh sách nhóm này"
                                 >
                                   <Edit3 className="w-3.5 h-3.5" />
@@ -1815,13 +1810,12 @@ export default function UnifiedGameSetupModal({
                   {validBulkLinesCount} người
                 </span>
               </div>
-              <button
-                type="button"
+              <IconButton
+                icon={X}
+                label="Đóng cửa sổ sửa nhiều người chơi"
+                size="sm"
                 onClick={() => setIsBulkEditModalOpen(false)}
-                className="text-slate-400 hover:text-slate-200 p-1 rounded-lg hover:bg-slate-800 transition-colors cursor-pointer"
-              >
-                <X className="w-4 h-4" />
-              </button>
+              />
             </div>
 
             {/* Multi-line editor: Line numbers column + Textarea with exact pixel lock */}
@@ -1882,13 +1876,14 @@ export default function UnifiedGameSetupModal({
               </span>
 
               <div className="flex items-center gap-2">
-                <button
+                <GothicButton
                   type="button"
+                  variant="ghost"
+                  size="sm"
                   onClick={() => setIsBulkEditModalOpen(false)}
-                  className="px-4 py-2 rounded-xl border border-slate-700 hover:border-slate-600 bg-slate-900 text-slate-300 text-xs font-bold transition-all cursor-pointer"
                 >
                   Hủy
-                </button>
+                </GothicButton>
                 <GothicButton
                   variant="witch"
                   size="sm"
@@ -1931,13 +1926,12 @@ export default function UnifiedGameSetupModal({
                   </span>
                 </div>
               </div>
-              <button
-                type="button"
+              <IconButton
+                icon={X}
+                label="Đóng cửa sổ lưu nhóm"
+                size="sm"
                 onClick={() => setIsSaveCurrentAsRosterOpen(false)}
-                className="p-1 rounded-lg text-slate-400 hover:text-white"
-              >
-                <X className="w-4 h-4" />
-              </button>
+              />
             </div>
 
             <form onSubmit={handleSaveCurrentAsRoster} className="space-y-4">
@@ -1966,7 +1960,7 @@ export default function UnifiedGameSetupModal({
 
               <div className="flex justify-end gap-2 pt-2 border-t border-slate-800">
                 <GothicButton
-                  variant="dark"
+                  variant="ghost"
                   size="sm"
                   type="button"
                   onClick={() => setIsSaveCurrentAsRosterOpen(false)}
@@ -1978,8 +1972,8 @@ export default function UnifiedGameSetupModal({
                   size="sm"
                   type="submit"
                   disabled={isSavingCurrentRoster}
+                  icon={Save}
                 >
-                  <Save className="w-3.5 h-3.5 mr-1 inline" />
                   <span>{isSavingCurrentRoster ? 'Đang lưu...' : 'Lưu Vào Neon DB'}</span>
                 </GothicButton>
               </div>

@@ -330,7 +330,7 @@ export class WerewolfGame {
     }
 
     // 5. Treo cổ người chơi
-    const isScapegoatLynch = targetRole?.id === 'nguoi-the-than';
+    const isScapegoatLynch = targetRole?.id === 'nguoi-the-than' || targetRole?.id === 'oan-nhan';
     const deadTarget = target.kill('Bị dân làng biểu quyết treo cổ trên giàn thiêu', `Ngày ${this.roundNumber}`);
     let updatedPlayers = this.players.map(p => p.id === playerId ? deadTarget : p);
     let deadSheriff = deadTarget.isSheriff ? deadTarget : null;

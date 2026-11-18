@@ -70,6 +70,10 @@ export default function NightSeerStep({
                   <img
                     src={targetRole.image}
                     alt={targetRole.name}
+                    width="48"
+                    height="64"
+                    loading="eager"
+                    decoding="async"
                     className="w-full h-full object-contain"
                   />
                 ) : (

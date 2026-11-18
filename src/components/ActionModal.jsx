@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Shield, Eye, Skull, Sparkles, Heart, Crosshair, AlertTriangle, Check, X, User, Scale, Swords, Search, History, Ghost, Flame, Star, HeartPulse, UserX } from 'lucide-react';
 import GothicButton from './ui/GothicButton';
 import GothicBadge from './ui/GothicBadge';
+import IconButton from './ui/IconButton';
 import WolfIcon from './ui/WolfIcon';
 import { isWolfPlayer, getPlayerRole, matchesSearch, removeVietnameseTones } from '../utils/roleUtils';
 import { ROLES } from '../data/roles';
@@ -18,6 +19,7 @@ export default function ActionModal({
   deckRoleIds = [],
   rolesInGame = [],
   nightState,
+  actionData,
   onSaveAction,
   onAssignRole,
   onRevivePlayer,
@@ -33,8 +35,34 @@ export default function ActionModal({
   const [seerResult, setSeerResult] = useState(null);
   const [witchSaved, setWitchSaved] = useState(nightState?.witchSaved || false);
   const [witchPoisonId, setWitchPoisonId] = useState(nightState?.witchPoisonTargetId || null);
-  const [bannedVoterIds, setBannedVoterIds] = useState([]);
+  const [bannedVoterIds, setBannedVoterIds] = useState(() => {
+    if (Array.isArray(actionData)) return actionData;
+    if (actionData && Array.isArray(actionData.bannedVoterIds)) return actionData.bannedVoterIds;
+    return [];
+  });
+  const [nominatedId, setNominatedId] = useState(() => {
+    if (actionData && typeof actionData === 'object' && !Array.isArray(actionData)) return actionData.nominatedId || null;
+    return null;
+  });
+  const [decreeVariant, setDecreeVariant] = useState('nomination');
   const [hunterSearchQuery, setHunterSearchQuery] = useState('');
+
+  useEffect(() => {
+    if (actionType === 'scapegoat_decree') {
+      if (Array.isArray(actionData)) {
+        setBannedVoterIds(actionData);
+        if (actionData.length > 0) setDecreeVariant('voters');
+      } else if (actionData && typeof actionData === 'object') {
+        if (Array.isArray(actionData.bannedVoterIds)) setBannedVoterIds(actionData.bannedVoterIds);
+        if (actionData.nominatedId) {
+          setNominatedId(actionData.nominatedId);
+          setDecreeVariant('nomination');
+        } else if (actionData.bannedVoterIds && actionData.bannedVoterIds.length > 0) {
+          setDecreeVariant('voters');
+        }
+      }
+    }
+  }, [actionType, actionData]);
   const [journeyPlayer, setJourneyPlayer] = useState(null);
   const [shadowHostSearch, setShadowHostSearch] = useState('');
   const [wildChildSearch, setWildChildSearch] = useState('');
@@ -607,16 +635,17 @@ export default function ActionModal({
             </div>
 
             <div className="pt-2 border-t border-slate-800 flex justify-end">
-              <button
+              <GothicButton
                 type="button"
+                size="sm"
+                variant="ghost"
                 onClick={() => {
                   onSaveAction('skip_hunter');
                   onClose();
                 }}
-                className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:text-slate-200 border border-slate-800 hover:border-slate-700 transition-colors cursor-pointer"
               >
                 Bỏ qua
-              </button>
+              </GothicButton>
             </div>
           </div>
         );
@@ -722,55 +751,180 @@ export default function ActionModal({
             </div>
 
             <div className="pt-2 border-t border-slate-800 flex justify-end">
-              <button
+              <GothicButton
                 type="button"
+                size="sm"
+                variant="ghost"
                 onClick={() => {
                   onSaveAction('skip_avenger');
                   onClose();
                 }}
-                className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:text-slate-200 border border-slate-800 hover:border-slate-700 transition-colors cursor-pointer"
               >
                 Bỏ qua
-              </button>
+              </GothicButton>
             </div>
           </div>
         );
       }
 
-      // ================= DI NGÔN NGƯỜI THẾ THÂN =================
+      // ================= DI NGÔN OAN NHÂN (SCAPEGOAT) =================
       case 'scapegoat_decree': {
-        const toggleBan = (id) => {
+        const allAliveIds = alivePlayers.map(p => p.id);
+
+        const togglePlayerBan = (id) => {
           setBannedVoterIds(prev => 
             prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
           );
         };
 
+        const handleSetAllBanned = () => {
+          setBannedVoterIds(allAliveIds);
+        };
+
+        const handleSetNoneBanned = () => {
+          setBannedVoterIds([]);
+        };
+
+        const handleInvert = () => {
+          setBannedVoterIds(prev => allAliveIds.filter(id => !prev.includes(id)));
+        };
+
+        const bannedCount = bannedVoterIds.length;
+        const allowedCount = alivePlayers.length - bannedCount;
+        const nominatedPlayer = alivePlayers.find(p => p.id === nominatedId);
+
         return (
           <div className="space-y-4">
-            <div className="flex items-center gap-3 p-3.5 bg-gradient-to-r from-amber-950 via-[#261505] to-[#120a02] border border-amber-700/80 rounded-2xl shadow-[0_0_20px_rgba(245,158,11,0.3)]">
-              <div className="w-10 h-10 rounded-xl bg-amber-950 border border-amber-600 flex items-center justify-center text-amber-400 shrink-0">
-                <Scale className="w-5 h-5" />
+            <div className="flex items-center justify-between p-3.5 bg-gradient-to-r from-amber-950 via-[#261505] to-[#120a02] border border-amber-700/80 rounded-2xl shadow-[0_0_20px_rgba(245,158,11,0.3)]">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-10 h-10 rounded-xl bg-amber-950 border border-amber-600 flex items-center justify-center text-amber-400 shrink-0">
+                  <Scale className="w-5 h-5" />
+                </div>
+                <div className="min-w-0">
+                  <h4 className="font-bold text-amber-200 text-sm font-cinzel">DI NGÔN OAN NHÂN</h4>
+                  <div className="text-[11px] text-amber-300/80 truncate">
+                    {decreeVariant === 'nomination'
+                      ? (nominatedPlayer ? `Đã chỉ định: #${nominatedPlayer.id} ${nominatedPlayer.name}` : 'Chỉ định 1 người lên giàn nghi vấn ngày mai')
+                      : `${bannedCount} Cấm • ${allowedCount} Được quyền vote`
+                    }
+                  </div>
+                </div>
               </div>
-              <div className="min-w-0">
-                <h4 className="font-bold text-amber-200 text-sm font-cinzel">DI NGÔN NGƯỜI THẾ THÂN</h4>
-                <p className="text-[11px] text-amber-300/80 truncate">
-                  Chỉ định người chơi bị cấm biểu quyết trong ngày tiếp theo
-                </p>
+
+              {/* VARIANT TOGGLE */}
+              <div className="flex items-center rounded-xl bg-slate-900/90 p-0.5 border border-slate-700 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setDecreeVariant('nomination')}
+                  className={`hit-44 text-[10px] px-2.5 py-1 rounded-lg font-bold transition-all cursor-pointer ${
+                    decreeVariant === 'nomination'
+                      ? 'bg-amber-950 text-amber-300 border border-amber-600 shadow-sm'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  Lên Giàn Treo
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setDecreeVariant('voters')}
+                  className={`hit-44 text-[10px] px-2.5 py-1 rounded-lg font-bold transition-all cursor-pointer ${
+                    decreeVariant === 'voters'
+                      ? 'bg-amber-950 text-amber-300 border border-amber-600 shadow-sm'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  Biểu Quyết Riêng
+                </button>
               </div>
             </div>
+
+            {decreeVariant === 'voters' && (
+              <div className="flex items-center justify-between px-1 text-xs">
+                <span className="text-[11px] text-slate-400 font-mono">
+                  {bannedCount === 0 ? 'Tất cả được bỏ phiếu' : `${bannedCount} người bị cấm`}
+                </span>
+                <div className="flex items-center gap-1">
+                  <button
+                    type="button"
+                    onClick={handleSetNoneBanned}
+                    className="hit-44 text-[10px] px-2 py-0.5 rounded-lg bg-slate-900 border border-slate-700 text-slate-300 hover:text-white cursor-pointer"
+                  >
+                    Cho phép hết
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleSetAllBanned}
+                    className="hit-44 text-[10px] px-2 py-0.5 rounded-lg bg-rose-950/60 border border-rose-700 text-rose-300 hover:text-white cursor-pointer"
+                  >
+                    Cấm hết
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleInvert}
+                    className="hit-44 text-[10px] px-2 py-0.5 rounded-lg bg-amber-950/60 border border-amber-700 text-amber-300 hover:text-white cursor-pointer"
+                  >
+                    Đảo
+                  </button>
+                </div>
+              </div>
+            )}
 
             <div className="space-y-1.5 max-h-[50vh] overflow-y-auto pr-1 custom-scrollbar">
               {alivePlayers.map(p => {
                 const isBanned = bannedVoterIds.includes(p.id);
+                const isNominated = nominatedId === p.id;
+
+                if (decreeVariant === 'nomination') {
+                  return (
+                    <button
+                      key={p.id}
+                      type="button"
+                      onClick={() => setNominatedId(prev => prev === p.id ? null : p.id)}
+                      className={`w-full flex items-center justify-between p-2.5 rounded-xl border text-left transition-all cursor-pointer ${
+                        isNominated
+                          ? 'bg-gradient-to-r from-rose-950 via-[#3a080c] to-rose-950 border-rose-500 text-white shadow-[0_0_15px_rgba(225,29,72,0.6)] ring-1 ring-rose-400'
+                          : 'bg-[#121422] border-slate-800 hover:border-amber-600/60 text-slate-300'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <div className={`w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold font-cinzel border ${
+                          isNominated ? 'bg-rose-900 border-rose-500 text-white' : 'bg-slate-900 border-slate-700 text-slate-300'
+                        }`}>
+                          #{p.id}
+                        </div>
+                        <div>
+                          <div className="font-bold text-xs text-white flex items-center gap-1.5">
+                            <span>{p.name}</span>
+                            {p.isSheriff && (
+                              <span className="text-[9px] px-1 py-0.2 rounded bg-amber-950 border border-amber-600 text-amber-300 font-bold">
+                                Trưởng Làng
+                              </span>
+                            )}
+                          </div>
+                          <div className="text-[10px] text-slate-400">{getPlayerRole(p)?.name || 'Chưa lộ vai'}</div>
+                        </div>
+                      </div>
+
+                      <span className={`text-[11px] font-bold px-2.5 py-1 rounded-lg border ${
+                        isNominated
+                          ? 'bg-rose-950 text-rose-300 border-rose-600'
+                          : 'bg-slate-900 text-slate-400 border-slate-800'
+                      }`}>
+                        {isNominated ? '⚖️ Lên Giàn Nghi Vấn' : 'Chỉ Định'}
+                      </span>
+                    </button>
+                  );
+                }
+
                 return (
                   <button
                     key={p.id}
                     type="button"
-                    onClick={() => toggleBan(p.id)}
+                    onClick={() => togglePlayerBan(p.id)}
                     className={`w-full flex items-center justify-between p-2.5 rounded-xl border text-left transition-all cursor-pointer ${
                       isBanned
                         ? 'bg-rose-950/60 border-rose-600 text-rose-100 shadow-[0_0_12px_rgba(225,29,72,0.3)]'
-                        : 'bg-[#121422] border-slate-800 hover:border-slate-700 text-slate-300'
+                        : 'bg-[#121422] border-slate-800 hover:border-amber-600/60 text-slate-300'
                     }`}
                   >
                     <div className="flex items-center gap-2.5">
@@ -780,7 +934,14 @@ export default function ActionModal({
                         #{p.id}
                       </div>
                       <div>
-                        <div className="font-bold text-xs text-white">{p.name}</div>
+                        <div className="font-bold text-xs text-white flex items-center gap-1.5">
+                          <span>{p.name}</span>
+                          {p.isSheriff && (
+                            <span className="text-[9px] px-1 py-0.2 rounded bg-amber-950 border border-amber-600 text-amber-300 font-bold">
+                              Trưởng Làng
+                            </span>
+                          )}
+                        </div>
                         <div className="text-[10px] text-slate-400">{getPlayerRole(p)?.name || 'Chưa lộ vai'}</div>
                       </div>
                     </div>
@@ -788,9 +949,9 @@ export default function ActionModal({
                     <span className={`text-[11px] font-bold px-2.5 py-1 rounded-lg border ${
                       isBanned
                         ? 'bg-rose-950 text-rose-300 border-rose-600'
-                        : 'bg-slate-900 text-slate-400 border-slate-800'
+                        : 'bg-slate-900 text-amber-300 border-amber-800/60'
                     }`}>
-                      {isBanned ? '🚫 Cấm Biểu Quyết' : 'Được Biểu Quyết'}
+                      {isBanned ? '🚫 Cấm Biểu Quyết' : '⚖️ Được Biểu Quyết'}
                     </span>
                   </button>
                 );
@@ -800,10 +961,16 @@ export default function ActionModal({
             <div className="pt-3 border-t border-slate-800 flex items-center justify-between gap-2">
               <button
                 type="button"
-                onClick={() => setBannedVoterIds([])}
+                onClick={() => {
+                  if (decreeVariant === 'nomination') {
+                    setNominatedId(null);
+                  } else {
+                    setBannedVoterIds([]);
+                  }
+                }}
                 className="text-xs text-slate-400 hover:text-white cursor-pointer px-2 py-1"
               >
-                Không cấm ai
+                Xóa lựa chọn
               </button>
               <div className="flex items-center gap-2">
                 <GothicButton
@@ -817,11 +984,15 @@ export default function ActionModal({
                   variant="gold"
                   size="sm"
                   onClick={() => {
-                    onSaveAction('scapegoat_decree', bannedVoterIds);
+                    if (decreeVariant === 'nomination') {
+                      onSaveAction('scapegoat_decree', { nominatedId, bannedVoterIds: [] });
+                    } else {
+                      onSaveAction('scapegoat_decree', { nominatedId: null, bannedVoterIds });
+                    }
                     onClose();
                   }}
                 >
-                  Xác Nhận Di Ngôn ({bannedVoterIds.length})
+                  Xác Nhận Di Ngôn
                 </GothicButton>
               </div>
             </div>
@@ -1574,6 +1745,10 @@ export default function ActionModal({
                             <img
                               src={r.image}
                               alt={r.name}
+                              width="40"
+                              height="48"
+                              loading="lazy"
+                              decoding="async"
                               className="w-full h-full object-cover"
                               onError={(e) => {
                                 e.currentTarget.style.display = 'none';
@@ -1655,12 +1830,11 @@ export default function ActionModal({
               QUẢN TRÒ THAO TÁC BÍ MẬT
             </h3>
           </div>
-          <button
+          <IconButton
+            icon={X}
+            label="Đóng cửa sổ thao tác bí mật"
             onClick={onClose}
-            className="p-1.5 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
-          >
-            <X className="w-5 h-5" />
-          </button>
+          />
         </div>
 
         {/* Body */}

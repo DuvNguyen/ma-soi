@@ -44,3 +44,15 @@ npm run build
 - **Frontend**: React 19, Vite 8, Tailwind CSS v4, Lucide Icons
 - **Backend / Database**: Neon Postgres (Serverless driver `@neondatabase/serverless`)
 - **Testing**: Playwright (Mobile Device Auditing)
+
+## 🎨 Role Art Pipeline (Tối Ưu Ảnh Thẻ Bài & Avatar)
+
+Dự án sử dụng WebP tối ưu hóa cao cho 49 thẻ vai trò (Full Card 360×540 px & Avatar vuông 160×160 px):
+
+```bash
+# Xử lý và nén ảnh sang định dạng WebP chuẩn
+npm run build:art
+```
+
+- **Quy ước đặt tên**: File ảnh được đặt theo `role.id` (ví dụ: `public/cards/<role.id>.webp` và `public/cards/avatars/<role.id>.webp`).
+- **Tự động crop thông minh**: Avatar vuông 160×160 sử dụng thuật toán crop `attention` của `sharp` để giữ nét mặt nhân vật và giảm dung lượng tải trang.
